@@ -1,0 +1,4 @@
+onlyBuiltDependencies:
+  - esbuild
+  - onnxruntime-node
+  - protobufjs

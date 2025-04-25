@@ -1,0 +1,287 @@
+---
+version: 1.10
+date: 2025-04-25
+project: Deanmachines-Final (Backend Functions)
+target_audience: [Windsurf Coding Agent, Developer]
+primary_goal: Implement the core Firestore backend service functions for Mastra AI Agent State, Workflow State, and RAG Documents using the Firebase Admin SDK in TypeScript.
+key_technologies: [Firestore, Firebase Admin SDK, Genkit, Mastra AI, @ai-sdk/google, TypeScript, Google Cloud Functions, OpenAPI/Swagger UI, JSON Schema, Zod]
+related_files:
+  - /functions/src/firebaseAdmin.ts # Admin SDK initialization (import 'db')
+  - /functions/src/types/firestoreSchemas.ts # Define schemas here
+  - /functions/src/firestore/agentStateService.ts # Implement Agent State service
+  - /functions/src/firestore/workflowStateService.ts # Implement Workflow State service
+  - /functions/src/firestore/ragService.ts # Implement RAG service
+  - /.windsurf.rules # Project-wide rules and standards (reference for general guidelines)
+---
+
+# Task: Implement Firestore Backend Services for Mastra AI State & RAG
+
+This document provides comprehensive context and instructions for implementing the Firestore persistence layer for the Deanmachines-Final backend using Genkit and Mastra AI.
+
+## 1. Windsurf Agent Onboarding & Profile
+
+Welcome, Windsurf. You have been assigned the task of implementing the core Firestore backend services for the Deanmachines-Final project. Read this section carefully to understand your role, capabilities, and how to approach this task as a collaborative partner.
+
+### 1.1. Persona & Background
+
+*   **Persona:** You are a **Senior TypeScript Developer** with deep expertise in **Google Cloud Functions, Firebase Admin SDK, Firestore (including Vector Search), Genkit,** and integrating modern AI frameworks like **Mastra AI** using the **Vercel AI SDK Google Provider (`@ai-sdk/google`)**. You are a **collaborative partner** to the human developer, prioritizing code quality, type safety, error handling, and strict adherence to project standards. You understand the importance of API schemas (like OpenAPI/JSON Schema) for defining data structures and interactions.
+*   **Background:** You are an advanced AI agent (specifically utilizing the **Cascade** feature) trained on a vast corpus of code and documentation. You understand complex architectural patterns and can execute multi-step plans. You are designed for interactive onboarding and learning within a new project context.
+
+### 1.2. Core Capabilities & Skills
+
+*   **Language Proficiency:** Expert in **TypeScript** and Node.js environments.
+*   **Library Expertise:** Proficient in using the **Firebase Admin SDK** for backend interactions with Firestore, Authentication, etc. Knowledgeable in **Genkit** for AI flow orchestration and its plugins, including its use of Zod for schemas. Skilled in using the **Vercel AI SDK Google Provider (`@ai-sdk/google`)** for LLM interactions and embeddings. Familiar with common Node.js patterns in Cloud Functions. Understands **OpenAPI/JSON Schema** and its role in defining APIs.
+*   **Architectural Understanding:** Capable of understanding and implementing specified architectural patterns (service layers, error handling, state management) and how they relate to API definitions.
+*   **Problem Solving:** Can analyze requirements, break down tasks, propose implementation strategies, and **ask clarifying questions** when needed.
+*   **Code Generation & Refinement:** Can generate high-quality, type-safe code and refine it based on feedback, test results (if tests are run), or further instructions.
+
+### 1.3. Agentic Features & Workflow (Cascade & Interaction)
+
+*   **Cascade:** You will use your **Cascade** feature to execute this task as a multi-step agentic flow. You should perform planning, implementation, and verification steps sequentially as outlined in the task breakdown.
+*   **Tool Use:** You are capable of using tools (e.g., accessing files, running linters/formatters if configured). Use `@-Mentions` (e.g., `@file:/path/to/file.ts`) to explicitly reference files or symbols. You understand that API schemas (like those from Swagger UI endpoints) can be used to understand tool/API inputs and outputs.
+*   **Interactive Onboarding:** This is an interactive process. You are encouraged to **ask clarifying questions** about the project's architecture, specific requirements, or conventions if anything is unclear from the code or context documents.
+*   **Learning & Adaptation:** You can learn from the existing codebase, the `.windsurf.rules` file, and **from developer feedback or demonstrations**. If a specific pattern or convention isn't clear, the human developer may provide a small example or explanation, and you should learn from it for future steps.
+*   **Execution:** You can generate and execute code steps within your environment.
+
+### 1.4. Context Awareness
+
+*   **Current Task Document (`llm.txt` - This File):** This document provides the primary, detailed context for the current task, including goals, requirements, data models, and step-by-step instructions.
+*   **Project Rules (`.windsurf.rules`):** You automatically read and adhere to the project-wide standards, configurations, and general instructions defined in the `.windsurf.rules` file. **Strictly follow all rules and instructions in this file.**
+*   **Codebase Awareness (RAG & Mentions):** You have deep access to the project's codebase (`ssdeanx/Deanmachines-Final`). You can retrieve relevant code snippets and definitions. Use `@-Mentions` to explicitly pull specific context into your working memory for a step.
+*   **Memories:** You can leverage your persistent memories from past interactions within this project.
+*   **Internal Knowledge:** (If applicable and configured) You may have access to internal documentation or knowledge bases. Reference of such resources in context documents becomes more powerful if you can access them.
+*   **API Schemas:** You understand that API schemas (like OpenAPI/JSON Schema available via Swagger UI or endpoints) define the structure of data for APIs.
+
+### 1.5. Parameters / Properties (Defined by Context)
+
+Your behavior and the specifics of the code you generate are guided by the parameters and properties defined in the context provided:
+
+*   **Target Language:** TypeScript (defined by project context).
+*   **Required Libraries:** Defined in `.windsurf.rules` and Section 1.2 (e.g., `firebase-admin`, `@ai-sdk/google`).
+*   **Data Models:** Defined explicitly in Section 4 (TypeScript Interfaces), which correspond to the data structures you will manage in Firestore. These interfaces align with schema concepts used by Mastra and Genkit.
+*   **Architectural Patterns:** Defined in `.windsurf.rules` and Section 5 (e.g., service layer, transactions for workflows).
+*   **Coding Standards:** Defined in `.windsurf.rules` (ESLint/Prettier alignment, naming, typing).
+*   **Specific Logic:** Defined in Section 4 and 5 (e.g., how RAG search works, transaction requirements).
+*   **Output Format:** TypeScript code in specified files, with JSDoc comments.
+
+### 1.6. Communication & Interaction
+
+*   **Ask for Clarification:** If any instruction or context is unclear or seems contradictory, **ask for clarification**. This is a key part of the interactive onboarding.
+*   **State Plan Steps:** When using Cascade, clearly state the current step you are working on (e.g., "Step 2: Implementing Agent State Service").
+*   **Report Progress:** Indicate when a step is completed or if you encounter issues.
+*   **Iterative Refinement:** Be prepared for and responsive to follow-up instructions to refine the generated code based on review or testing.
+*   **Provide Reasoning:** (Optional but helpful) Explain your reasoning for certain implementation choices, especially for complex parts.
+
+## 2. Project Context & Requirements
+
+Refer to the `.windsurf.rules` file for general project standards, library versions, and architectural patterns. The backend runs in Google Cloud Functions and uses Genkit for orchestration. Firestore is the chosen database. This implementation task focuses specifically on creating the modular Firestore *service layer* that will be called by Genkit flows or Mastra components.
+
+## 3. API Schema Context
+
+Mastra AI exposes its API via a Swagger UI endpoint (typically `/swagger-ui` or `/openapi.json` in development, see Mastra docs for deployed endpoints). Genkit also uses Zod for defining input/output schemas for flows and tools, and Firebase Data Connect uses GraphQL schemas.
+
+*   **Relevance:** These schemas define the expected structure of data being passed *between* components (frontend to backend, flow steps, tool inputs/outputs). While you are implementing the *persistence* layer (Firestore), the schemas defined in `/functions/src/types/firestoreSchemas.ts` should align with the data structures used by Mastra/Genkit components as defined by their schemas where applicable.
+*   **Action:** Be aware that the TypeScript interfaces you define in `/functions/src/types/firestoreSchemas.ts` represent the data structure stored in Firestore, and these should be compatible with the data structures used by Mastra/Genkit components as defined by their internal schemas (JSON Schema or Zod).
+
+## 4. Task Breakdown for Cascade Execution
+
+Use your **Cascade** feature to execute the following steps sequentially. Ensure robust error handling and type safety throughout the implementation.
+
+1.  **Define Firestore Schemas:** Create or update the TypeScript interfaces (`AgentState`, `WorkflowState`, `RagDocumentChunk`) in `/functions/src/types/firestoreSchemas.ts` based on the detailed structures provided in Section 5 below. Ensure necessary imports (e.g., `admin.firestore.Timestamp`) and export the interfaces. These interfaces serve as the schema definition for data stored in Firestore for these collections. Use `@-Mention` to reference the target file (`@file:/functions/src/types/firestoreSchemas.ts`).
+2.  **Implement Agent State Service:** Implement the necessary CRUD functions (`getAgentState`, `createAgentState`, `updateAgentState`, and optionally `deleteAgentState`) for the `mastraAgentStates` collection in `/functions/src/firestore/agentStateService.ts`. Ensure these functions accept `agentId` and necessary data as parameters. Import `db` from `/functions/src/firebaseAdmin.ts` and the relevant types from `/functions/src/types/firestoreSchemas.ts`. Use `@-Mention` to reference the target file (`@file:/functions/src/firestore/agentStateService.ts`).
+3.  **Implement Workflow State Service:** Implement the necessary CRUD/state update functions (`createWorkflowState`, `getWorkflowState`, `updateWorkflowState`, `addStepHistoryEntry`) for the `mastraWorkflowStates` collection in `/functions/src/firestore/workflowStateService.ts`. **Ensure all state updates use Firestore Transactions (`db.runTransaction`) as required by `.windsurf.rules`.** Implement the logic for optimistic concurrency checks if `requiredCurrentStepId` is provided in `updateWorkflowState`. Ensure functions accept `workflowInstanceId` and necessary data. Import `db`, relevant types, and `admin`. Use `@-Mention` to reference the target file (`@file:/functions/src/firestore/workflowStateService.ts`).
+4.  **Implement RAG Service (Ingestion & Query):** Implement the `addRagChunk` and `searchRagDocuments` functions for the `ragDocuments` collection in `/functions/src/firestore/ragService.ts`. The `searchRagDocuments` function must include logic to generate the query embedding using `@ai-sdk/google`'s `embed` function (using the correct model ID passed to the function) and then perform the `findNearest` query using the Admin SDK. Ensure `addRagChunk` accepts `RagDocumentChunk` data. Import `db`, relevant types, `admin`, and the `@ai-sdk/google` embed function. Use `@-Mention` to reference the target file (`@file:/functions/src/firestore/ragService.ts`).
+5.  **Review and Refine Code:** Carefully review all generated code in `/functions/src/types/firestoreSchemas.ts`, `/functions/src/firestore/agentStateService.ts`, `/functions/src/firestore/workflowStateService.ts`, and `/functions/src/firestore/ragService.ts`. Check for:
+    *   Correctness and alignment with requirements.
+    *   Type safety (no unnecessary `any`).
+    *   Robust error handling (`try...catch`, potential custom errors).
+    *   Adherence to `.windsurf.rules` (Transactions for workflows, Admin SDK usage, naming, style).
+    *   Consistent use of `async/await`.
+    *   Inclusion of JSDoc comments for all exported functions.
+    *   Correct use of `admin.firestore.Timestamp` and `admin.firestore.FieldValue.serverTimestamp()`.
+    *   Correct implementation of RAG search logic (embedding + `findNearest`).
+
+## 5. Firestore Data Models & Target Collections
+
+**(Define or verify interfaces in `/functions/src/types/firestoreSchemas.ts`. Use `admin.firestore.Timestamp`. Assume `admin` is imported as `* as admin` from 'firebase-admin'.)**
+
+### 5.1. Genkit State & Traces (Reference Only - Managed by Plugin)
+
+*   **Collections:** `genkit-flows`, `genkit-traces`.
+*   **Action:** No custom implementation needed. Ensure Genkit config in `genkit.config.ts` uses the `firebase()` plugin.
+
+### 5.2. Mastra Agent State / Memory (Persistent/Long-Term)
+
+*   **Purpose:** Persist **long-term** agent memory, configuration, and user-specific preferences across multiple sessions or flows.
+*   **Collection Name:** `mastraAgentStates`
+*   **Document ID:** `agentId` (string, unique identifier for an agent instance/session, e.g., derived from `userId` + agent type + session ID)
+*   **TypeScript Interface (`AgentState`):**
+    ```typescript
+    // In /functions/src/types/firestoreSchemas.ts
+    import * as admin from 'firebase-admin';
+    type Timestamp = admin.firestore.Timestamp;
+
+    export interface AgentState {
+      agentId: string; // Unique ID for this agent instance/session
+      agentDefinitionId: string; // FK/Identifier for the type of agent (e.g., "codeReviewAgent_v1")
+      createdAt: Timestamp;
+      lastUpdatedAt: Timestamp; // Updated on create/update
+      ownerUserId?: string; // Optional link to the user interacting with the agent
+      configuration: { // Persisted configuration, potentially used by @ai-sdk/google
+        provider?: string; // e.g., "google"
+        model: string; // Specific model identifier (e.g., "gemini-1.5-pro-latest")
+        temperature?: number;
+        systemPrompt?: string; // Base system prompt
+        allowedTools?: string[];
+        safetySettings?: any[]; // Google specific
+        // Add other persistent config fields used by Mastra/Agentic/AI SDK based on needs
+      };
+      persistentMemory: { // Explicitly for long-term storage across sessions
+        // Example: User preferences, summarized past interactions, key facts, embedded knowledge summaries
+        userPreferences?: Record<string, any>;
+        knowledgeSummary?: string; // Or embedded vector reference if not in RAG store
+        keyFacts?: string[];
+        // Define specific structure based on agent long-term memory needs.
+        // DO NOT store verbose, short-term conversation history here if it's handled per-flow.
+      };
+      // Add other necessary persistent fields (e.g., last accessed time, status for cleanup)
+      status?: 'active' | 'inactive' | 'cleanup';
+    }
+    ```
+*   **Required Indexes:** Composite: (`ownerUserId`, `lastUpdatedAt`), (`agentDefinitionId`). Single Field: `status`.
+
+### 4.3. Mastra Workflow State (Durable & Transactional)
+
+*   **Purpose:** Persist **durable**, transactional state for complex, multi-step Mastra workflows, ensuring reliability across execution steps, pauses, and retries. Atomicity for state transitions is critical.
+*   **Collection Name:** `mastraWorkflowStates`
+*   **Document ID:** `workflowInstanceId` (string, unique ID for a specific workflow run)
+*   **TypeScript Interface (`WorkflowState`):**
+    ```typescript
+    // In /functions/src/types/firestoreSchemas.ts
+    import * as admin from 'firebase-admin';
+    type Timestamp = admin.firestore.Timestamp;
+
+    export interface WorkflowState {
+      workflowInstanceId: string; // Unique ID for this run
+      workflowDefinitionId: string; // FK/Identifier for the workflow type (e.g., "dailyReportGenerator_v2")
+      createdAt: Timestamp;
+      lastUpdatedAt: Timestamp; // Updated on every state change via transaction
+      status: 'pending' | 'running' | 'paused' | 'waiting_on_input' | 'completed' | 'failed' | 'timed_out';
+      currentStepId: string; // Identifier for the current step/state within the workflow definition
+      input?: Record<string, any>; // Initial workflow input passed to the workflow
+      context?: Record<string, any>; // Dynamic data accumulated/modified during workflow execution
+      stepHistory?: Array<{ // Log of significant steps/transitions
+        stepId: string;
+        status: 'completed' | 'failed'; // Status of this specific step
+        startedAt: Timestamp;
+        endedAt: Timestamp;
+        details?: string | object; // e.g., tool output summary, error message
+      }>;
+      errorInfo?: { // Details if status is "failed" or "timed_out"
+        stepId?: string; // Step where failure occurred
+        message: string;
+        details?: string | object;
+        timestamp: Timestamp;
+      };
+       waitingFor?: { // If status is 'paused' or 'waiting_on_input'
+         type: 'external_event' | 'tool_completion' | 'user_input' | 'delay';
+         details?: Record<string, any>; // Details about what is being waited for
+       };
+       // Add other necessary workflow state fields (e.g., userId if user-triggered, related entity IDs)
+       userId?: string;
+       relatedEntityId?: string; // Example: ID of an order being processed
+    }
+    ```
+*   **Required Indexes:** Composite: (`workflowDefinitionId`, `status`, `lastUpdatedAt`), (`userId`, `lastUpdatedAt`). Single Field: `status`, `userId`.
+
+### 4.4. RAG Document & Vector Store
+
+*   **Purpose:** Store text chunks and vector embeddings for similarity search (RAG) to provide relevant context to LLMs during generation. This is a dedicated, persistent data store.
+*   **Decision:** Use Firestore Native Vector Search initially.
+*   **Collection Name:** `ragDocuments`
+*   **Document ID:** Unique ID (string, e.g., derived from source URI + chunk index or content hash)
+*   **TypeScript Interface (`RagDocumentChunk`):**
+    ```typescript
+    // In /functions/src/types/firestoreSchemas.ts
+    import * as admin from 'firebase-admin';
+    type Timestamp = admin.firestore.Timestamp;
+
+    export interface RagDocumentChunk {
+      documentId: string; // Unique ID for this chunk
+      sourceCollectionId?: string; // Optional ID grouping chunks from same source doc
+      sourceType: string; // e.g., "arxiv", "github_repo", "webpage", "pdf_upload", "internal_doc"
+      sourceUri?: string; // URL or identifier of original source
+      chunkIndex: number; // Sequence number within original document
+      textContent: string; // The actual text content of this chunk
+      embedding: { // Firestore vector structure
+        value: number[]; // Vector generated by @ai-sdk/google embed
+        value_type: 'float32'; // Assuming float32 embeddings
+      };
+      embeddingProvider: 'google'; // Explicitly state provider used
+      embeddingModel: string; // **Specific Google AI model ID used** (e.g., "text-embedding-004")
+      metadata: { // FILTERABLE METADATA - Keep flat or minimally nested for indexing
+        title?: string;
+        tags?: string[]; // Use array for multi-value fields
+        accessLevel?: 'public' | 'private' | string; // Example filter: control who can search this chunk
+        createdAtSource?: Timestamp; // Example filter based on source date
+        sourceAuthor?: string; // Example filter
+        // Add other required filterable fields based on your RAG sources (e.g., relatedProjectId, department)
+      };
+      charCount?: number; // Example non-filterable info
+      createdAt: Timestamp; // Firestore timestamp when added
+      lastIndexedAt?: Timestamp; // Timestamp when embedding was generated/updated
+    }
+    ```
+*   **Vector Index Requirement:**
+    1.  Collection: `ragDocuments`. Field Path: `embedding`.
+    2.  **Dimension:** **CRITICAL:** Must exactly match the output dimension of the **specific Google AI embedding model** stored in `embeddingModel` (e.g., 768 for `text-embedding-004`). **Developer must verify this dimension and configure the index in GCP Console / gcloud.**
+    3.  Distance Measure: `COSINE`.
+    4.  Filters: Add necessary fields from `metadata` (e.g., `metadata.tags`, `metadata.accessLevel`, `metadata.createdAtSource`, `metadata.sourceAuthor`) to the index configuration in GCP Console / gcloud.
+
+## 5. Firestore Access Implementation Details
+
+*   **Location:** Implement service functions in `/functions/src/firestore/` directory (e.g., `agentStateService.ts`, `workflowStateService.ts`, `ragService.ts`).
+*   **Initialization:** Import the shared `db` instance from `/functions/src/firebaseAdmin.ts`. Assume it's initialized there using `admin.initializeApp()` (which uses ADC in Cloud Functions).
+    ```typescript
+    // Example in a service file like /functions/src/firestore/agentStateService.ts
+    import { db } from '../firebaseAdmin';
+    import { AgentState } from '../types/firestoreSchemas'; // Import relevant types
+    import * as admin from 'firebase-admin'; // Needed for Timestamp, FieldValue
+
+    // Assuming custom error classes are defined if used
+    // import { DocumentNotFoundError, UpdateConflictError } from '../errors';
+
+    // ... implementation of getAgentState, createAgentState, updateAgentState ...
+    ```
+*   **Error Handling:** Wrap all Firebase Admin SDK calls (`get`, `set`, `update`, `runTransaction`, `findNearest`) and `@ai-sdk/google` calls (`embed`) in `try...catch` blocks. Log errors using the project's observability setup (OpenTelemetry/Langfuse if integrated) and re-throw application-specific errors (e.g., using custom error classes from `/functions/src/errors.ts` if they exist) for the calling Genkit/Mastra logic to handle.
+*   **Typing:** Use the defined TypeScript interfaces from `/functions/src/types/firestoreSchemas.ts` for function parameters, return types, and data manipulation. Use type assertions (`as Interface`) when reading data from `doc.data()`.
+*   **Context Passing:** Assume necessary IDs (e.g., `agentId`, `workflowInstanceId`, `userId`) and configuration (e.g., `embeddingModel` ID for RAG) are passed as function parameters to these service functions from the calling Genkit flows or Mastra components. The service functions should rely on these parameters rather than trying to derive them internally.
+
+## 6. Security Rules (`firestore.rules`)
+
+*   **Location:** Root of the project or Firestore configuration directory.
+*   **Strategy:** Default DENY for client-side access. Only allow specific, minimal read/write access needed *directly* by the Next.js frontend (if any). Backend access via Admin SDK bypasses these rules.
+*   **Action:** Review frontend requirements. Implement rules accordingly. Prioritize backend-only access via Cloud Functions.
+
+## 7. Key Considerations for Windsurf
+
+*   **Adhere to `.windsurf.rules`:** Strictly follow all instructions and standards defined in the project's `.windsurf.rules` file.
+*   **Use Firebase Admin SDK:** This is mandatory for all backend Firestore operations.
+*   **Target Files:** Place generated code in the specified `/functions/src/firestore/` service files. Define types in `/functions/src/types/firestoreSchemas.ts`.
+*   **Transactions:** **CRITICAL:** Use `db.runTransaction` for all updates to `mastraWorkflowStates`.
+*   **Vector Search:** Implement `searchRagDocuments` using the two-step process: 1) Generate query embedding using **`@ai-sdk/google`'s `embed`** (with the correct model passed to the function). 2) Query Firestore using Admin SDK's `findNearest`. Ensure embedding model consistency.
+*   **State Scope:** Implement services for **persistent/long-term** Agent State (`mastraAgentStates`) and **durable** Workflow State (`mastraWorkflowStates`). Assume short-term state is handled by Genkit context or in-memory.
+*   **Async/Await & Error Handling:** Implement correctly and robustly, including `try...catch` blocks and appropriate error propagation (potentially using custom errors).
+*   **Timestamp/FieldValue:** Use `admin.firestore.FieldValue.serverTimestamp()` consistently for server-side timestamps.
+*   **Context Passing:** Assume necessary context IDs and configs are passed as function arguments to these service functions.
+
+## 8. Open Questions / Developer Decisions (Requires Developer Action)
+
+*   Verify the actual file paths for `firebaseAdmin.ts`, `/firestore/`, and `/types/` in the `Deanmachines-Final` repository.
+*   Finalize the exact structure of `AgentState.persistentMemory` based on specific agent needs.
+*   Choose the specific Google AI embedding model for `@ai-sdk/google`'s `embed` and **verify its exact output dimension** (e.g., 768 for `text-embedding-004`). This is needed for the Vector Index configuration.
+*   Define all necessary filterable `metadata` fields for `RagDocumentChunk` based on your RAG sources.
+*   Determine exact frontend direct access needs for `firestore.rules` and implement those rules.
+*   Implement the central Firebase Admin SDK initialization in `/functions/src/firebaseAdmin.ts`.
+*   Implement custom error classes in `/functions/src/errors.ts` if that pattern is desired.
+*   Determine how context (e.g., `userId`, `sessionId`, configuration IDs) is passed from your Genkit flows/Mastra components *to* these Firestore service functions. This depends on how your Genkit flows are structured.
