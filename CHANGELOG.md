@@ -8,6 +8,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v0.2.2] - 2025-04-25
+
+### Added
+- Monkey-patch `LibSQLStore.init` in `src/mastra/libsql-patch.ts` to satisfy MastraStorage API  // Delete
+- Early import of `libsql-patch` in `src/mastra/index.ts` to apply the patch before creating the Mastra instance
+- Extended Agent with `evals()` and `liveEvals()` methods in `src/mastra/agents/base.agent.ts`
+- Streaming response support and LangSmith tracing integration for agents
+- Deferred `threadManager.getOrCreateThread('mastra_memory')` via `process.nextTick` in `src/mastra/database/index.ts`
+
+### Changed
+- Typed agent instance as `any` and returned `ExtendedAgent` to bypass TS type mismatches in `createAgentFromConfig`
+- Updated `createAgentFromConfig` signature to return `ExtendedAgent` instead of `Agent`
+
+### Fixed (Workarounds)
+- Added streaming for agents
+- Stubbed `storage.init()` in `createMemory` and via `libsql-patch` to avoid `TypeError: storage.init is not a function` during Mastra core initialization
+- Deferred memory thread initialization to break circular dependency causing `threadManager` to be accessed before initialization
+
+### Known Issues
+- **Storage Init Mismatch**: Mastra core’s `ensureInit` method invokes `storage.init()`, assuming storage implementations provide this hook. However, `LibSQLStore` from `@mastra/libsql` does not implement an `init` method, causing `TypeError: storage.init is not a function`. We have applied a stub as a temporary workaround, but the permanent solution requires updating the `@mastra/libsql` package or adjusting Mastra core’s storage interface.
+
+- **SigNoz Tracing Order**: Spans created in modules like `thread-manager.ts` happen at import time, before `initSigNoz()` is called in `src/mastra/index.ts`. This leads to `Error: SigNoz tracing has not been initialized successfully. Call initSigNoz first.` when creating spans. To resolve, observability (SigNoz/OpenTelemetry) must be initialized *before* any modules that call `createAISpan()` or use `getTracer()`.
+
+---
+
 ## [v0.2.1] - 2025-04-24
 
 ### Changed
@@ -473,7 +498,8 @@ const { text } = await copywriterAgent.generate(writingResult);
 - provider.utils.ts updated to prefer GOOGLE_APPLICATION_CREDENTIALS and only fallback to inline credentials if necessary.
 - Cleaned up .env recommendations: removed GOOGLE_CLIENT_EMAIL and GOOGLE_PRIVATE_KEY when using GOOGLE_APPLICATION_CREDENTIALS.
 - Confirmed model.utils.ts and config.types.ts are compatible with new Vertex AI credential handling.
-- All lint/type errors checked and resolved after changes.
+- All lint/type errors related to provider/model instantiation and type mismatches.
+- Ensured all tool schemas are patched and validated at registration.
 
 ### Changed
 

@@ -507,6 +507,11 @@ export interface BaseAgentConfig {
   /** Tool IDs that this agent has access to */
   toolIds: string[];
 
+  /** Enable streaming responses */
+  stream?: boolean;
+  /** Callback invoked for each streaming token */
+  onStream?: (token: string) => void;
+
   /** Optional response validation settings */
   responseValidation?: ResponseHookOptions;
 

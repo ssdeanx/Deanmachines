@@ -164,6 +164,9 @@ importers:
       '@lezer/highlight':
         specifier: ^1.2.1
         version: 1.2.1
+      '@libsql/client':
+        specifier: ^0.14.0
+        version: 0.14.0
       '@mastra/clickhouse':
         specifier: ^0.3.0
         version: 0.3.0(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)(zod@3.24.3)
@@ -224,6 +227,9 @@ importers:
       '@mastra/upstash':
         specifier: ^0.3.0
         version: 0.3.0(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)(zod@3.24.3)
+      '@mastra/vector-libsql':
+        specifier: 0.1.0-alpha.24
+        version: 0.1.0-alpha.24(encoding@0.1.13)(react@19.1.0)
       '@mastra/vector-pinecone':
         specifier: ^0.1.5
         version: 0.1.5(encoding@0.1.13)(react@19.1.0)
@@ -2221,6 +2227,10 @@ packages:
   '@mastra/cloudflare@0.1.0':
     resolution: {integrity: sha512-jHed5pZ7PVQxFksnzpela/+XvNBF8Q7CWlwUsCFhVLE4e3kWRN7+nOVXcDH1sbkEaUnKjpqv2/lEj1VsgnZgxw==}
 
+  '@mastra/core@0.2.1':
+    resolution: {integrity: sha512-wgwHwXQ4E+HvDkXUqT4SZ236IiMfSC46DcBT/BRNykQUmJ9SUSI36ghWBSBmVG3BiIp6gr5OPuGj5Xa8Ak90QQ==}
+    engines: {node: '>=20'}
+
   '@mastra/core@0.4.4':
     resolution: {integrity: sha512-FZWOzTFM5I0A/Iwf0U6uIAOO06sbn76ipRivWyJOGzlIGLqOilRNt4kaEc801NoXN/t1jrOKxnhkuwhQX3rkiQ==}
     engines: {node: '>=20'}
@@ -2289,6 +2299,9 @@ packages:
 
   '@mastra/upstash@0.3.0':
     resolution: {integrity: sha512-nAfCPdc/TmaaDQyRGzuCkncJI8Kyk8jfu+5cysGnNe/LXBHH28yCvAzCKouE70bpO82L1muUZoJ8dAmjpgPhjQ==}
+
+  '@mastra/vector-libsql@0.1.0-alpha.24':
+    resolution: {integrity: sha512-A6QbgRn+fEteNNJYzDiC7gbqaiWseYFFcpr8AEfgj5Rs3CypKZdSgYKqNO/mXoNkq0qVS+Bw62a6onNvpEvHaQ==}
 
   '@mastra/vector-pinecone@0.1.5':
     resolution: {integrity: sha512-45003spmUxmmdEYGtBendsusUU6xi/TWthrxgvWhqiRUm/8qzN6VqNU2O4CthCvHQdgzu+DCkldh26ecZHP1lw==}
@@ -6871,7 +6884,6 @@ packages:
 
   libsql@0.5.8:
     resolution: {integrity: sha512-+OopMI1wM/NvAJTHf3O3+beHd1YfKLnSVsOGBl3/7UBDZ4ydVadkbBk5Hjjs9d3ALC5rBaftMY59AvwyC8MzPw==}
-    cpu: [x64, arm64, wasm32]
     os: [darwin, linux, win32]
 
   lie@3.3.0:
@@ -11110,6 +11122,42 @@ snapshots:
       - zod
       - zod-openapi
 
+  '@mastra/core@0.2.1(encoding@0.1.13)(react@19.1.0)':
+    dependencies:
+      '@libsql/client': 0.14.0
+      '@opentelemetry/api': 1.9.0
+      '@opentelemetry/auto-instrumentations-node': 0.53.0(@opentelemetry/api@1.9.0)(encoding@0.1.13)
+      '@opentelemetry/core': 1.30.1(@opentelemetry/api@1.9.0)
+      '@opentelemetry/exporter-trace-otlp-http': 0.55.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/otlp-exporter-base': 0.57.2(@opentelemetry/api@1.9.0)
+      '@opentelemetry/otlp-transformer': 0.57.2(@opentelemetry/api@1.9.0)
+      '@opentelemetry/resources': 1.30.1(@opentelemetry/api@1.9.0)
+      '@opentelemetry/sdk-metrics': 1.30.1(@opentelemetry/api@1.9.0)
+      '@opentelemetry/sdk-node': 0.55.0(@opentelemetry/api@1.9.0)
+      '@opentelemetry/sdk-trace-base': 1.30.1(@opentelemetry/api@1.9.0)
+      '@opentelemetry/sdk-trace-node': 1.30.1(@opentelemetry/api@1.9.0)
+      '@opentelemetry/semantic-conventions': 1.32.0
+      ai: 4.3.10(react@19.1.0)(zod@3.24.3)
+      cohere-ai: 7.17.1(encoding@0.1.13)
+      date-fns: 3.6.0
+      dotenv: 16.5.0
+      fastembed: 1.14.4
+      json-schema: 0.4.0
+      node_modules-path: 2.0.8
+      pino: 9.6.0
+      pino-pretty: 13.0.0
+      radash: 12.1.0
+      sift: 17.1.3
+      xstate: 5.19.2
+      zod: 3.24.3
+    transitivePeerDependencies:
+      - aws-crt
+      - bufferutil
+      - encoding
+      - react
+      - supports-color
+      - utf-8-validate
+
   '@mastra/core@0.4.4(encoding@0.1.13)(react@19.1.0)':
     dependencies:
       '@libsql/client': 0.14.0
@@ -11665,6 +11713,18 @@ snapshots:
       - valibot
       - zod
       - zod-openapi
+
+  '@mastra/vector-libsql@0.1.0-alpha.24(encoding@0.1.13)(react@19.1.0)':
+    dependencies:
+      '@libsql/client': 0.14.0
+      '@mastra/core': 0.2.1(encoding@0.1.13)(react@19.1.0)
+    transitivePeerDependencies:
+      - aws-crt
+      - bufferutil
+      - encoding
+      - react
+      - supports-color
+      - utf-8-validate
 
   '@mastra/vector-pinecone@0.1.5(encoding@0.1.13)(react@19.1.0)':
     dependencies:
@@ -16932,7 +16992,7 @@ snapshots:
       isstream: 0.1.2
       jsonwebtoken: 9.0.2
       mime-types: 2.1.35
-      retry-axios: 2.6.0(axios@1.9.0(debug@4.4.0))
+      retry-axios: 2.6.0(axios@1.9.0)
       tough-cookie: 4.1.4
     transitivePeerDependencies:
       - supports-color
@@ -18699,7 +18759,7 @@ snapshots:
       onetime: 5.1.2
       signal-exit: 3.0.7
 
-  retry-axios@2.6.0(axios@1.9.0(debug@4.4.0)):
+  retry-axios@2.6.0(axios@1.9.0):
     dependencies:
       axios: 1.9.0(debug@4.4.0)
 

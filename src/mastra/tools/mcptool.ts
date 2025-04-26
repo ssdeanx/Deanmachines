@@ -67,17 +67,6 @@ export async function createMastraMcpTools(config?: {
         smitheryKey!,
       ],
     },
-    "clear-thought": {
-      command: "npx",
-      args: [
-        "-y",
-        "@smithery/cli@latest",
-        "run",
-        "@waldzellai/clear-thought",
-        "--key",
-        smitheryKey!,
-      ],
-    },
     "mermaid-mcp-server": {
       command: "npx",
       args: [
@@ -89,28 +78,17 @@ export async function createMastraMcpTools(config?: {
         smitheryKey!,
       ],
     },
-    "deepview-mcp": {
-      command: "npx",
-      args: [
-        "-y",
-        "@smithery/cli@latest",
-        "run",
-        "@ai-1st/deepview-mcp",
-        "--key",
-        smitheryKey!,
-      ],
-    },
-    "n8n-workflow-builder": {
-      command: "npx",
-      args: [
-        "-y",
-        "@smithery/cli@latest",
-        "run",
-        "@Jimmy974/n8n-workflow-builder",
-        "--key",
-        smitheryKey!,
-      ],
-    },
+    // "n8n-workflow-builder": {
+    //   command: "npx",
+    //   args: [
+    //     "-y",
+    //     "@smithery/cli@latest",
+    //     "run",
+    //     "@Jimmy974/n8n-workflow-builder",
+    //     "--key",
+    //     smitheryKey!,
+    //   ],
+    // },
   };
 
   const servers = config?.servers

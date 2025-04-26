@@ -10,6 +10,8 @@
  * `npx mastra openapi --output ./api.json`
  */
 
+
+
 import { Mastra } from "@mastra/core";
 import { createLogger } from "@mastra/core/logger";
 import { initObservability } from "./services"; // Initialize telemetry services
@@ -17,6 +19,7 @@ import agents from "./agents"; // Central agent registry map
 import { ragWorkflow, multiAgentWorkflow } from "./workflows";
 // Import agent networks from the networks file
 import { networks } from "./workflows/Networks/agentNetwork";
+
 
 // Initialize telemetry (SigNoz + OpenTelemetry) as early as possible
 initObservability({
@@ -26,7 +29,7 @@ initObservability({
   exporters: [
     {
       type: 'otlp',
-      endpoint: 'http://host.docker.internal:4318/'
+      endpoint: 'http://localhost:4318/'
     }
   ],
 });
@@ -60,5 +63,3 @@ if (agentCount > 0) {
 if (networkCount > 0) {
   logger.debug(`Registered Network IDs: ${Object.keys(networks).join(", ")}`);
 }
-
-

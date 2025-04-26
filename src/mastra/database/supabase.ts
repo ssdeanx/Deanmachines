@@ -39,7 +39,7 @@ const defaultMemoryConfig: MemoryConfig = {
   semanticRecall: {
     topK: 8,
     messageRange: {
-      before: 4,
+      before: 6,
       after: 2,
     },
   },
@@ -60,7 +60,7 @@ const defaultMemoryConfig: MemoryConfig = {
 export function createMemory(
   options: Partial<MemoryConfig> = defaultMemoryConfig
 ): Memory {
-  const connectionString = process.env.DATABASE_URL!;
+  const connectionString = process.env.SUPABASE_URL;
   // Initialize PostgreSQL storage
   const storage = new PostgresStore({
     connectionString,

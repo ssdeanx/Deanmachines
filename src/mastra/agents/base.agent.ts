@@ -10,7 +10,7 @@ import { Agent } from "@mastra/core/agent";
 import { Tool } from "@mastra/core/tools";
 import { createLogger } from "@mastra/core/logger";
 import { MastraVoice } from "@mastra/core/voice"; // Import MastraVoice type
-import { sharedMemory } from "../database";
+import { sharedMemory } from "../database/supabase";
 import {
   BaseAgentConfig, // Make sure this reflects the updated interface
   defaultErrorHandler,
@@ -28,6 +28,7 @@ import * as MastraTypes from "../types";
 import { AgentConfigError } from "../types";
 import { createVoice } from '../voice'; // Import the voice factory function
 import { configureLangSmithTracing } from "../services/langsmith"; // add LangSmith import
+import * as evalTools from "../tools/evals";
 
 // Configure logger for agent initialization
 const logger = createLogger({ name: "agent-initialization", level: "info" });
@@ -37,6 +38,13 @@ const langsmithClient = configureLangSmithTracing();
 if (langsmithClient) {
   logger.info("LangSmith tracing enabled for Mastra agents");
 }
+
+// Extend Agent with evaluation methods
+type EvalInputs = Record<string, any>;
+type EvalOutputs = Record<string, any>;
+type EvalsMethod = (inputs?: EvalInputs) => Promise<EvalOutputs>;
+type LiveEvalsMethod = (inputs?: EvalInputs) => AsyncGenerator<{ toolId: string; [k: string]: any }>;
+type ExtendedAgent = Agent & { evals: EvalsMethod; liveEvals: LiveEvalsMethod };
 
 /**
  * Creates an agent instance from a configuration object and options
@@ -56,7 +64,7 @@ export function createAgentFromConfig({
   config: BaseAgentConfig;
   memory: typeof sharedMemory;
   onError?: (error: Error) => Promise<{ text: string }>;
-}): Agent {
+}): ExtendedAgent {
   // Validate configuration
   if (!config.id || !config.name || !config.instructions) {
     throw new AgentConfigError(
@@ -123,17 +131,49 @@ export function createAgentFromConfig({
     }
     // --- End Voice Instance Creation ---
 
-    // Create and return the agent instance
-    return new Agent({
+    // Create the Agent instance
+    const agent: any = new Agent({
       model,
       memory,
       name: config.name,
       instructions: config.instructions,
       tools,
       ...(voiceInstance ? { voice: voiceInstance } : {}), // Conditionally add voice instance
+      ...(config.stream !== undefined ? { stream: config.stream } : {}),
+      ...(config.onStream ? { onStream: config.onStream } : {}),
       ...(responseHook ? { onResponse: responseHook } : {}),
       ...(onError ? { onError } : {}),
     });
+
+    // Attach evaluation methods
+    const evalToolList = Object.values(evalTools) as any[];
+    agent.evals = async (inputs: EvalInputs = {}) => {
+      const results: EvalOutputs = {};
+      for (const tool of evalToolList) {
+        const fn = tool.execute;
+        if (typeof fn !== "function") continue;
+        try {
+          const out = await fn({ context: inputs } as any);
+          results[tool.id] = out;
+        } catch (err: any) {
+          results[tool.id] = { success: false, error: err instanceof Error ? err.message : String(err) };
+        }
+      }
+      return results;
+    };
+    agent.liveEvals = async function* (inputs: EvalInputs = {}) {
+      for (const tool of evalToolList) {
+        const fn = tool.execute;
+        if (typeof fn !== "function") continue;
+        try {
+          const out = await fn({ context: inputs } as any);
+          yield { toolId: tool.id, ...(out as object) };
+        } catch (err: any) {
+          yield { toolId: tool.id, success: false, error: err instanceof Error ? err.message : String(err) };
+        }
+      }
+    };
+    return agent as ExtendedAgent;
   } catch (error) {
     // Catch errors during Agent instantiation as well
     const errorMsg = `Failed to create agent ${config.id}: ${error instanceof Error ? error.message : String(error)}`;
@@ -166,4 +206,3 @@ export async function getOrCreateAgentThread(
     throw error;
   }
 }
-
