@@ -1,0 +1,10 @@
+
+{
+"compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "outDir": ".mastra",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true
+    }
+}
