@@ -13,7 +13,6 @@ Welcome to the **DeanMachines Mastra AI Workspace**! This monorepo contains the 
   - [Directory Structure](#directory-structure)
   - [Key Concepts](#key-concepts)
   - [Architecture Overview (Mermaid)](#architecture-overview-mermaid)
-  - [Agent-Tool-LLM Data Flow (Mermaid)](#agent-tool-llm-data-flow-mermaid)
   - [Agent Types](#agent-types)
   - [Tooling System](#tooling-system)
   - [Memory \& Database](#memory--database)
@@ -220,85 +219,92 @@ README.md
 ## Architecture Overview (Mermaid)
 
 ```mermaid
-flowchart TD
-    subgraph Agents
-      A1[Research Agent]
-      A2[RL Trainer Agent]
-      A3[Writer Agent]
-      A4[Coder Agent]
-      A5[Analyst Agent]
-      A6[MarketResearch Agent]
-      A7[Copywriter Agent]
-      A8[SocialMedia Agent]
-      A9[UiUxCoder Agent]
-      A10[CodeDocumenter Agent]
-      A11[DataManager Agent]
-      A12[SeoAgent]
-    end
-    subgraph ToolRegistry
-      T1[Search Tools (Brave, Google, Tavily, Exa)]
-      T2[RL Feedback Tools]
-      T3[Eval Tools (Vertex LLM, heuristics)]
-      T4[Memory Query Tool]
-      T5[Calculator]
-      T6[Content Tools]
-      T7[Document Tools]
-      T8[GitHub Tools]
-      T9[GraphRag Tools]
-    end
-    subgraph LLMProviders
-      L1[Google]
-      L2[Vertex AI]
-      L3[OpenAI]
-    end
-    subgraph Observability
-      O1[SigNoz]
-      O2[OpenTelemetry]
-    end
-    subgraph Storage
-      S1[LibSQL]
-      S2[Redis]
-      S3[UpstashVector]
-      S4[Pinecone]
-    end
-    A1-->|uses|ToolRegistry
-    A2-->|uses|ToolRegistry
-    A3-->|uses|ToolRegistry
-    A4-->|uses|ToolRegistry
-    A5-->|uses|ToolRegistry
-    A6-->|uses|ToolRegistry
-    A7-->|uses|ToolRegistry
-    A8-->|uses|ToolRegistry
-    A9-->|uses|ToolRegistry
-    A10-->|uses|ToolRegistry
-    A11-->|uses|ToolRegistry
-    A12-->|uses|ToolRegistry
-    ToolRegistry-->|calls|LLMProviders
-    ToolRegistry-->|reads/writes|Storage
-    ToolRegistry-->|logs|Observability
-    Agents-->|stores context|Storage
-    Agents-->|emits traces|Observability
-```
+graph TD
 
----
-
-## Agent-Tool-LLM Data Flow (Mermaid)
-
-```mermaid
-sequenceDiagram
-    participant User
-    participant Agent
-    participant ToolRegistry
-    participant Tool
-    participant LLM
-    participant Memory
-    User->>Agent: User query
-    Agent->>ToolRegistry: Find tool for task (by toolId)
-    ToolRegistry->>Tool: Call tool (e.g. search, eval, RL)
-    Tool->>LLM: (if LLM-based) Generate/score
-    Tool->>Memory: (if needed) Read/write context
-    Tool->>Agent: Return result
-    Agent->>User: Respond with answer
+    subgraph 11076["External Systems"]
+        11106["LLM Providers<br>Google AI / OpenAI / Anthropic / Ollama / Vertex AI"]
+        11107["Observability Platforms<br>LangSmith / SigNoz / Langfuse"]
+        11108["Search Services<br>Tavily / ExaSearch / Google / Brave / Bing"]
+        11109["Data Sources<br>Wikidata / Wikipedia / Reddit / Polygon / ArXiv / GitHub"]
+        11110["Cloud Storage/Docs<br>Google Drive / Google Docs"]
+        11111["Web Automation &amp; Sandbox<br>Puppeteer / Hyperbrowser / E2B"]
+        11112["Image Generation<br>Midjourney"]
+        11113["Content Extraction<br>Jina"]
+        11114["Voice Synthesis Services<br>Google Voice / ElevenLabs"]
+        11115["Collaboration Tools<br>Notion (Future)"]
+        11116["Diagramming Tools<br>Mermaid (Future)"]
+    end
+    subgraph 11077["Data Stores"]
+        11102["Vector Databases<br>Pinecone / Upstash / PgVector / Redis"]
+        11103["Key-Value &amp; Cache<br>Redis / Upstash"]
+        11104["Relational Database<br>Supabase (Postgres) / LibSQL"]
+        11105["Logging Store<br>Upstash Logs / Filesystem"]
+    end
+    subgraph 11078["Mastra Core System"]
+        11084["Mastra Entry Point<br>TypeScript"]
+        11085["Core Types<br>TypeScript"]
+        11086["Utilities<br>TypeScript"]
+        11099["Voice Synthesis<br>TypeScript"]
+        11100["Agent Hooks<br>TypeScript"]
+        11101["Integrations<br>TypeScript"]
+        subgraph 11079["Data Access Layer"]
+            11097["Data Access &amp; Abstraction<br>TypeScript"]
+            11098["Logging<br>TypeScript"]
+        end
+        subgraph 11080["Core Services"]
+            11094["Observability &amp; Tracing<br>TypeScript"]
+            11095["LangChain Integration<br>TypeScript"]
+            11096["External Service Clients<br>TypeScript"]
+        end
+        subgraph 11081["Tools"]
+            11092["Tool Implementations<br>TypeScript"]
+            11093["Future Tools<br>TypeScript"]
+            %% Edges at this level (grouped by source)
+            11092["Tool Implementations<br>TypeScript"] -->|includes| 11093["Future Tools<br>TypeScript"]
+        end
+        subgraph 11082["Agents"]
+            11090["Agent Definitions<br>TypeScript"]
+            11091["Agent Configuration<br>TypeScript"]
+            %% Edges at this level (grouped by source)
+            11090["Agent Definitions<br>TypeScript"] -->|uses configuration from| 11091["Agent Configuration<br>TypeScript"]
+        end
+        subgraph 11083["Workflows"]
+            11087["Workflow Engine<br>TypeScript"]
+            11088["Workflow Definitions<br>TypeScript"]
+            11089["Agent Networks<br>TypeScript"]
+        end
+        %% Edges at this level (grouped by source)
+        11090["Agent Definitions<br>TypeScript"] -->|reports to| 11094["Observability &amp; Tracing<br>TypeScript"]
+        11090["Agent Definitions<br>TypeScript"] -->|uses| 11085["Core Types<br>TypeScript"]
+        11090["Agent Definitions<br>TypeScript"] -->|uses| 11086["Utilities<br>TypeScript"]
+        11090["Agent Definitions<br>TypeScript"] -->|can be invoked by| 11087["Workflow Engine<br>TypeScript"]
+        11090["Agent Definitions<br>TypeScript"] -->|uses| 11092["Tool Implementations<br>TypeScript"]
+        11090["Agent Definitions<br>TypeScript"] -->|accesses state via| 11097["Data Access &amp; Abstraction<br>TypeScript"]
+        11090["Agent Definitions<br>TypeScript"] -->|uses| 11099["Voice Synthesis<br>TypeScript"]
+        11090["Agent Definitions<br>TypeScript"] -->|uses| 11100["Agent Hooks<br>TypeScript"]
+        11084["Mastra Entry Point<br>TypeScript"] -->|initializes| 11090["Agent Definitions<br>TypeScript"]
+        11087["Workflow Engine<br>TypeScript"] -->|orchestrates| 11090["Agent Definitions<br>TypeScript"]
+        11087["Workflow Engine<br>TypeScript"] -->|uses| 11092["Tool Implementations<br>TypeScript"]
+        11089["Agent Networks<br>TypeScript"] -->|contain| 11090["Agent Definitions<br>TypeScript"]
+        11092["Tool Implementations<br>TypeScript"] -->|reports to| 11094["Observability &amp; Tracing<br>TypeScript"]
+        11092["Tool Implementations<br>TypeScript"] -->|uses| 11085["Core Types<br>TypeScript"]
+        11092["Tool Implementations<br>TypeScript"] -->|uses| 11086["Utilities<br>TypeScript"]
+        11092["Tool Implementations<br>TypeScript"] -->|accesses data via| 11097["Data Access &amp; Abstraction<br>TypeScript"]
+    end
+    %% Edges at this level (grouped by source)
+    11101["Integrations<br>TypeScript"] -->|interacts with| 11109["Data Sources<br>Wikidata / Wikipedia / Reddit / Polygon / ArXiv / GitHub"]
+    11099["Voice Synthesis<br>TypeScript"] -->|interacts with| 11114["Voice Synthesis Services<br>Google Voice / ElevenLabs"]
+    11097["Data Access &amp; Abstraction<br>TypeScript"] -->|interacts with| 11102["Vector Databases<br>Pinecone / Upstash / PgVector / Redis"]
+    11097["Data Access &amp; Abstraction<br>TypeScript"] -->|interacts with| 11103["Key-Value &amp; Cache<br>Redis / Upstash"]
+    11097["Data Access &amp; Abstraction<br>TypeScript"] -->|interacts with| 11104["Relational Database<br>Supabase (Postgres) / LibSQL"]
+    11097["Data Access &amp; Abstraction<br>TypeScript"] -->|interacts with| 11105["Logging Store<br>Upstash Logs / Filesystem"]
+    11097["Data Access &amp; Abstraction<br>TypeScript"] -->|uses embeddings from| 11106["LLM Providers<br>Google AI / OpenAI / Anthropic / Ollama / Vertex AI"]
+    11098["Logging<br>TypeScript"] -->|writes logs to| 11105["Logging Store<br>Upstash Logs / Filesystem"]
+    11098["Logging<br>TypeScript"] -->|may send logs to| 11107["Observability Platforms<br>LangSmith / SigNoz / Langfuse"]
+    11095["LangChain Integration<br>TypeScript"] -->|interacts with| 11106["LLM Providers<br>Google AI / OpenAI / Anthropic / Ollama / Vertex AI"]
+    11094["Observability &amp; Tracing<br>TypeScript"] -->|sends data to| 11107["Observability Platforms<br>LangSmith / SigNoz / Langfuse"]
+    11096["External Service Clients<br>TypeScript"] -->|interacts with| 11108["Search Services<br>Tavily / ExaSearch / Google / Brave / Bing"]
+    11096["External Service Clients<br>TypeScript"] -->|interacts with| 11111["Web Automation &amp; Sandbox<br>Puppeteer / Hyperbrowser / E2B"]
 ```
 
 ---
@@ -650,90 +656,93 @@ If you are a new contributor or AI assistant, please review this README and the 
 
 ```mermaid
 graph TD
+    subgraph "Agents"
+        masterAgent["Master Agent"]
+        researchAgent["Research Agent"]
+        analystAgent["Analyst Agent"]
+        writerAgent["Writer Agent"]
+        coderAgent["Coder Agent"]
+        debuggerAgent["Debugger Agent"]
+        architectAgent["Architect Agent"]
+        dataManager["Data Manager Agent"]
+        rlTrainer["RL Trainer Agent"]
+    end
 
-    subgraph 11076["External Systems"]
-        11106["LLM Providers<br>Google AI / OpenAI / Anthropic / Ollama / Vertex AI"]
-        11107["Observability Platforms<br>LangSmith / SigNoz / Langfuse"]
-        11108["Search Services<br>Tavily / ExaSearch / Google / Brave / Bing"]
-        11109["Data Sources<br>Wikidata / Wikipedia / Reddit / Polygon / ArXiv / GitHub"]
-        11110["Cloud Storage/Docs<br>Google Drive / Google Docs"]
-        11111["Web Automation &amp; Sandbox<br>Puppeteer / Hyperbrowser / E2B"]
-        11112["Image Generation<br>Midjourney"]
-        11113["Content Extraction<br>Jina"]
-        11114["Voice Synthesis Services<br>Google Voice / ElevenLabs"]
-        11115["Collaboration Tools<br>Notion (Future)"]
-        11116["Diagramming Tools<br>Mermaid (Future)"]
+    subgraph "Databases"
+        memory["Memory DB"]
+        pinecone["Pinecone Vector DB"]
+        supabase["Supabase DB"]
+        redis["Redis Cache"]
     end
-    subgraph 11077["Data Stores"]
-        11102["Vector Databases<br>Pinecone / Upstash / PgVector / Redis"]
-        11103["Key-Value &amp; Cache<br>Redis / Upstash"]
-        11104["Relational Database<br>Supabase (Postgres) / LibSQL"]
-        11105["Logging Store<br>Upstash Logs / Filesystem"]
-    end
-    subgraph 11078["Mastra Core System"]
-        11084["Mastra Entry Point<br>TypeScript"]
-        11085["Core Types<br>TypeScript"]
-        11086["Utilities<br>TypeScript"]
-        11099["Voice Synthesis<br>TypeScript"]
-        11100["Agent Hooks<br>TypeScript"]
-        11101["Integrations<br>TypeScript"]
-        subgraph 11079["Data Access Layer"]
-            11097["Data Access &amp; Abstraction<br>TypeScript"]
-            11098["Logging<br>TypeScript"]
-        end
-        subgraph 11080["Core Services"]
-            11094["Observability &amp; Tracing<br>TypeScript"]
-            11095["LangChain Integration<br>TypeScript"]
-            11096["External Service Clients<br>TypeScript"]
-        end
-        subgraph 11081["Tools"]
-            11092["Tool Implementations<br>TypeScript"]
-            11093["Future Tools<br>TypeScript"]
-            %% Edges at this level (grouped by source)
-            11092["Tool Implementations<br>TypeScript"] -->|includes| 11093["Future Tools<br>TypeScript"]
-        end
-        subgraph 11082["Agents"]
-            11090["Agent Definitions<br>TypeScript"]
-            11091["Agent Configuration<br>TypeScript"]
-            %% Edges at this level (grouped by source)
-            11090["Agent Definitions<br>TypeScript"] -->|uses configuration from| 11091["Agent Configuration<br>TypeScript"]
-        end
-        subgraph 11083["Workflows"]
-            11087["Workflow Engine<br>TypeScript"]
-            11088["Workflow Definitions<br>TypeScript"]
-            11089["Agent Networks<br>TypeScript"]
-        end
-        %% Edges at this level (grouped by source)
-        11090["Agent Definitions<br>TypeScript"] -->|reports to| 11094["Observability &amp; Tracing<br>TypeScript"]
-        11090["Agent Definitions<br>TypeScript"] -->|uses| 11085["Core Types<br>TypeScript"]
-        11090["Agent Definitions<br>TypeScript"] -->|uses| 11086["Utilities<br>TypeScript"]
-        11090["Agent Definitions<br>TypeScript"] -->|can be invoked by| 11087["Workflow Engine<br>TypeScript"]
-        11090["Agent Definitions<br>TypeScript"] -->|uses| 11092["Tool Implementations<br>TypeScript"]
-        11090["Agent Definitions<br>TypeScript"] -->|accesses state via| 11097["Data Access &amp; Abstraction<br>TypeScript"]
-        11090["Agent Definitions<br>TypeScript"] -->|uses| 11099["Voice Synthesis<br>TypeScript"]
-        11090["Agent Definitions<br>TypeScript"] -->|uses| 11100["Agent Hooks<br>TypeScript"]
-        11084["Mastra Entry Point<br>TypeScript"] -->|initializes| 11090["Agent Definitions<br>TypeScript"]
-        11087["Workflow Engine<br>TypeScript"] -->|orchestrates| 11090["Agent Definitions<br>TypeScript"]
-        11087["Workflow Engine<br>TypeScript"] -->|uses| 11092["Tool Implementations<br>TypeScript"]
-        11089["Agent Networks<br>TypeScript"] -->|contain| 11090["Agent Definitions<br>TypeScript"]
-        11092["Tool Implementations<br>TypeScript"] -->|reports to| 11094["Observability &amp; Tracing<br>TypeScript"]
-        11092["Tool Implementations<br>TypeScript"] -->|uses| 11085["Core Types<br>TypeScript"]
-        11092["Tool Implementations<br>TypeScript"] -->|uses| 11086["Utilities<br>TypeScript"]
-        11092["Tool Implementations<br>TypeScript"] -->|accesses data via| 11097["Data Access &amp; Abstraction<br>TypeScript"]
-    end
-    %% Edges at this level (grouped by source)
-    11101["Integrations<br>TypeScript"] -->|interacts with| 11109["Data Sources<br>Wikidata / Wikipedia / Reddit / Polygon / ArXiv / GitHub"]
-    11099["Voice Synthesis<br>TypeScript"] -->|interacts with| 11114["Voice Synthesis Services<br>Google Voice / ElevenLabs"]
-    11097["Data Access &amp; Abstraction<br>TypeScript"] -->|interacts with| 11102["Vector Databases<br>Pinecone / Upstash / PgVector / Redis"]
-    11097["Data Access &amp; Abstraction<br>TypeScript"] -->|interacts with| 11103["Key-Value &amp; Cache<br>Redis / Upstash"]
-    11097["Data Access &amp; Abstraction<br>TypeScript"] -->|interacts with| 11104["Relational Database<br>Supabase (Postgres) / LibSQL"]
-    11097["Data Access &amp; Abstraction<br>TypeScript"] -->|interacts with| 11105["Logging Store<br>Upstash Logs / Filesystem"]
-    11097["Data Access &amp; Abstraction<br>TypeScript"] -->|uses embeddings from| 11106["LLM Providers<br>Google AI / OpenAI / Anthropic / Ollama / Vertex AI"]
-    11098["Logging<br>TypeScript"] -->|writes logs to| 11105["Logging Store<br>Upstash Logs / Filesystem"]
-    11098["Logging<br>TypeScript"] -->|may send logs to| 11107["Observability Platforms<br>LangSmith / SigNoz / Langfuse"]
-    11095["LangChain Integration<br>TypeScript"] -->|interacts with| 11106["LLM Providers<br>Google AI / OpenAI / Anthropic / Ollama / Vertex AI"]
-    11094["Observability &amp; Tracing<br>TypeScript"] -->|sends data to| 11107["Observability Platforms<br>LangSmith / SigNoz / Langfuse"]
-    11096["External Service Clients<br>TypeScript"] -->|interacts with| 11108["Search Services<br>Tavily / ExaSearch / Google / Brave / Bing"]
-    11096["External Service Clients<br>TypeScript"] -->|interacts with| 11111["Web Automation &amp; Sandbox<br>Puppeteer / Hyperbrowser / E2B"]
 
+    subgraph "Tools"
+        vectorQuery["Vector Query Tools"]
+        fileOps["File Operations"]
+        searchTools["Search Tools"]
+        githubTools["GitHub Tools"]
+        evalTools["Evaluation Tools"]
+        docTools["Document Tools"]
+        rlTools["RL Tools"]
+    end
+
+    subgraph "Networks"
+        deanInsights["DeanInsights Network"]
+        dataFlow["DataFlow Network"]
+        contentCreation["ContentCreation Network"]
+        knowledgeWorkMoE["Knowledge Work MoE"]
+    end
+
+    subgraph "Core Services"
+        threadManager["Thread Manager"]
+        langchain["LangChain Service"]
+        tracing["Tracing Service"]
+        langsmith["LangSmith Service"]
+    end
+
+    masterAgent --> deanInsights
+    masterAgent --> dataFlow
+    masterAgent --> contentCreation
+    masterAgent --> knowledgeWorkMoE
+
+    deanInsights --> researchAgent
+    deanInsights --> analystAgent
+    deanInsights --> writerAgent
+    deanInsights --> rlTrainer
+    deanInsights --> dataManager
+
+    dataFlow --> dataManager
+    dataFlow --> analystAgent
+    dataFlow --> rlTrainer
+
+    contentCreation --> researchAgent
+    contentCreation --> writerAgent
+    contentCreation --> rlTrainer
+
+    knowledgeWorkMoE --> researchAgent
+    knowledgeWorkMoE --> analystAgent
+    knowledgeWorkMoE --> coderAgent
+    knowledgeWorkMoE --> debuggerAgent
+    knowledgeWorkMoE --> architectAgent
+
+    researchAgent --> vectorQuery
+    researchAgent --> searchTools
+    analystAgent --> vectorQuery
+    writerAgent --> docTools
+    coderAgent --> githubTools
+    debuggerAgent --> evalTools
+    dataManager --> fileOps
+    rlTrainer --> rlTools
+
+    vectorQuery --> pinecone
+    fileOps --> supabase
+    searchTools --> redis
+
+    threadManager --> memory
+    langchain --> memory
+    tracing --> langsmith
+
+    deanInsights --> threadManager
+    dataFlow --> threadManager
+    contentCreation --> threadManager
+    knowledgeWorkMoE --> threadManager
 ```
