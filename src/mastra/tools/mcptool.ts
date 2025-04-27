@@ -23,28 +23,28 @@ export async function createMastraMcpTools(config?: {
   logger.info(`[MCP] Initializing MCPConfiguration with timeout: ${effectiveTimeout}ms`);
 
   const defaultServers = {
-  //  mastra: {
-   //   command: "npx",
-  //    args: ["-y", "@mastra/mcp-docs-server@latest"],
- //   },
- //   docker: {
- //     command: "docker",
-  //    args: [
-   //     "run", "-i", "--rm", "alpine/socat",
-  //      "STDIO", "TCP:host.docker.internal:8811"
- //     ],
-  //  },
-//    "mcp-pandoc": {
-//      command: "npx",
-//      args: [
-//        "-y",
-//        "@smithery/cli@latest",
-//        "run",
- //       "mcp-pandoc",
-  //      "--key",
-   //     smitheryKey!,
-   //   ],
-   // },
+    //  mastra: {
+    //   command: "npx",
+    //    args: ["-y", "@mastra/mcp-docs-server@latest"],
+    //   },
+    //   docker: {
+    //     command: "docker",
+    //    args: [
+    //     "run", "-i", "--rm", "alpine/socat",
+    //      "STDIO", "TCP:host.docker.internal:8811"
+    //     ],
+    //  },
+    //    "mcp-pandoc": {
+    //      command: "npx",
+    //      args: [
+    //        "-y",
+    //        "@smithery/cli@latest",
+    //        "run",
+    //       "mcp-pandoc",
+    //      "--key",
+    //     smitheryKey!,
+    //   ],
+    // },
     "claudedesktopcommander": {
       command: "npx",
       args: [
@@ -67,17 +67,30 @@ export async function createMastraMcpTools(config?: {
         smitheryKey!,
       ],
     },
- //   "mermaid-mcp-server": {
- //     command: "npx",
- //     args: [
- //       "-y",
-  //      "@smithery/cli@latest",
-  //      "run",
-   //     "@peng-shawn/mermaid-mcp-server",
-  //      "--key",
-   //     smitheryKey!,
- //     ],
-  //  },
+    "mcp-logseq": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "C:/Users/dm/Documents/mcp/mcp-logseq-server/src/mcp_logseq",
+        "run",
+        "mcp-logseq"
+      ],
+      "env": {
+        "LOGSEQ_API_TOKEN": "7285",
+        "LOGSEQ_API_URL": "http://localhost:12315"
+      }
+    },
+    //   "mermaid-mcp-server": {
+    //     command: "npx",
+    //     args: [
+    //       "-y",
+    //      "@smithery/cli@latest",
+    //      "run",
+    //     "@peng-shawn/mermaid-mcp-server",
+    //      "--key",
+    //     smitheryKey!,
+    //     ],
+    //  },
     // "n8n-workflow-builder": {
     //   command: "npx",
     //   args: [
