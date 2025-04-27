@@ -1,9 +1,42 @@
+import { 
+
+  GetSelfResponseSchema,
+
+  GetUserResponseSchema,
+
+  ListUsersResponseSchema,
+
+  GetPageResponseSchema,
+  UpdatePageResponseSchema,
+  CreatePageResponseSchema,
+  GetDatabaseResponseSchema,
+  QueryDatabaseResponseSchema,
+  GetBlockResponseSchema,
+  ListBlockChildrenResponseSchema,
+  AppendBlockChildrenResponseSchema,
+  GetSelfResponse,
+  GetUserResponse,
+  ListUsersResponse,
+  GetPageResponse,
+  UpdatePageResponse,
+  CreatePageResponse,
+  GetDatabaseResponse,
+  QueryDatabaseResponse,
+  GetBlockResponse,
+  ListBlockChildrenResponse,
+  AppendBlockChildrenResponse
+} from './notionSchema'
 import { z } from 'zod'
 
-export namespace notion {
-  export const apiBaseUrl = 'https://api.notion.so'
+/**
+ * A record of all Zod schemas & TS types for Notion,
+ * re-exported under a single `notion` object so tools
+ * and clients can reference them by name.
+ */
 
-  // -----------------------------------------------------------------------------
+
+
+ // -----------------------------------------------------------------------------
   // Component schemas
   // -----------------------------------------------------------------------------
 
@@ -506,7 +539,7 @@ export namespace notion {
     typeof EquationRichTextItemResponseSchema
   >
 
-  export const ListBlockChildrenResponseSchema = z.object({
+  const ListBlockChildrenResponseSchema = z.object({
     object: z.literal('list'),
     results: z.array(
       z.union([PartialBlockObjectResponseSchema, BlockObjectResponseSchema])
@@ -514,11 +547,10 @@ export namespace notion {
     next_cursor: z.union([z.string(), z.null()]),
     has_more: z.boolean()
   })
-  export type ListBlockChildrenResponse = z.infer<
-    typeof ListBlockChildrenResponseSchema
+  export type ListBlockChildrenResponse = z.infer<    typeof ListBlockChildrenResponseSchema
   >
 
-  export const AppendBlockChildrenResponseSchema = z.object({
+  const AppendBlockChildrenResponseSchema = z.object({
     object: z.literal('list'),
     results: z.array(
       z.union([PartialBlockObjectResponseSchema, BlockObjectResponseSchema])
@@ -537,9 +569,7 @@ export namespace notion {
     ),
     next_cursor: z.union([z.string(), z.null()]),
     has_more: z.boolean()
-  })
-  export type QueryDatabaseResponse = z.infer<
-    typeof QueryDatabaseResponseSchema
+  })export type QueryDatabaseResponse = z.infer<    typeof QueryDatabaseResponseSchema
   >
 
   export const OauthTokenResponseSchema = z.object({
@@ -1269,13 +1299,11 @@ export namespace notion {
 
   export const GetSelfResponseSchema = UserObjectResponseSchema
   export type GetSelfResponse = z.infer<typeof GetSelfResponseSchema>
-
   export const GetUserParamsSchema = z.object({ user_id: z.string() })
   export type GetUserParams = z.infer<typeof GetUserParamsSchema>
 
   export const GetUserResponseSchema = UserObjectResponseSchema
-  export type GetUserResponse = z.infer<typeof GetUserResponseSchema>
-
+  export type GetUserResponse = z.infer<typeof UserObjectResponseSchema>
   export const ListUsersParamsSchema = z.object({
     start_cursor: z.string().optional(),
     page_size: z.number().int().optional()
@@ -1447,4 +1475,70 @@ export namespace notion {
 
   export const OauthTokenParamsSchema = OauthTokenParametersSchema
   export type OauthTokenParams = z.infer<typeof OauthTokenParamsSchema>
+export const notion = {
+  apiBaseUrl: 'https://api.notion.com/v1',
+
+  // users
+  GetSelfParamsSchema,
+  GetSelfResponseSchema,
+  GetUserParamsSchema,
+  GetUserResponseSchema,
+  ListUsersParamsSchema,
+  ListUsersResponseSchema,
+
+  // pages
+  GetPageParamsSchema,
+  GetPageResponseSchema,
+  UpdatePageParamsSchema,
+  UpdatePageResponseSchema,
+  CreatePageParamsSchema,
+  CreatePageResponseSchema,
+
+  // databases
+  GetDatabaseParamsSchema,
+  GetDatabaseResponseSchema,
+  QueryDatabaseParamsSchema,
+  QueryDatabaseResponseSchema,
+
+  // blocks
+  GetBlockParamsSchema,
+  GetBlockResponseSchema,
+  ListBlockChildrenParamsSchema,
+  ListBlockChildrenResponseSchema,
+  AppendBlockChildrenParamsSchema,
+  AppendBlockChildrenResponseSchema
+}
+
+export const notion = {
+  apiBaseUrl: 'https://api.notion.com/v1',
+
+  // users
+  GetSelfParamsSchema,
+  GetSelfResponseSchema,
+  GetUserParamsSchema,
+  GetUserResponseSchema,
+  ListUsersParamsSchema,
+  ListUsersResponseSchema,
+
+  // pages
+  GetPageParamsSchema,
+  GetPageResponseSchema,
+  UpdatePageParamsSchema,
+  UpdatePageResponseSchema,
+  CreatePageParamsSchema,
+  CreatePageResponseSchema,
+
+  // databases
+  GetDatabaseParamsSchema,
+  GetDatabaseResponseSchema,
+  QueryDatabaseParamsSchema,
+  QueryDatabaseResponseSchema,
+
+  // blocks
+  GetBlockParamsSchema,
+  GetBlockResponseSchema,
+  ListBlockChildrenParamsSchema,
+  ListBlockChildrenResponseSchema,
+  AppendBlockChildrenParamsSchema,
+  AppendBlockChildrenResponseSchema
 }

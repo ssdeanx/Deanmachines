@@ -4,14 +4,38 @@ import {
   assert,
   getEnv,
   pick,
-  sanitizeSearchParams
-} from '@agentic/core'
+} from "@agentic/core";
+import { notion } from './notion'
+import type {
+  GetSelfParams,
+  GetSelfResponse,
+  GetUserParams,
+  GetUserResponse,
+  ListUsersParams,
+  ListUsersResponse,
+  GetPageParams,
+  GetPageResponse,
+  UpdatePageParams,
+  UpdatePageResponse,
+  CreatePageParams,
+  CreatePageResponse,
+  GetDatabaseParams,
+  GetDatabaseResponse,
+  QueryDatabaseParams,
+  QueryDatabaseResponse,
+  GetBlockParams,
+  GetBlockResponse,
+  ListBlockChildrenParams,
+  ListBlockChildrenResponse,
+  AppendBlockChildrenParams,
+  AppendBlockChildrenResponse
+} from './notionSchema'
+import { z } from 'zod'
 import defaultKy, { type KyInstance } from 'ky'
 import { createMastraTools } from "@agentic/mastra";
-import { notion } from './notion'
-
 /**
- * Agentic Notion client.
+ * A Mastra‐compatible Notion client that exposes each endpoint
+ * as an @aiFunction.  Register via createMastraTools().
  */
 export class NotionClient extends AIFunctionsProvider {
   protected readonly ky: KyInstance
@@ -53,11 +77,10 @@ export class NotionClient extends AIFunctionsProvider {
     inputSchema: notion.GetSelfParamsSchema
   })
   async getSelf(
-    _params: notion.GetSelfParams
-  ): Promise<notion.GetSelfResponse> {
-    return this.ky.get('/users/me').json<notion.GetSelfResponse>()
+    _params: GetSelfParams
+  ): Promise<GetSelfResponse> {
+    return this.ky.get('/users/me').json<GetSelfResponse>()
   }
-
   /**
    * Get user.
    */
@@ -66,12 +89,11 @@ export class NotionClient extends AIFunctionsProvider {
     description: `Get user.`,
     inputSchema: notion.GetUserParamsSchema
   })
-  async getUser(params: notion.GetUserParams): Promise<notion.GetUserResponse> {
+  async getUser(params: GetUserParams): Promise<GetUserResponse> {
     return this.ky
       .get(`/users/${params.user_id}`)
-      .json<notion.GetUserResponse>()
+      .json<GetUserResponse>()
   }
-
   /**
    * List users.
    */
@@ -81,15 +103,13 @@ export class NotionClient extends AIFunctionsProvider {
     inputSchema: notion.ListUsersParamsSchema
   })
   async listUsers(
-    params: notion.ListUsersParams
-  ): Promise<notion.ListUsersResponse> {
+    params: ListUsersParams
+  ): Promise<ListUsersResponse> {
     return this.ky
       .get('/users', {
-        searchParams: sanitizeSearchParams(
-          pick(params, 'start_cursor', 'page_size')
-        )
+        searchParams: params
       })
-      .json<notion.ListUsersResponse>()
+      .json<ListUsersResponse>()
   }
 
   /**
@@ -98,32 +118,31 @@ export class NotionClient extends AIFunctionsProvider {
   @aiFunction({
     name: 'notion_create_page',
     description: `Create page.`,
-    inputSchema: notion.CreatePageParamsSchema
+    inputSchema: CreatePageParamsSchema
   })
   async createPage(
-    params: notion.CreatePageParams
-  ): Promise<notion.CreatePageResponse> {
+    params: CreatePageParams
+  ): Promise<CreatePageResponse> {
     return this.ky
       .post('/pages', {
-        json: pick(params, 'parent', 'properties')
+        json: pick(params, 'parent', 'properties', 'icon', 'cover')
       })
-      .json<notion.CreatePageResponse>()
+      .json<CreatePageResponse>()
   }
-
   /**
    * Get page.
    */
   @aiFunction({
     name: 'notion_get_page',
     description: `Get page.`,
-    inputSchema: notion.GetPageParamsSchema
+    inputSchema: GetPageParamsSchema
   })
-  async getPage(params: notion.GetPageParams): Promise<notion.GetPageResponse> {
+  async getPage(params: GetPageParams): Promise<GetPageResponse> {
     return this.ky
       .get(`/pages/${params.page_id}`, {
-        searchParams: sanitizeSearchParams(pick(params, 'filter_properties'))
+        searchParams: params
       })
-      .json<notion.GetPageResponse>()
+      .json<GetPageResponse>()
   }
 
   /**
@@ -132,16 +151,16 @@ export class NotionClient extends AIFunctionsProvider {
   @aiFunction({
     name: 'notion_update_page',
     description: `Update page.`,
-    inputSchema: notion.UpdatePageParamsSchema
+    inputSchema: UpdatePageParamsSchema
   })
   async updatePage(
-    params: notion.UpdatePageParams
-  ): Promise<notion.UpdatePageResponse> {
+    params: UpdatePageParams
+  ): Promise<UpdatePageResponse> {
     return this.ky
       .patch(`/pages/${params.page_id}`, {
         json: pick(params, 'properties', 'archived')
       })
-      .json<notion.UpdatePageResponse>()
+      .json<UpdatePageResponse>()
   }
 
   /**
@@ -150,16 +169,14 @@ export class NotionClient extends AIFunctionsProvider {
   @aiFunction({
     name: 'notion_get_page_property',
     description: `Get page property.`,
-    inputSchema: notion.GetPagePropertyParamsSchema
+    inputSchema: GetPagePropertyParamsSchema
   })
   async getPageProperty(
     params: notion.GetPagePropertyParams
   ): Promise<notion.GetPagePropertyResponse> {
     return this.ky
       .get(`/pages/${params.page_id}/properties/${params.property_id}`, {
-        searchParams: sanitizeSearchParams(
-          pick(params, 'start_cursor', 'page_size')
-        )
+        searchParams: params
       })
       .json<notion.GetPagePropertyResponse>()
   }
@@ -170,14 +187,14 @@ export class NotionClient extends AIFunctionsProvider {
   @aiFunction({
     name: 'notion_get_block',
     description: `Get block.`,
-    inputSchema: notion.GetBlockParamsSchema
+    inputSchema: GetBlockParamsSchema
   })
   async getBlock(
-    params: notion.GetBlockParams
-  ): Promise<notion.GetBlockResponse> {
+    params: GetBlockParams
+  ): Promise<GetBlockResponse> {
     return this.ky
       .get(`/blocks/${params.block_id}`)
-      .json<notion.GetBlockResponse>()
+      .json<GetBlockResponse>()
   }
 
   /**
@@ -186,14 +203,13 @@ export class NotionClient extends AIFunctionsProvider {
   @aiFunction({
     name: 'notion_delete_block',
     description: `Delete block.`,
-    inputSchema: notion.DeleteBlockParamsSchema
-  })
-  async deleteBlock(
-    params: notion.DeleteBlockParams
-  ): Promise<notion.DeleteBlockResponse> {
+    inputSchema: DeleteBlockParamsSchema
+  })  async deleteBlock(
+    params: GetBlockParams
+  ): Promise<GetBlockResponse> {
     return this.ky
       .delete(`/blocks/${params.block_id}`)
-      .json<notion.DeleteBlockResponse>()
+      .json<GetBlockResponse>()
   }
 
   /**
@@ -202,11 +218,8 @@ export class NotionClient extends AIFunctionsProvider {
   @aiFunction({
     name: 'notion_update_block',
     description: `Update block.`,
-    inputSchema: notion.UpdateBlockParamsSchema
-  })
-  async updateBlock(
-    params: notion.UpdateBlockParams
-  ): Promise<notion.UpdateBlockResponse> {
+    inputSchema: UpdateBlockParamsSchema
+  })  async updateBlock(    params: notion.UpdateBlockParams  ): Promise<UpdateBlockResponse> {
     return this.ky
       .patch(`/blocks/${params.block_id}`, {
         json: pick(
@@ -238,10 +251,8 @@ export class NotionClient extends AIFunctionsProvider {
           'archived'
         )
       })
-      .json<notion.UpdateBlockResponse>()
-  }
-
-  /**
+      .json<UpdateBlockResponse>()
+  }  /**
    * List block children.
    */
   @aiFunction({
@@ -250,15 +261,13 @@ export class NotionClient extends AIFunctionsProvider {
     inputSchema: notion.ListBlockChildrenParamsSchema
   })
   async listBlockChildren(
-    params: notion.ListBlockChildrenParams
-  ): Promise<notion.ListBlockChildrenResponse> {
+    params: ListBlockChildrenParams
+  ): Promise<ListBlockChildrenResponse> {
     return this.ky
       .get(`/blocks/${params.block_id}/children`, {
-        searchParams: sanitizeSearchParams(
-          pick(params, 'start_cursor', 'page_size')
-        )
+        searchParams: pick(params, 'start_cursor', 'page_size')
       })
-      .json<notion.ListBlockChildrenResponse>()
+      .json<ListBlockChildrenResponse>()
   }
 
   /**
@@ -268,9 +277,7 @@ export class NotionClient extends AIFunctionsProvider {
     name: 'notion_append_block_children',
     description: `Append block children.`,
     inputSchema: notion.AppendBlockChildrenParamsSchema
-  })
-  async appendBlockChildren(
-    params: notion.AppendBlockChildrenParams
+  })  async appendBlockChildren(    params: notion.AppendBlockChildrenParams
   ): Promise<notion.AppendBlockChildrenResponse> {
     return this.ky
       .patch(`/blocks/${params.block_id}/children`, {
@@ -288,11 +295,11 @@ export class NotionClient extends AIFunctionsProvider {
     inputSchema: notion.GetDatabaseParamsSchema
   })
   async getDatabase(
-    params: notion.GetDatabaseParams
-  ): Promise<notion.GetDatabaseResponse> {
+    params: GetDatabaseParams
+  ): Promise<GetDatabaseResponse> {
     return this.ky
       .get(`/databases/${params.database_id}`)
-      .json<notion.GetDatabaseResponse>()
+      .json<GetDatabaseResponse>()
   }
 
   /**
@@ -301,7 +308,7 @@ export class NotionClient extends AIFunctionsProvider {
   @aiFunction({
     name: 'notion_update_database',
     description: `Update database.`,
-    inputSchema: notion.UpdateDatabaseParamsSchema
+    inputSchema: notion.GetDatabaseParamsSchema
   })
   async updateDatabase(
     params: notion.UpdateDatabaseParams
@@ -321,7 +328,6 @@ export class NotionClient extends AIFunctionsProvider {
       })
       .json<notion.UpdateDatabaseResponse>()
   }
-
   /**
    * Query database.
    */
@@ -331,11 +337,11 @@ export class NotionClient extends AIFunctionsProvider {
     inputSchema: notion.QueryDatabaseParamsSchema
   })
   async queryDatabase(
-    params: notion.QueryDatabaseParams
-  ): Promise<notion.QueryDatabaseResponse> {
+    params: QueryDatabaseParams
+  ): Promise<QueryDatabaseResponse> {
     return this.ky
       .post(`/databases/${params.database_id}/query`, {
-        searchParams: sanitizeSearchParams(pick(params, 'filter_properties')),
+        searchParams: pick(params, 'filter_properties'),
         json: pick(
           params,
           'sorts',
@@ -345,25 +351,22 @@ export class NotionClient extends AIFunctionsProvider {
           'archived'
         )
       })
-      .json<notion.QueryDatabaseResponse>()
+      .json<QueryDatabaseResponse>()
   }
-
   /**
    * List databases.
    */
   @aiFunction({
     name: 'notion_list_databases',
     description: `List databases.`,
-    inputSchema: notion.ListDatabasesParamsSchema
+    inputSchema: notion.GetDatabaseParamsSchema
   })
   async listDatabases(
     params: notion.ListDatabasesParams
   ): Promise<notion.ListDatabasesResponse> {
     return this.ky
       .get('/databases', {
-        searchParams: sanitizeSearchParams(
-          pick(params, 'start_cursor', 'page_size')
-        )
+        searchParams: pick(params, 'start_cursor', 'page_size')
       })
       .json<notion.ListDatabasesResponse>()
   }
@@ -374,7 +377,7 @@ export class NotionClient extends AIFunctionsProvider {
   @aiFunction({
     name: 'notion_create_database',
     description: `Create database.`,
-    inputSchema: notion.CreateDatabaseParamsSchema
+    inputSchema: notion.GetDatabaseParamsSchema
   })
   async createDatabase(
     params: notion.CreateDatabaseParams
@@ -401,7 +404,7 @@ export class NotionClient extends AIFunctionsProvider {
   @aiFunction({
     name: 'notion_search',
     description: `Search.`,
-    inputSchema: notion.SearchParamsSchema
+    inputSchema: notion.GetUserParamsSchema
   })
   async search(params: notion.SearchParams): Promise<notion.SearchResponse> {
     return this.ky
@@ -424,20 +427,17 @@ export class NotionClient extends AIFunctionsProvider {
   @aiFunction({
     name: 'notion_list_comments',
     description: `List comments.`,
-    inputSchema: notion.ListCommentsParamsSchema
+    inputSchema: notion.ListUsersParamsSchema
   })
   async listComments(
     params: notion.ListCommentsParams
   ): Promise<notion.ListCommentsResponse> {
     return this.ky
       .get('/comments', {
-        searchParams: sanitizeSearchParams(
-          pick(params, 'block_id', 'start_cursor', 'page_size')
-        )
+        searchParams: pick(params, 'block_id', 'start_cursor', 'page_size')
       })
       .json<notion.ListCommentsResponse>()
   }
-
   /**
    * Create comment.
    */
@@ -445,9 +445,8 @@ export class NotionClient extends AIFunctionsProvider {
     name: 'notion_create_comment',
     description: `Create comment.`,
     // TODO: Improve handling of union params
-    inputSchema: notion.CreateCommentParamsSchema as any
-  })
-  async createComment(
+    inputSchema: notion.CreatePageParamsSchema as any
+  })  async createComment(
     params: notion.CreateCommentParams
   ): Promise<notion.CreateCommentResponse> {
     return this.ky

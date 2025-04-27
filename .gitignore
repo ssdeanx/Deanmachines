@@ -19,3 +19,4 @@ gcp-vertexai-credentials.json
 .vscode
 prod-ca-2021.crt
 openapi.json
+.windsurf.rules
