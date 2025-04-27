@@ -19,10 +19,13 @@ import {
   DEFAULT_MODELS,
 } from "../../agents/config";
 import { masterAgentConfig } from "../../agents/config/master.config"; // Import master agent config
-import { threadManager } from "../../utils/thread-manager";
 import { createLogger } from "@mastra/core/logger";
 import { configureLangSmithTracing } from "../../services/langsmith";
-import { applySharedHooks, instrumentNetwork, scheduleMemoryCompaction } from "./networkHelpers";
+import { applySharedHooks, instrumentNetwork } from "./networkHelpers";
+import { storage } from "../../database/supabase"; // Import Supabase/Postgres-backed memory instance
+
+// Async initialization for KnowledgeWorkMoENetwork
+let knowledgeWorkMoENetwork: KnowledgeWorkMoENetwork | null = null;
 
 const logger = createLogger({ name: "MoE-Network", level: "info" });
 
@@ -30,12 +33,11 @@ const langsmithClient = configureLangSmithTracing();
 if (langsmithClient) {
   logger.info("LangSmith tracing enabled for agent network");
 }
+
 // Define the type for the agents map more explicitly
 type AgentRegistry = typeof allAgents;
 // Define a type for valid agent IDs based on the registry keys
 type AgentId = keyof AgentRegistry;
-
-
 
 // --- Constants ---
 const DEFAULT_FALLBACK_AGENT_ID: AgentId = (process.env.MOE_FALLBACK_AGENT_ID as AgentId) || masterAgentConfig.id; // Dynamic fallback: env var or master agent
@@ -171,13 +173,9 @@ export class KnowledgeWorkMoENetwork extends AgentNetwork {
     // --- AgentNetwork Configuration ---
     const config: AgentNetworkConfig = {
       name: `Knowledge Work MoE Network (${networkId})`, // Use parameter
-      // description: // Removed as it's not part of AgentNetworkConfig
-      //   "Routes tasks to the most appropriate specialized agent using rules or LLM routing.",
       agents: localExpertAgentsForBaseConfig, // Use local list
       model: createModelInstance(routerModelConfig),
       instructions: routerInstructions,
-      // memory: sharedMemory, // Memory might be handled differently or implicitly by the base class
-      // hooks: {} // Add hooks if needed
     };
 
     // --- Initialize the Base AgentNetwork (MUST be called before 'this') ---
@@ -193,7 +191,7 @@ export class KnowledgeWorkMoENetwork extends AgentNetwork {
       `[${this.networkId}] KnowledgeWorkMoENetwork initialized successfully with ${this.expertAgentsMap.size} agents (including fallback).`
     );
 
-    // Apply shared hooks, instrumentation, and memory compaction
+    // Apply shared hooks and instrumentation
     applySharedHooks(this, {
       onError: async (error: Error) => {
         logger.error(`[${this.networkId}] MoE network error: ${error.message}`);
@@ -202,7 +200,6 @@ export class KnowledgeWorkMoENetwork extends AgentNetwork {
       onGenerateResponse: async (res: any) => res,
     });
     instrumentNetwork(this);
-    scheduleMemoryCompaction(this);
   }
 
   /**
@@ -275,7 +272,6 @@ export class KnowledgeWorkMoENetwork extends AgentNetwork {
           `${logPrefix} Matched 'architecture/design' -> architectAgent`
         );
         return "architectAgent";
-        // Redundant return removed
       }
     }
 
@@ -284,7 +280,6 @@ export class KnowledgeWorkMoENetwork extends AgentNetwork {
       if (this.expertAgentsMap.has("coderAgent")) {
         logger.info(`${logPrefix} Matched 'refactor code' -> coderAgent`);
         return "coderAgent";
-        // Redundant return removed
       }
     }
 
@@ -298,11 +293,9 @@ export class KnowledgeWorkMoENetwork extends AgentNetwork {
         logger.info(`${logPrefix} Matched 'write code/script' -> coderAgent`);
         return "coderAgent";
       }
-      // Removed extra closing brace and redundant return
     }
 
     // Group: Research & Information Gathering
-    // Corrected structure and added conditions
     if (
       lowerInput.includes("research") ||
       lowerInput.includes("find information on") ||
@@ -314,7 +307,6 @@ export class KnowledgeWorkMoENetwork extends AgentNetwork {
         );
         return "researchAgent";
       }
-      // Removed extra closing braces and misplaced return
     }
 
     // Group: Data Analysis & Interpretation
@@ -362,7 +354,6 @@ export class KnowledgeWorkMoENetwork extends AgentNetwork {
     }
 
     // Group: Social Media Content
-    // Corrected structure and added conditions
     if (
       lowerInput.includes("social media post") ||
       lowerInput.includes("tweet about") ||
@@ -376,7 +367,6 @@ export class KnowledgeWorkMoENetwork extends AgentNetwork {
         );
         return "socialMediaAgent";
       }
-      // Removed extra closing braces and misplaced return
     }
 
     // Group: SEO & Keywords
@@ -389,12 +379,10 @@ export class KnowledgeWorkMoENetwork extends AgentNetwork {
       if (this.expertAgentsMap.has("seoAgent")) {
         logger.info(`${logPrefix} Matched 'seo/keywords' -> seoAgent`);
         return "seoAgent";
-        // Redundant return removed
       }
     }
 
     // Group: Data/File/Vector Management
-    // Corrected structure and added conditions
     if (
       lowerInput.includes("manage file") ||
       lowerInput.includes("vector database") ||
@@ -407,7 +395,6 @@ export class KnowledgeWorkMoENetwork extends AgentNetwork {
         );
         return "dataManagerAgent";
       }
-      // Removed extra closing braces and misplaced return
     }
 
     // Group: General Writing/Summarization/Explanation (Lower Specificity)
@@ -450,14 +437,13 @@ export class KnowledgeWorkMoENetwork extends AgentNetwork {
    */
   public async execute(
     input: string | Record<string, any>,
-    options?: { threadId?: string; [key: string]: any }
+    options?: { threadId?: string;[key: string]: any }
   ): Promise<any> {
     // Ensure input is string for rule matching, but pass original input to agents
     const inputString =
       typeof input === "string" ? input : JSON.stringify(input);
     logger.info(
-      `[${
-        this.networkId
+      `[${this.networkId
       }] Executing MoE Network for input: "${inputString.substring(
         0,
         150
@@ -611,7 +597,7 @@ export class KnowledgeWorkMoENetwork extends AgentNetwork {
    */
   private async executeFallback(
     originalInput: string | Record<string, any>,
-    options: { threadId?: string; [key: string]: any } | undefined,
+    options: { threadId?: string;[key: string]: any } | undefined,
     failureReason: string
   ): Promise<any> {
     logger.warn(

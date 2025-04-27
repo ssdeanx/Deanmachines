@@ -6,9 +6,9 @@
  */
 
 import { createLogger } from "@mastra/core/logger";
-import { sharedMemory } from "../database";
+import { sharedMemory, initThreadManager } from "../database/index";
 import { createAgentFromConfig } from "./base.agent";
-import { agenticAssistantConfig, agenticResponseSchema } from "./config";
+import { agenticAssistantConfig } from "./config";
 
 // Initialize logger for this module
 const logger = createLogger({ name: "agentic-agent", level: "debug" });

@@ -6,6 +6,7 @@ import { researchAgent, analystAgent, writerAgent, masterAgent } from "../agents
 import { createAISpan, recordMetrics } from "../services/signoz";
 import workflowFactory from "./workflowFactory";
 
+
 /**
  * Advanced test workflow invoking research, analysis, documentation, and master agents in sequence.
  */
@@ -16,6 +17,7 @@ export function createAdvancedTestWorkflow(mastra: MastraType) {
     triggerSchema: z.object({
       topics: z.array(z.string()).describe("List of topics to test across agents"),
     }),
+    
   })
     // Preprocess topics via dynamic workflow
     .step(

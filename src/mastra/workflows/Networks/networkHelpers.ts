@@ -1,28 +1,20 @@
 /**
  * networkHelpers.ts
  * Comprehensive helper functions for AgentNetwork usage: base network creation, hooks, execution and streaming,
- * memory management, config merging, invocation utilities, resilience patterns, caching, pagination,
+ * invocation utilities, resilience patterns, caching, pagination,
  * advanced helpers (RAG, typed invocation), and production-grade utilities.
  */
 
 import { AgentNetwork, AgentNetworkConfig } from '@mastra/core/network';
-import { threadManager } from '../../utils/thread-manager';
-import { sharedMemory } from '../../database';
 import { createLogger } from '@mastra/core/logger';
-import { configureLangSmithTracing } from '../../services/langsmith';
 import { trace, context, SpanStatusCode } from '@opentelemetry/api';
-import { networks } from './agentNetwork';
 import type { ZodType } from 'zod';
 import fs from 'fs';
 import EventEmitter from 'events';
+import { storage } from "../../database/supabase";
 
 const tracer = trace.getTracer('mastra-network-helpers');
-const { logger, client: langsmithClient } = ((): { logger: ReturnType<typeof createLogger>; client: any } => {
-  const log = createLogger({ name: 'NetworkHelpers', level: 'info' });
-  const client = configureLangSmithTracing();
-  if (client) log.info('LangSmith tracing enabled');
-  return { logger: log, client };
-})();
+const logger = createLogger({ name: 'NetworkHelpers', level: 'info' });
 
 const invocationCount = new WeakMap<any, number>();
 const errorCount = new WeakMap<any, number>();
@@ -48,12 +40,10 @@ export function instrumentNetwork(
   config: { wrapExecute?: boolean; wrapStream?: boolean; wrapGenerate?: boolean } = {}
 ): void {
   if (config.wrapExecute !== false) net.execute = (input: any, options?: any) => executeWithThread(net, input, options);
-  if (config.wrapStream !== false) net.stream = (input: any, options?: any) => streamWithThread(net, input, options);
-  if (config.wrapGenerate !== false) net.generate = (input: any, options?: any) => generateWithMemory(net, input, options);
 }
 
 /** Types **/
-export type ExecOptions = { threadId?: string; resourceId?: string; signal?: AbortSignal; [k: string]: any };
+export type ExecOptions = { threadId?: string; resourceId?: string; signal?: AbortSignal;[k: string]: any };
 export type StreamOptions = ExecOptions;
 export type StreamChunk = any;
 
@@ -78,21 +68,14 @@ export interface Middleware { before?: any; after?: any; onError?: any }
 const globalMiddlewares: Middleware[] = [];
 export function useMiddleware(mw: Middleware) { globalMiddlewares.push(mw); }
 export function clearMiddleware() { globalMiddlewares.length = 0; }
-export async function reloadMiddleware(path: string) {
-  delete require.cache[require.resolve(path)];
-  const mod = await import(path);
-  if (mod.default) useMiddleware(mod.default);
-}
 
 /** Execution wrappers **/
 export async function executeWithThread(net: any, input: any, opts: ExecOptions = {}): Promise<any> {
   invocationCount.set(net, (invocationCount.get(net) || 0) + 1);
   const span = tracer.startSpan('executeWithThread', { attributes: { net: net.name } });
-  let threadId = opts.threadId || (await threadManager.createThread({ resourceId: opts.resourceId || 'default' })).id;
   const cb = circuitMap.get(net);
   if (cb && cb.state === 'OPEN') {
-    if (Date.now() > cb.lastFailureTime + cb.options.recoveryTimeoutMs) cb.state = 'HALF';
-    else throw new Error('Circuit open');
+    throw new Error('Circuit open');
   }
   const limit = bulkheadLimitMap.get(net);
   if (limit != null) {
@@ -102,12 +85,8 @@ export async function executeWithThread(net: any, input: any, opts: ExecOptions 
   }
   for (const m of globalMiddlewares) if (m.before) ({ input, options: opts } = await m.before(net, input, opts));
   hookMap.get(net)?.onBeforeInvoke?.(input, opts);
-  const fn = typeof net.execute === 'function' ? net.execute.bind(net) : net.generate.bind(net);
   try {
-    const res = await fn(input, { ...opts, threadId });
-    const mem = await sharedMemory.getMemory(threadId);
-    await threadManager.saveThreadMemory(threadId, mem);
-    if (cb && cb.state === 'HALF') { cb.state = 'CLOSED'; cb.failureCount = 0; }
+    const res = await net.execute(input, opts);
     hookMap.get(net)?.onAfterInvoke?.(res, opts);
     for (const m of globalMiddlewares) if (m.after) await m.after(net, res, opts);
     return res;
@@ -123,27 +102,14 @@ export async function executeWithThread(net: any, input: any, opts: ExecOptions 
     span.end();
   }
 }
-export async function* streamWithThread(net: any, input: any, opts: StreamOptions = {}): AsyncIterable<StreamChunk> {
+
+export async function* streamWithThread(net: any, input: any, opts: ExecOptions = {}): AsyncIterable<StreamChunk> {
   const span = tracer.startSpan('streamWithThread', { attributes: { net: net.name } });
-  let threadId = opts.threadId || (await threadManager.createThread({ resourceId: opts.resourceId || 'default' })).id;
-  const iter = net.stream(input, { ...opts, threadId });
-  try { for await (const c of iter) yield c; const mem = await sharedMemory.getMemory(threadId); await threadManager.saveThreadMemory(threadId, mem); }
+  const iter = net.stream(input, opts);
+  try { for await (const c of iter) yield c; }
   catch (e: any) { span.recordException(e); span.setStatus({ code: SpanStatusCode.ERROR, message: e.message }); throw e; }
   finally { span.end(); }
 }
-
-/** Config & Metadata **/
-export function mergeConfigs(b: Partial<AgentNetworkConfig>, o: Partial<AgentNetworkConfig>): AgentNetworkConfig {
-  const r: any = { ...b };
-  for (const k of Object.keys(o)) { const bv = (b as any)[k], ov = (o as any)[k]; if (ov != null && bv != null && typeof bv === 'object' && typeof ov === 'object' && !Array.isArray(bv) && !Array.isArray(ov)) r[k] = mergeConfigs(bv, ov); else if (ov != null) r[k] = ov; }
-  return r;
-}
-export function getAllNetworks(): Record<string, AgentNetwork> { return networks; }
-export const getRoutingAgent = (n: any) => n.getRoutingAgent();
-export const getAgentsList = (n: any) => n.getAgents();
-export const getAgentHistory = (n: any, id: string) => n.getAgentHistory(id);
-export const getAgentInteractionHistory = (n: any, id: string) => n.getAgentInteractionHistory(id);
-export const getAgentInteractionSummary = (n: any, id: string) => n.getAgentInteractionSummary(id);
 
 /** Invocation & Retry **/
 export function invokeNetwork(net: any, inpt: any, opts: ExecOptions & { stream?: boolean } = {}) {
@@ -154,28 +120,21 @@ export function invokeNetwork(net: any, inpt: any, opts: ExecOptions & { stream?
 export async function abortableInvoke(net: any, inpt: any, opts: ExecOptions = {}) {
   const { s, ...r } = opts; const p = executeWithThread(net, inpt, r); if (!s) return p; return Promise.race([p, new Promise((_, rej) => s.addEventListener('abort', () => rej(new Error('Aborted')), { once: true }))]);
 }
-export async function* abortableStream(net: any, inpt: any, opts: ExecOptions = {}) { const { s, ...r } = opts; const it = streamWithThread(net, inpt, r); if (!s) { for await (const c of it) yield c; return; } const ap = new Promise((_, rej) => s.addEventListener('abort', () => rej(new Error('Aborted')), { once: true })); const rd = it[Symbol.asyncIterator](); while (true) { const r1 = await Promise.race([rd.next(), ap]); if ((r1 as any).done) break; yield (r1 as any).value; }
+export async function* abortableStream(net: any, inpt: any, opts: ExecOptions = {}) {
+  const { s, ...r } = opts; const it = streamWithThread(net, inpt, r); if (!s) { for await (const c of it) yield c; return; } const ap = new Promise((_, rej) => s.addEventListener('abort', () => rej(new Error('Aborted')), { once: true })); const rd = it[Symbol.asyncIterator](); while (true) { const r1 = await Promise.race([rd.next(), ap]); if ((r1 as any).done) break; yield (r1 as any).value; }
 }
 export async function retryableInvoke(net: any, inpt: any, opts: ExecOptions = {}, mr = 3, bo = 200) { let a = 0; while (a < mr) { try { return await invokeNetwork(net, inpt, opts); } catch (e) { a++; if (a >= mr) throw e; await new Promise(r => setTimeout(r, bo * 2 ** (a - 1))); } } throw new Error('retryableInvoke exit'); }
 export async function invokeWithTimeout(net: any, inpt: any, opts: ExecOptions = {}, ms: number) { return Promise.race([invokeNetwork(net, inpt, opts) as Promise<any>, new Promise((_, rej) => setTimeout(() => rej(new Error(`timeout ${ms}ms`)), ms))]); }
 export async function batchInvoke(net: any, ins: any[], opts: ExecOptions = {}) { return Promise.all(ins.map(i => invokeNetwork(net, i, opts) as Promise<any>)); }
 export async function timedInvoke(net: any, inpt: any, opts: ExecOptions = {}) { const s = Date.now(), r = await invokeNetwork(net, inpt, opts); logger.info(`timedInvoke ${Date.now() - s}ms`); return r; }
 
-/** Memory & RAG **/
-export async function generateWithMemory(net: any, inpt: any, opts: ExecOptions = {}) { const tid = opts.threadId || (await threadManager.createThread({ resourceId: opts.resourceId || 'default' })).id; const md = await sharedMemory.getMemory(tid); const msgs = Array.isArray(md) ? [...md, inpt] : [md, inpt]; const res = await net.generate(msgs, { ...opts, threadId: tid }); const nm = await sharedMemory.getMemory(tid); await threadManager.saveThreadMemory(tid, nm); return res; }
-export async function ragInvoke(net: any, prompt: string, opts: ExecOptions & { retriever: any; topK?: number } = { retriever: async () => [] }) { const k = opts.topK || 5; const docs = await opts.retriever(prompt, { topK: k }); const ctx = docs.map((d: any) => d.text).join('\n'); return generateWithMemory(net, `Context:\n${ctx}\n\n${prompt}`, opts); }
-export async function* ragStream(net: any, prompt: string, opts: ExecOptions & { retriever: any; topK?: number; stream?: true } = { retriever: async () => [], stream: true }) { const k = opts.topK || 5; const docs = await opts.retriever(prompt, { topK: k }); const ctx = docs.map((d: any) => d.text).join('\n'); for await (const c of streamWithThread(net, `Context:\n${ctx}\n\n${prompt}`, opts)) yield c; }
-
 /** Caching & Memoization **/
 export interface CacheAdapter { get(k: string): Promise<any>; set(k: string, v: any): Promise<void>; del?(k: string): Promise<void> }
-const defaultCache = new Map<string, any>(); let cacheAdapter: CacheAdapter = { get: async k => defaultCache.get(k), set: async(k,v)=>{ defaultCache.set(k,v); }, del: async k => { defaultCache.delete(k); } };
+const defaultCache = new Map<string, any>();
+let cacheAdapter: CacheAdapter = { get: async k => defaultCache.get(k), set: async (k, v) => { defaultCache.set(k, v); }, del: async k => { defaultCache.delete(k); } };
 export function configureCacheAdapter(a: CacheAdapter) { cacheAdapter = a; }
 export async function clearCache(key?: string) { if (key && cacheAdapter.del) { await cacheAdapter.del(key); } else defaultCache.clear(); }
 export async function memoInvoke(net: any, prompt: string, opts: ExecOptions & { cache?: boolean; cacheKey?: string } = {}) { if (!opts.cache) return invokeNetwork(net, prompt, opts); const key = opts.cacheKey ? opts.cacheKey : `${net.constructor.name}:${prompt}:${JSON.stringify(opts)}`; const c = await cacheAdapter.get(key); if (c !== undefined) return c; const r = await invokeNetwork(net, prompt, opts); await cacheAdapter.set(key, r); return r; }
-
-/** Pagination & Context Chunking **/
-export function chunkPrompt(text: string, maxLen = 2000, ov = 200) { const ch = []; for (let i = 0; i < text.length; i += maxLen - ov) { const end = Math.min(i + maxLen, text.length); ch.push(text.slice(i, end)); } return ch; }
-export async function slidingWindowInvoke(net: any, prompt: string, opts: ExecOptions & { maxLength?: number; overlap?: number } = {}) { const ml = opts.maxLength || 2000, ov = opts.overlap || 200; const ch = chunkPrompt(prompt, ml, ov), res = []; for (const c of ch) res.push(await generateWithMemory(net, c, opts)); return res; }
 
 /** Strongly Typed Invocation **/
 export async function invokeTyped<TIn extends string | Record<string, any>, TOut>(net: any, inSch: ZodType<TIn>, outSch: ZodType<TOut>, input: unknown, opts: ExecOptions = {}) { const pi = inSch.parse(input); const r = await invokeNetwork(net, pi, { ...opts, stream: false }); return outSch.parse(r); }
@@ -189,7 +148,13 @@ export async function modelFallbackInvoke(net: any, inpt: any, opts: ExecOptions
 export async function multiModelAggregateInvoke(nets: any[], inpt: any, opts: ExecOptions = {}) { return Promise.all(nets.map(n => invokeNetwork(n, inpt, opts))); }
 export function sanitizeOutput(o: string) { return o.trim(); }
 export function validateJsonResponse<T>(sch: ZodType<T>, r: unknown) { return sch.parse(r); }
-export function detectBias(res: string) { const iss = []; if (/\d{3}-\d{2}-\d{4}/.test(res)) iss.push('SSN'); return iss; }
+export function detectBias(res: string): string[] {
+  const iss: string[] = [];
+  if (/\d{3}-\d{2}-\d{4}/.test(res)) {
+    iss.push('SSN');
+  }
+  return iss;
+}
 export function estimateCost(prompt: string, cpt = 0.0001) { return prompt.split(/\s+/).length * cpt; }
 export async function fallbackNetworkInvoke(list: any[], inpt: any, opts: ExecOptions = {}) { for (const n of list) { try { return await invokeNetwork(n, inpt, opts); } catch { } } throw new Error('All fail'); }
 export async function auditInvoke(net: any, inpt: any, opts: ExecOptions = {}) { const s = Date.now(), r = await invokeNetwork(net, inpt, opts); logger.info('Audit', { net: net.name, input: inpt, duration: Date.now() - s, success: true }); return r; }
@@ -252,20 +217,6 @@ export async function streamToString(
   return out;
 }
 
-/** Context Summarization **/
-export async function summarizeContext(
-  network: any,
-  threadId: string,
-  maxLen: number = 1000
-): Promise<any> {
-  const history = await sharedMemory.getMemory(threadId);
-  const joined = (history as any[])
-    .map((m) => m.text ?? JSON.stringify(m))
-    .join('\n');
-  const prompt = `Summarize the following conversation in <= ${maxLen} characters:\n\n${joined}`;
-  return generateWithMemory(network, prompt, {});
-}
-
 /** Introspection & Management Helpers **/
 export function getCircuitState(network: any): CircuitState | undefined {
   return circuitMap.get(network)?.state;
@@ -300,20 +251,6 @@ export function getCacheAdapter(): CacheAdapter {
 export function clearAllCache(): Promise<void> {
   return clearCache();
 }
-export async function getThreadMemory(threadId: string): Promise<any> {
-  return sharedMemory.getMemory(threadId);
-}
-export async function getResourceThreads(resourceId: string): Promise<any[]> {
-  if (typeof (sharedMemory as any).getThreadsByResourceId === 'function') {
-    return (sharedMemory as any).getThreadsByResourceId(resourceId);
-  }
-  return [];
-}
-export async function deleteThread(threadId: string): Promise<void> {
-  if (typeof (threadManager as any).deleteThread === 'function') {
-    await (threadManager as any).deleteThread(threadId);
-  }
-}
 export function getNetworkInvocationCount(network: any): number {
   return invocationCount.get(network) || 0;
 }
@@ -336,20 +273,8 @@ export function chainNetworks(nets: any[]): (input: any) => Promise<any> {
 export const networkAliases = {
   exec: executeWithThread,
   stream: streamWithThread,
-  gen: generateWithMemory,
   invoke: invokeNetwork,
   retry: retryableInvoke,
   batch: batchInvoke,
   timed: timedInvoke,
-  rag: ragInvoke,
-  ragStream: ragStream,
 };
-
-export function scheduleThreadCleanup(idle = 60000, iv = 60000) { return setInterval(async () => { if (typeof (threadManager as any).listThreads === 'function') { const ts = await (threadManager as any).listThreads(), n = Date.now(); for (const t of ts) if (n - new Date((t as any).updatedAt).getTime() > idle) await (threadManager as any).deleteThread(t.id); } }, iv); }
-export async function scheduleMemoryCompaction(network: any, idleMs = 864e5, iv = 864e5) { return setInterval(async () => { if (typeof (sharedMemory as any).getThreadsByResourceId === 'function') { const ts = await (sharedMemory as any).getThreadsByResourceId(network.name), n = Date.now(); for (const t of ts) if (n - new Date((t as any).updatedAt).getTime() >= idleMs) { const sum = await summarizeContext(network, t.id); await threadManager.saveThreadMemory(t.id, { summary: sum }); } } }, iv); }
-export const setFeatureFlag = (f: string, e: boolean) => featureFlags.set(f, e); export const isFeatureEnabled = (f: string) => featureFlags.get(f) || false; const featureFlags = new Map<string, boolean>();
-const sessionLogs = new Map<string, any[]>(); export function startSessionRecording(id: string) { sessionLogs.set(id, []); } export function recordSession(id: string, input: any, output: any) { if (!sessionLogs.has(id)) startSessionRecording(id); sessionLogs.get(id)!.push({ input, output, ts: Date.now() }); } export function replaySession(id: string, fn: (r: any) => void) { sessionLogs.get(id)?.forEach(fn); }
-let streamInspector: (info: any) => void; export function initStreamInspector(fn: (i: any) => void) { streamInspector = fn; }
-export class StubNetwork { constructor(private r: any) { } async generate(_i: any, _o?: any) { return this.r; } async *stream(_i: any) { yield this.r; } }
-export function transformResponse<T>(r: any, fn: (x: any) => T): T { return fn(r); }
-let metricExporter: any; export function setMetricExporter(exp: any) { metricExporter = exp; } export function exportMetrics(d: any) { metricExporter?.export?.(d); }

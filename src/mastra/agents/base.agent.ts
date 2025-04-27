@@ -5,33 +5,28 @@
  * ensuring consistent agent creation patterns across the application,
  * including optional voice capabilities.
  */
+import { Agent } from '@mastra/core/agent';
+import { createLogger } from '@mastra/core/logger';
+import { Tool } from '@mastra/core/tools';
+import { MastraVoice } from '@mastra/core/voice';
 
-import { Agent } from "@mastra/core/agent";
-import { Tool } from "@mastra/core/tools";
-import { createLogger } from "@mastra/core/logger";
-import { MastraVoice } from "@mastra/core/voice"; // Import MastraVoice type
-import { sharedMemory } from "../database/supabase";
+import { sharedMemory } from '../database/index';
+import { createResponseHook } from '../hooks';
+import { configureLangSmithTracing } from '../services/langsmith';
+import { allToolsMap } from '../tools';
+import * as evalTools from '../tools/evals';
+import * as MastraTypes from '../types';
+import { AgentConfigError } from '../types';
+import { threadManager } from '../utils/thread-manager';
+import { createVoice } from '../voice';
 import {
-  BaseAgentConfig, // Make sure this reflects the updated interface
-  defaultErrorHandler,
-  DEFAULT_MODEL_ID,
-  DEFAULT_MAX_TOKENS,
-  DEFAULT_MAX_CONTEXT_TOKENS,
-  defaultResponseValidation,
-  type ResponseHookOptions,
-  createModelInstance
-} from "./config/index";
-import { createResponseHook } from "../hooks";
-import { allToolsMap } from "../tools";
-import { threadManager } from "../utils/thread-manager";
-import * as MastraTypes from "../types";
-import { AgentConfigError } from "../types";
-import { createVoice } from '../voice'; // Import the voice factory function
-import { configureLangSmithTracing } from "../services/langsmith"; // add LangSmith import
-import * as evalTools from "../tools/evals";
+  BaseAgentConfig,
+  createModelInstance,
+} from './config';
+
 
 // Configure logger for agent initialization
-const logger = createLogger({ name: "agent-initialization", level: "info" });
+const logger = createLogger({ name: "agent-initialization", level: "debug" });
 
 // Configure LangSmith tracing once at startup
 const langsmithClient = configureLangSmithTracing();
@@ -43,7 +38,7 @@ if (langsmithClient) {
 type EvalInputs = Record<string, any>;
 type EvalOutputs = Record<string, any>;
 type EvalsMethod = (inputs?: EvalInputs) => Promise<EvalOutputs>;
-type LiveEvalsMethod = (inputs?: EvalInputs) => AsyncGenerator<{ toolId: string; [k: string]: any }>;
+type LiveEvalsMethod = (inputs?: EvalInputs) => AsyncGenerator<{ toolId: string;[k: string]: any }>;
 type ExtendedAgent = Agent & { evals: EvalsMethod; liveEvals: LiveEvalsMethod };
 
 /**
@@ -62,9 +57,11 @@ export function createAgentFromConfig({
   onError,
 }: {
   config: BaseAgentConfig;
+
   memory: typeof sharedMemory;
   onError?: (error: Error) => Promise<{ text: string }>;
 }): ExtendedAgent {
+
   // Validate configuration
   if (!config.id || !config.name || !config.instructions) {
     throw new AgentConfigError(
@@ -199,6 +196,7 @@ export async function getOrCreateAgentThread(
 ): Promise<MastraTypes.ThreadInfo> {
   try {
     const thread = await threadManager.getOrCreateThread(resourceId, metadata);
+    await threadManager.getOrCreateThread('mastra_memory');
     logger.info(`Thread assigned to resource ${resourceId}: ${thread.id}`);
     return thread;
   } catch (error) {

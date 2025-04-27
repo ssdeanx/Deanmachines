@@ -4,15 +4,25 @@
  * This module sets up the PostgreSQL adapter for Mastra memory persistence,
  * allowing agent conversations and context to be stored reliably.
  */
+import { createLogger } from '@mastra/core/logger';
+import { Memory } from '@mastra/memory';
+import { PgVector, PostgresStore } from '@mastra/pg';
+import fs from 'fs';
+import path from 'path';
 
-import { PostgresStore, PgVector } from "@mastra/pg";
-import { Memory } from "@mastra/memory";
-import type { MastraStorage, MastraVector } from "@mastra/core";
-import { createLogger } from "@mastra/core/logger";
+import type { MastraStorage, MastraVector } from '@mastra/core';
 
-const logger = createLogger({ name: "Memory", level: "debug" });
 
-logger.info("Initializing Memory with PostgreSQL storage");
+const caFilePath = process.env.PGSSL_CA_PATH || './prod-ca-2021.crt';
+const fullPath = path.resolve(caFilePath); // Make sure the path is absolute
+let caFileContent: string;
+try {
+  caFileContent = fs.readFileSync(fullPath).toString(); // Read the file into a string
+} catch (err) {
+  console.error(`FATAL ERROR: Could not read SSL CA file at ${fullPath}`, err);
+  process.exit(1); // Exit if the required cert can't be read
+}
+const logger = createLogger({ name: 'database', level: 'info' });
 
 // Define the memory configuration type
 export interface MemoryConfig {
@@ -52,32 +62,23 @@ const defaultMemoryConfig: MemoryConfig = {
   },
 };
 
-/**
- * Creates a new Memory instance with PostgreSQL storage and vector capabilities.
- * @param options Memory configuration options
- * @returns Configured Memory instance
- */
-export function createMemory(
-  options: Partial<MemoryConfig> = defaultMemoryConfig
-): Memory {
-  const connectionString = process.env.SUPABASE_URL;
-  // Initialize PostgreSQL storage
-  const storage = new PostgresStore({
-    connectionString,
-  });
+// Initialize PostgreSQL storage (singleton)
+export const storage = new PostgresStore({
+  connectionString: process.env.POSTGRES_URL || 'file:.mastra/mastra.db',
+  ssl: {
+    ca: process.env.SSL,
+    rejectUnauthorized: false
+  }
+});
+// Initialize PostgreSQL vector store for semantic search (singleton)
+const vector = new PgVector({
+  connectionString: 'file:C:/Users/dm/Documents/Deanmachines/prod-ca-2021.crt',
+});
 
-  // Initialize PostgreSQL vector store for semantic search
-  const vector = new PgVector(connectionString);
 
-  return new Memory({
-    storage: storage as MastraStorage,
-    vector: vector as MastraVector,
-    options,
-  });
-}
-
-// Export shared memory instance
-export const sharedMemory = createMemory();
-
-// Re-export Memory type for convenience
-export type { Memory };
+// Export shared memory instance (singleton)
+export const sharedMemory = new Memory({
+  storage: storage as MastraStorage,
+  vector: vector as MastraVector,
+  options: defaultMemoryConfig,
+});

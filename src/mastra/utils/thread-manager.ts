@@ -11,7 +11,7 @@ import signoz, { createAISpan } from "../services/signoz";
 import { createLangSmithRun, trackFeedback } from "../services/langsmith";
 import type { ThreadInfo, CreateThreadOptions } from "../types";
 import { ThreadManagerError, CreateThreadOptionsSchema } from "../types";
-import { sharedMemory } from "../database/index";
+import { sharedMemory, initThreadManager } from "../database/index";
 
 const logger = createLogger({ name: "thread-manager", level: "info" });
 

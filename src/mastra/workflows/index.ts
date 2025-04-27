@@ -1,14 +1,17 @@
+import { createAISpan, recordMetrics } from "../services/signoz";
+import { threadManager } from "../utils/thread-manager";
 import { Step, Workflow } from "@mastra/core/workflows";
 import { z } from "zod";
 import { researchAgent, analystAgent, writerAgent } from "../agents";
-import { sharedMemory as memory } from "../database";
+import { storage } from "../database/supabase";
+
 import { PineconeStore } from "@langchain/pinecone";
 import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
 import { Pinecone } from "@pinecone-database/pinecone";
 import { google } from "@ai-sdk/google";
 import { generateText } from "ai";
 import { multiAgentWorkflow } from "./multiagentWorkflow";
-import  workflowFactory from "./workflowFactory";
+import workflowFactory from "./workflowFactory";
 import { advancedTestWorkflow } from "./advancedTestWorkflow";
 const embeddings = new GoogleGenerativeAIEmbeddings({
   apiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY!,
@@ -281,19 +284,18 @@ const feedbackStep = new Step({
           .toLowerCase()}`;
 
         // Store feedback as metadata on a new thread
-        await memory.createThread({
+        await threadManager.createThread({
           resourceId: feedbackResourceId,
           threadId: feedbackThreadId,
-          title: `Feedback for: ${documentData.query}`,
           metadata: {
             query: documentData.query,
             feedback,
-            timestamp: new Date().toISOString(),
+            timestamp: documentData.timestamp,
             origin: "system",
           },
         });
       } catch (storageError) {
-        console.error("Error storing feedback in memory:", storageError);
+        console.error("Error storing feedback in threadManager:", storageError);
       }
 
       return {

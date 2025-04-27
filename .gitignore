@@ -17,3 +17,5 @@ gcp-vertexai-credentials.json
 .env.development
 .mastra
 .vscode
+prod-ca-2021.crt
+openapi.json

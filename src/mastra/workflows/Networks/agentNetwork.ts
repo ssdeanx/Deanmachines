@@ -12,11 +12,9 @@ import agents from "../../agents"; // Central agent registry map
 import { env } from "process";
 import { DEFAULT_MODELS } from "../../agents/config"; // Import for MoE config
 import { KnowledgeWorkMoENetwork } from "./knowledgeWorkMoE.network"; // Import the MoE network class
-import { sharedMemory } from "../../database"; // Import shared memory for network config
-import { threadManager } from "../../utils/thread-manager";
 import { createLogger } from "@mastra/core/logger";
 import { configureLangSmithTracing } from "../../services/langsmith";
-import { applySharedHooks, instrumentNetwork, scheduleMemoryCompaction, renderTemplate, scheduleHealthChecks, registerNetworkHooks, fallbackNetworkInvoke } from './networkHelpers';
+import { applySharedHooks, instrumentNetwork, renderTemplate, scheduleHealthChecks, registerNetworkHooks, fallbackNetworkInvoke } from './networkHelpers';
 
 const logger = createLogger({ name: "agentNetwork", level: "info" });
 
@@ -30,8 +28,8 @@ if (langsmithClient) {
 const baseNetworkConfig: Partial<AgentNetworkConfig> = {
   model: google("models/gemini-2.0-flash"),
   // Note: shared hooks are applied in individual network configurations
-  // memory is handled separately as it may not be part of AgentNetworkConfig
-};
+  //  is handled separately as it may not be part of AgentNetworkConfig
+  };
 
 // --- Original Hook Definitions (Unchanged) ---
 const deanInsightsHooks = {
@@ -113,27 +111,30 @@ const contentCreationHooks = {
 };
 // --- End Original Hook Definitions ---
 
-// --- Original Network Instantiations (Unchanged except adding ID and ensuring memory) ---
+// --- Network Instantiation moved to async initNetworks ---
 
 /**
- * DeanInsights Network
- *
- * A collaborative network focused on researching topics, analyzing data, and producing
- * well-structured reports with reinforcement learning-based improvements over time.
+ * Exported promise that resolves to all initialized agent networks after all async setup is complete.
  */
-export const deanInsightsNetwork = new AgentNetwork({
-  // id: "dean-insights", // ID is not part of AgentNetworkConfig, set via other means if necessary
-  ...baseNetworkConfig, // Includes core config
-  model: baseNetworkConfig.model!, // Ensure model is explicitly provided and non-null
-  name: "DeanInsights Network",
-  agents: [
-    agents.researchAgent,
-    agents.analystAgent,
-    agents.writerAgent,
-    agents.rlTrainerAgent,
-    agents.dataManagerAgent,
-  ],
-  instructions: renderTemplate(`
+let networks: Record<string, AgentNetwork> = {};
+export { networks };
+export const networksPromise: Promise<Record<string, AgentNetwork>> = (async () => {
+  
+
+  // Now safe to instantiate networks
+  const deanInsightsNetwork = new AgentNetwork({
+    // id: "dean-insights", // ID is not part of AgentNetworkConfig, set via other means if necessary
+    ...baseNetworkConfig, // Includes core config
+    model: baseNetworkConfig.model!, // Ensure model is explicitly provided and non-null
+    name: "DeanInsights Network",
+    agents: [
+      agents.researchAgent,
+      agents.analystAgent,
+      agents.writerAgent,
+      agents.rlTrainerAgent,
+      agents.dataManagerAgent,
+    ],
+    instructions: renderTemplate(`
     You are a coordination system that routes queries to the appropriate specialized agents
     to deliver comprehensive and accurate insights.
 
@@ -170,28 +171,27 @@ export const deanInsightsNetwork = new AgentNetwork({
 
     You should maintain a neutral, objective tone and prioritize accuracy and clarity.
   `, { agentList: [agents.researchAgent, agents.analystAgent, agents.writerAgent, agents.rlTrainerAgent, agents.dataManagerAgent].map(a => a.name).join(', ') }),
-});
+  });
 
-// Apply shared hooks, instrumentation, and memory compaction
-applySharedHooks(deanInsightsNetwork, {
-  onError: deanInsightsHooks.onError,
-  onGenerateResponse: deanInsightsHooks.onGenerateResponse,
-});
-instrumentNetwork(deanInsightsNetwork);
-scheduleMemoryCompaction(deanInsightsNetwork);
+  // Apply shared hooks, instrumentation, and  compaction
+  applySharedHooks(deanInsightsNetwork, {
+    onError: deanInsightsHooks.onError,
+    onGenerateResponse: deanInsightsHooks.onGenerateResponse,
+  });
+  instrumentNetwork(deanInsightsNetwork);
 
-/**
- * DataFlow Network
- *
- * A specialized network focused on data processing, file operations, and analysis
- */
-export const dataFlowNetwork = new AgentNetwork({
-  // id: "data-flow", // ID is not part of AgentNetworkConfig, set via other means if necessary
-  ...baseNetworkConfig, // Includes core config
-  model: baseNetworkConfig.model!, // Ensure model is explicitly provided
-  name: "DataFlow Network",
-  agents: [agents.dataManagerAgent, agents.analystAgent, agents.rlTrainerAgent],
-  instructions: renderTemplate(`
+  /**
+   * DataFlow Network
+   *
+   * A specialized network focused on data processing, file operations, and analysis
+   */
+  const dataFlowNetwork = new AgentNetwork({
+    // id: "data-flow", // ID is not part of AgentNetworkConfig, set via other means if necessary
+    ...baseNetworkConfig, // Includes core config
+    model: baseNetworkConfig.model!, // Ensure model is explicitly provided
+    name: "DataFlow Network",
+    agents: [agents.dataManagerAgent, agents.analystAgent, agents.rlTrainerAgent],
+    instructions: renderTemplate(`
     You are a data processing coordination system that orchestrates specialized agents
     to handle data operations, analysis, and optimization tasks.
 
@@ -222,26 +222,25 @@ export const dataFlowNetwork = new AgentNetwork({
 
     Focus on producing accurate, engaging, and valuable content that effectively communicates complex information.
   `, { agentList: [agents.dataManagerAgent, agents.analystAgent, agents.rlTrainerAgent].map(a => a.name).join(', ') }),
-});
+  });
 
-applySharedHooks(dataFlowNetwork, {
-  onError: dataFlowHooks.onError,
-  onGenerateResponse: dataFlowHooks.onGenerateResponse,
-});
-instrumentNetwork(dataFlowNetwork);
-scheduleMemoryCompaction(dataFlowNetwork);
+  applySharedHooks(dataFlowNetwork, {
+    onError: dataFlowHooks.onError,
+    onGenerateResponse: dataFlowHooks.onGenerateResponse,
+  });
+  instrumentNetwork(dataFlowNetwork);
 
-/**
- * ContentCreation Network
- *
- */
-export const contentCreationNetwork = new AgentNetwork({
-  // id: "content-creation", // ID is not part of AgentNetworkConfig, set via other means if necessary
-  ...baseNetworkConfig, // Includes model and memory
-  model: baseNetworkConfig.model!, // Ensure model is explicitly provided and non-null
-  name: "ContentCreation Network",
-  agents: [agents.researchAgent, agents.writerAgent, agents.rlTrainerAgent],
-  instructions: renderTemplate(`
+  /**
+   * ContentCreation Network
+   *
+   */
+  const contentCreationNetwork = new AgentNetwork({
+    // id: "content-creation", // ID is not part of AgentNetworkConfig, set via other means if necessary
+    ...baseNetworkConfig, // Includes model and 
+    model: baseNetworkConfig.model!, // Ensure model is explicitly provided and non-null
+    name: "ContentCreation Network",
+    agents: [agents.researchAgent, agents.writerAgent, agents.rlTrainerAgent],
+    instructions: renderTemplate(`
     You are a content creation coordination system that orchestrates the process
     of researching topics and producing high-quality, well-structured content.
 
@@ -272,166 +271,167 @@ export const contentCreationNetwork = new AgentNetwork({
 
     Focus on producing accurate, engaging, and valuable content that effectively communicates complex information.
   `, { agentList: [agents.researchAgent, agents.writerAgent, agents.rlTrainerAgent].map(a => a.name).join(', ') }),
-});
+  });
 
-applySharedHooks(contentCreationNetwork, {
-  onError: contentCreationHooks.onError,
-  onGenerateResponse: contentCreationHooks.onGenerateResponse,
-});
-instrumentNetwork(contentCreationNetwork);
-scheduleMemoryCompaction(contentCreationNetwork);
+  applySharedHooks(contentCreationNetwork, {
+    onError: contentCreationHooks.onError,
+    onGenerateResponse: contentCreationHooks.onGenerateResponse,
+  });
+  instrumentNetwork(contentCreationNetwork);
 
-// --- MoE Network Instantiation (Added) ---
+  // --- MoE Network Instantiation (Added) ---
 
-// 1. Define the expert agent IDs for the MoE network instance
-// Explicitly type the array elements as keys of the allAgents object.
-const moeExpertIds: (keyof typeof agents)[] = [
-  "researchAgent",
-  "analystAgent",
-  "writerAgent",
-  "coderAgent",
-  "debuggerAgent",
-  "architectAgent",
-  "codeDocumenterAgent",
-  "dataManagerAgent",
-  "marketResearchAgent",
-  "copywriterAgent",
-  "socialMediaAgent",
-  "seoAgent",
-  "uiUxCoderAgent",
-  // 'agenticAssistant' // Fallback agent is added automatically by the MoE class if valid & not listed.
-];
+  // 1. Define the expert agent IDs for the MoE network instance
+  // Explicitly type the array elements as keys of the allAgents object.
+  const moeExpertIds: (keyof typeof agents)[] = [
+    "researchAgent",
+    "analystAgent",
+    "writerAgent",
+    "coderAgent",
+    "debuggerAgent",
+    "architectAgent",
+    "codeDocumenterAgent",
+    "dataManagerAgent",
+    "marketResearchAgent",
+    "copywriterAgent",
+    "socialMediaAgent",
+    "seoAgent",
+    "uiUxCoderAgent",
+    // 'agenticAssistant' // Fallback agent is added automatically by the MoE class if valid & not listed.
+  ];
 
-// 2. Configure the router model for the MoE network
-const moeRouterConfig = DEFAULT_MODELS.GOOGLE_STANDARD // Use a capable model for routing
+  // 2. Configure the router model for the MoE network
+  const moeRouterConfig = DEFAULT_MODELS.GOOGLE_STANDARD // Use a capable model for routing
 
-// 3. Instantiate the MoE network with a unique ID
-export const knowledgeWorkMoENetwork = new KnowledgeWorkMoENetwork(
-  moeExpertIds,
-  agents, // Pass the full agent registry
-  moeRouterConfig,
-  "knowledge-work-moe-v1", // Unique ID for this network instance
-  "masterAgent" // Registry key for masterAgent fallback
-);
+  // 3. Instantiate the MoE network with a unique ID
+  const knowledgeWorkMoENetwork = new KnowledgeWorkMoENetwork(
+    moeExpertIds,
+    agents, // Pass the full agent registry
+    moeRouterConfig,
+    "knowledge-work-moe-v1", // Unique ID for this network instance
+    "masterAgent" // Registry key for masterAgent fallback
+  );
 
-// Instrument and monitor MoE network
-instrumentNetwork(knowledgeWorkMoENetwork);
-scheduleMemoryCompaction(knowledgeWorkMoENetwork);
+  // Instrument and monitor MoE network
+  instrumentNetwork(knowledgeWorkMoENetwork);
 
-// --- Master Exploration and Master Debug Networks (Added) ---
+  // --- Master Exploration and Master Debug Networks (Added) ---
 
-export const masterExplorationNetwork = new AgentNetwork({
-  ...baseNetworkConfig,
-  model: baseNetworkConfig.model!,
-  name: "Master Exploration Network",
-  agents: [
-    agents.masterAgent,
-    agents.researchAgent,
-    agents.analystAgent,
-    agents.writerAgent,
-    agents.rlTrainerAgent,
-    agents.dataManagerAgent,
-    agents.agenticAssistant,
-    agents.coderAgent,
-    agents.architectAgent,
-    agents.debuggerAgent,
-    agents.uiUxCoderAgent,
-    agents.codeDocumenterAgent,
-    agents.copywriterAgent,
-    agents.marketResearchAgent,
-    agents.socialMediaAgent,
-    agents.seoAgent,
-  ],
-  instructions: renderTemplate(`
+  const masterExplorationNetwork = new AgentNetwork({
+    ...baseNetworkConfig,
+    model: baseNetworkConfig.model!,
+    name: "Master Exploration Network",
+    agents: [
+      agents.masterAgent,
+      agents.researchAgent,
+      agents.analystAgent,
+      agents.writerAgent,
+      agents.rlTrainerAgent,
+      agents.dataManagerAgent,
+      agents.agenticAssistant,
+      agents.coderAgent,
+      agents.architectAgent,
+      agents.debuggerAgent,
+      agents.uiUxCoderAgent,
+      agents.codeDocumenterAgent,
+      agents.copywriterAgent,
+      agents.marketResearchAgent,
+      agents.socialMediaAgent,
+      agents.seoAgent,
+    ],
+    instructions: renderTemplate(`
     You are the Master Exploration Network. You leverage the capabilities of the Master Agent to explore, test, and prototype complex workflows and tasks. Use available tools and workflows as needed to provide detailed exploratory outputs.
   `, {}),
-});
-applySharedHooks(masterExplorationNetwork, {
-  onError: async (_err: Error) => ({ text: `Master Exploration Network error: ${_err.message}`, error: _err.message }),
-  onGenerateResponse: async (res: any) => res,
-});
-instrumentNetwork(masterExplorationNetwork);
-scheduleMemoryCompaction(masterExplorationNetwork);
+  });
+  applySharedHooks(masterExplorationNetwork, {
+    onError: async (_err: Error) => ({ text: `Master Exploration Network error: ${_err.message}`, error: _err.message }),
+    onGenerateResponse: async (res: any) => res,
+  });
+  instrumentNetwork(masterExplorationNetwork);
 
-export const masterDebugNetwork = new AgentNetwork({
-  ...baseNetworkConfig,
-  model: baseNetworkConfig.model!,
-  name: "Master Debug Network",
-  agents: [
-    agents.masterAgent,
-    agents.researchAgent,
-    agents.analystAgent,
-    agents.writerAgent,
-    agents.rlTrainerAgent,
-    agents.dataManagerAgent,
-    agents.agenticAssistant,
-    agents.coderAgent,
-    agents.architectAgent,
-    agents.debuggerAgent,
-    agents.uiUxCoderAgent,
-    agents.codeDocumenterAgent,
-    agents.copywriterAgent,
-    agents.marketResearchAgent,
-    agents.socialMediaAgent,
-    agents.seoAgent,
-  ],
-  instructions: renderTemplate(`
+  const masterDebugNetwork = new AgentNetwork({
+    ...baseNetworkConfig,
+    model: baseNetworkConfig.model!,
+    name: "Master Debug Network",
+    agents: [
+      agents.masterAgent,
+      agents.researchAgent,
+      agents.analystAgent,
+      agents.writerAgent,
+      agents.rlTrainerAgent,
+      agents.dataManagerAgent,
+      agents.agenticAssistant,
+      agents.coderAgent,
+      agents.architectAgent,
+      agents.debuggerAgent,
+      agents.uiUxCoderAgent,
+      agents.codeDocumenterAgent,
+      agents.copywriterAgent,
+      agents.marketResearchAgent,
+      agents.socialMediaAgent,
+      agents.seoAgent,
+    ],
+    instructions: renderTemplate(`
     You are the Master Debug Network. You leverage the Master Agent to analyze errors, debug workflows, and suggest fixes. Prioritize clarity and actionable steps.
   `, {}),
-});
-applySharedHooks(masterDebugNetwork, {
-  onError: async (_err: Error) => ({ text: `Master Debug Network error: ${_err.message}`, error: _err.message }),
-  onGenerateResponse: async (res: any) => res,
-});
-instrumentNetwork(masterDebugNetwork);
-scheduleMemoryCompaction(masterDebugNetwork);
+  });
+  applySharedHooks(masterDebugNetwork, {
+    onError: async (_err: Error) => ({ text: `Master Debug Network error: ${_err.message}`, error: _err.message }),
+    onGenerateResponse: async (res: any) => res,
+  });
+  instrumentNetwork(masterDebugNetwork);
+  // scheduleMemoryCompaction removed ( disabled)
+// scheduleMemoryCompaction(masterDebugNetwork);
 
-// Schedule periodic health checks
-scheduleHealthChecks(
-  [deanInsightsNetwork, dataFlowNetwork, contentCreationNetwork, knowledgeWorkMoENetwork, masterExplorationNetwork, masterDebugNetwork],
-  60000
-);
+  // Schedule periodic health checks
+  scheduleHealthChecks(
+    [deanInsightsNetwork, dataFlowNetwork, contentCreationNetwork, knowledgeWorkMoENetwork, masterExplorationNetwork, masterDebugNetwork],
+    60000
+  );
 
-// Register fallback to MoE network on errors
-registerNetworkHooks(deanInsightsNetwork, {
-  onErrorInvoke: (_err, input, opts) => fallbackNetworkInvoke([knowledgeWorkMoENetwork], input, opts),
-});
-registerNetworkHooks(dataFlowNetwork, {
-  onErrorInvoke: (_err, input, opts) => fallbackNetworkInvoke([knowledgeWorkMoENetwork], input, opts),
-});
-registerNetworkHooks(contentCreationNetwork, {
-  onErrorInvoke: (_err, input, opts) => fallbackNetworkInvoke([knowledgeWorkMoENetwork], input, opts),
-});
-registerNetworkHooks(knowledgeWorkMoENetwork, {
-  onErrorInvoke: (_err, input, opts) => fallbackNetworkInvoke([deanInsightsNetwork], input, opts),
-});
+  // Register fallback to MoE network on errors
+  registerNetworkHooks(deanInsightsNetwork, {
+    onErrorInvoke: (_err, input, opts) => fallbackNetworkInvoke([knowledgeWorkMoENetwork], input, opts),
+  });
+  registerNetworkHooks(dataFlowNetwork, {
+    onErrorInvoke: (_err, input, opts) => fallbackNetworkInvoke([knowledgeWorkMoENetwork], input, opts),
+  });
+  registerNetworkHooks(contentCreationNetwork, {
+    onErrorInvoke: (_err, input, opts) => fallbackNetworkInvoke([knowledgeWorkMoENetwork], input, opts),
+  });
+  registerNetworkHooks(knowledgeWorkMoENetwork, {
+    onErrorInvoke: (_err, input, opts) => fallbackNetworkInvoke([deanInsightsNetwork], input, opts),
+  });
 
-// --- Final Export Map for Mastra Configuration (Updated) ---
+  // --- Final Export Map for Mastra Configuration (Updated) ---
 
-/**
- * Export all instantiated networks in a map format compatible with the Mastra instance configuration.
- * The keys MUST be the unique string IDs assigned during instantiation, used for invoking networks.
- */
-export const networks = {
-  // Use the unique IDs assigned during instantiation as keys
-  "dean-insights": deanInsightsNetwork,
-  "data-flow": dataFlowNetwork,
-  "content-creation": contentCreationNetwork,
-  "knowledge-work-moe-v1": knowledgeWorkMoENetwork,
-  "master-exploration": masterExplorationNetwork,
-  "master-debug": masterDebugNetwork,
-};
+  /**
+   * Export all instantiated networks in a map format compatible with the Mastra instance configuration.
+   * The keys MUST be the unique string IDs assigned during instantiation, used for invoking networks.
+   */
+  // ... all other networks as in your original code ...
 
-// --- Original Helper Function (Revised to use final export map) ---
+  let networks = {
+    "dean-insights": deanInsightsNetwork,
+    "data-flow": dataFlowNetwork,
+    "content-creation": contentCreationNetwork,
+    "knowledge-work-moe-v1": knowledgeWorkMoENetwork,
+    "master-exploration": masterExplorationNetwork,
+    "master-debug": masterDebugNetwork,
+  };
+  // If you need to reassign networks, just assign to it (no redeclaration)
+  networks = {
+    "dean-insights": deanInsightsNetwork,
+    "data-flow": dataFlowNetwork,
+    "content-creation": contentCreationNetwork,
+    "knowledge-work-moe-v1": knowledgeWorkMoENetwork,
+    "master-exploration": masterExplorationNetwork,
+    "master-debug": masterDebugNetwork,
+  };
+  return networks;
+})();
 
-/**
- * Helper function to get a specific agent network by its registered ID.
- *
- * @param networkId - The unique ID of the network to retrieve (e.g., "knowledge-work-moe-v1").
- * @returns The requested AgentNetwork instance or undefined if not found.
- */
-export function getAgentNetwork(networkId: string): AgentNetwork | undefined {
-  // Directly access the exported 'networks' map using the provided ID
-  // This map is defined below and uses the correct string IDs as keys.
-  return networks[networkId as keyof typeof networks];
+export async function initNetworks() {
+  return networksPromise;
 }
+

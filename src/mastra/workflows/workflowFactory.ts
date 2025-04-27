@@ -18,11 +18,12 @@ import { createLogger } from "@mastra/core/logger";
 import { configureLangSmithTracing } from "../services/langsmith";
 import { memoryRequestSchema, memoryResponseSchema } from "./workflowSchemas";
 import { threadManager } from "../utils/thread-manager";
-import { sharedMemory } from "../database";
-import type { MastraStorage } from "@mastra/core";
+import { storage } from "../database/supabase";
 
-// Shared storage instance for Mastra
-const storage: MastraStorage = sharedMemory as unknown as MastraStorage;
+
+
+// Use the exported storage instance from the database module (already patched with .init)
+
 
 const logger = createLogger({ name: "workflowFactory", level: "info" });
 

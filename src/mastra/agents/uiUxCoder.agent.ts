@@ -4,7 +4,7 @@
  * This module implements the UI/UX Coder Agent based on its configuration.
  */
 
-import { sharedMemory } from "../database";
+import { sharedMemory, initThreadManager } from "../database/index";
 import { createAgentFromConfig } from "./base.agent";
 import { uiUxCoderConfig } from "./config";
 import { createLogger } from "@mastra/core/logger";

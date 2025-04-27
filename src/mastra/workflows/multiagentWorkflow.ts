@@ -2,7 +2,7 @@ import { Workflow, Step } from "@mastra/core/workflows";
 import { Mastra, type Mastra as MastraType } from "@mastra/core";
 import { createLogger } from "@mastra/core/logger";
 import { z } from "zod";
-import { sharedMemory } from "../database";
+import { storage } from "../database/supabase";
 import { researchAgent } from "../agents/research.agent";
 import { analystAgent } from "../agents/analyst.agent";
 import { writerAgent } from "../agents/writer.agent";
@@ -10,15 +10,12 @@ import { copywriterAgent } from "../agents/copywriter.agent";
 import { threadManager } from "../utils/thread-manager";
 import { createAISpan, recordMetrics } from "../services/signoz";
 import { initializeDefaultTracing } from "../services/tracing";
-import type { MastraStorage } from "@mastra/core";
+// MastraStorage type is not used in this file, so removed.
 
 const logger = createLogger({ name: "multiagentWorkflow" });
 
-// Create a MastraStorage-compatible store
-const storage: MastraStorage = sharedMemory as unknown as MastraStorage;
-
 // Initialize workflow
-logger.info("Initializing multi-agent workflow with sharedMemory storage");
+logger.info("Initializing multi-agent workflow with supabase/Postgres memory storage");
 
 // Initialize tracing at the top level
 initializeDefaultTracing();
@@ -39,7 +36,7 @@ const researchStep = new Step({
     try {
       const { text } = await researchAgent.generate(triggerData.query);
       recordMetrics(span, { status: "success" });
-      // Optionally store to sharedMemory here if needed
+      // Optionally store to storage here if needed
       return text;
     } catch (error) {
       recordMetrics(span, { status: "error", errorMessage: String(error) });
@@ -169,7 +166,7 @@ export const multiAgentWorkflow = new Workflow({
   .commit();
 
 export const mastra: MastraType = new Mastra({
-  storage, // Use sharedMemory directly
+  storage, // Use supabase/Postgres memory directly
   agents: {
     research: researchAgent,
     analyst: analystAgent,

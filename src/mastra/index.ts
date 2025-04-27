@@ -16,9 +16,12 @@ import { Mastra } from "@mastra/core";
 import { createLogger } from "@mastra/core/logger";
 import { initObservability } from "./services"; // Initialize telemetry services
 import agents from "./agents"; // Central agent registry map
-import { ragWorkflow, multiAgentWorkflow } from "./workflows";
-// Import agent networks from the networks file
-import { networks } from "./workflows/Networks/agentNetwork";
+// Networks or workflows are causing
+//SYNCHRONOUS TERMINATION NOTICE: When explicitly exiting the process via process.exit or via a parent process, asynchronous tasks in your exitHooks will not run. Either remove these tasks, use gracefulExit() instead of process.exit(), or ensure your parent process sends a SIGINT to the process running this code.
+
+//import { ragWorkflow, multiAgentWorkflow } from "./workflows";
+//import { networks } from "./workflows/Networks/agentNetwork"; // Import agent networks from the networks file
+
 
 
 // Initialize telemetry (SigNoz + OpenTelemetry) as early as possible
@@ -42,24 +45,23 @@ const logger = createLogger({
 
 logger.info("Initializing Mastra instance...");
 
-// Initialize the central Mastra instance with all registered components
 export const mastra = new Mastra({
   agents: agents, // All registered agents
-  networks: networks, // All registered agent networks
-  workflows: { ragWorkflow, multiAgentWorkflow }, // Workflows from workflows/index.ts (workflowFactory removed as it's a function)
-  logger: logger, // Configured logger
+  // Networks or workflows are causing
+  //SYNCHRONOUS TERMINATION NOTICE: When explicitly exiting the process via process.exit or via a parent process, asynchronous tasks in your exitHooks will not run. Either remove these tasks, use gracefulExit() instead of process.exit(), or ensure your parent process sends a SIGINT to the process running this code.
+  //networks: networks, // All registered agent networks
+  //workflows: { ragWorkflow, multiAgentWorkflow },
+  logger: logger,
   // Telemetry is initialized globally via initObservability
 });
 
 // Log initialization status for monitoring
 const agentCount = Object.keys(agents).length;
-const networkCount = Object.keys(networks).length;
+//const networkCount = Object.keys(networks).length;
 logger.info(
-  `Mastra instance initialized successfully with ${agentCount} agents and ${networkCount} networks.`
+  `Mastra instance initialized successfully with ${agentCount} agents.`
 );
 if (agentCount > 0) {
   logger.debug(`Registered Agent IDs: ${Object.keys(agents).join(", ")}`);
 }
-if (networkCount > 0) {
-  logger.debug(`Registered Network IDs: ${Object.keys(networks).join(", ")}`);
-}
+

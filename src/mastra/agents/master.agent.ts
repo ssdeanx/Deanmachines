@@ -7,7 +7,7 @@
 
 import { createAgentFromConfig } from "./base.agent";
 import { masterAgentConfig } from "./config";
-import { sharedMemory } from "../database";
+import { sharedMemory, initThreadManager } from "../database/index";
 import { createLogger } from "@mastra/core/logger";
 
 const logger = createLogger({ name: "master-agent", level: "debug" });

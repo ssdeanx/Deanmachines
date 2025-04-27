@@ -1,7 +1,7 @@
 import { Workflow } from "@mastra/core";
 import type { Mastra as MastraType } from "@mastra/core";
 import type { ZodSchema } from "zod";
-import { memoryStep, saveMemoryStep } from "./workflowFactory";
+import { saveMemoryStep } from "./workflowFactory";
 
 /**
  * Helper to build and commit a Workflow with wiring logic.
@@ -17,11 +17,9 @@ export function buildWorkflow(
   wiringFn: (wf: any) => any
 ): Workflow<any, any> {
   const wf = new Workflow<any, any>({ name, mastra, triggerSchema });
-  // Prepend memory load step
-  const wfWithMemory = wf.step(memoryStep);
-  // Wire up user steps
-  const wired = wiringFn(wfWithMemory);
-  // Append memory save step before commit
+    // Wire up user steps
+  const wired = wiringFn(wf);
+  // Append saveMemoryStep before commit
   const wfWithSave = wired.step(saveMemoryStep);
   return wfWithSave.commit();
 }

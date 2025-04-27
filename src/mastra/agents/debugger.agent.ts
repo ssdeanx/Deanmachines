@@ -4,9 +4,9 @@
  * This module implements the Debugger Agent based on its configuration.
  */
 
-import { sharedMemory } from "../database";
+import { sharedMemory, initThreadManager } from "../database/index";
 import { createAgentFromConfig } from "./base.agent";
-import {debuggerConfig} from "./config";
+import { debuggerConfig } from "./config";
 import { createLogger } from "@mastra/core/logger";
 
 const logger = createLogger({ name: "debugger-agent", level: "debug" });

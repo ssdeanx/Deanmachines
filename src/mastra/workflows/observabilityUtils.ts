@@ -1,4 +1,5 @@
 import { createAISpan, recordMetrics } from "../services/signoz";
+import { storage } from "../database/supabase";
 
 /**
  * Wraps an async operation in an AI span with standardized metrics.

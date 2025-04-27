@@ -7,9 +7,9 @@
 
 import { Agent } from "@mastra/core/agent";
 import { createAgentFromConfig } from "./base.agent";
-import {copywriterAgentConfig }from "./config";
+import { copywriterAgentConfig } from "./config";
 import { createLogger } from "@mastra/core/logger";
-import { sharedMemory } from "../database";
+import { sharedMemory, initThreadManager } from "../database/index";
 
 // Configure logger for the copywriter agent
 const logger = createLogger({ name: "copywriter-agent", level: "debug" });
@@ -34,8 +34,7 @@ export function initializeCopywriterAgent(): Agent {
     });
   } catch (error) {
     logger.error(
-      `Failed to initialize copywriter agent: ${
-        error instanceof Error ? error.message : String(error)
+      `Failed to initialize copywriter agent: ${error instanceof Error ? error.message : String(error)
       }`
     );
     throw error;

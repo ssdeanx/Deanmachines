@@ -7,7 +7,7 @@
 
 import { createAgentFromConfig } from "./base.agent";
 import { rlTrainerAgentConfig } from "./config";
-import { sharedMemory } from "../database";
+import { sharedMemory, initThreadManager } from "../database/index";
 import { createLogger } from "@mastra/core/logger";
 
 const logger = createLogger({ name: "rl-trainer-agent", level: "debug" });

@@ -4,9 +4,9 @@
  * This module implements the Market Research Agent based on its configuration.
  */
 
-import { sharedMemory } from "../database";
+import { sharedMemory, initThreadManager } from "../database/index";
 import { createAgentFromConfig } from "./base.agent";
-import {marketResearchAgentConfig} from "./config";
+import { marketResearchAgentConfig } from "./config";
 import { createLogger } from "@mastra/core/logger";
 
 const logger = createLogger({ name: "market-research-agent", level: "debug" });

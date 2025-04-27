@@ -4,12 +4,13 @@
  * This module implements the Coder Agent responsible for code generation,
  * analysis, and refactoring tasks within the DeanmachinesAI system.
  */
+import { Agent } from '@mastra/core/agent';
+import { createLogger } from '@mastra/core/logger';
 
-import { Agent } from "@mastra/core/agent";
-import { createAgentFromConfig } from "./base.agent";
-import { coderAgentConfig } from "./config";
-import { createLogger } from "@mastra/core/logger";
-import { sharedMemory } from "../database";
+import { initThreadManager, sharedMemory } from '../database';
+import { createAgentFromConfig } from './base.agent';
+import { coderAgentConfig } from './config';
+
 
 // Configure logger for the coder agent
 const logger = createLogger({ name: "coder-agent", level: "debug" });
@@ -34,8 +35,7 @@ export function initializeCoderAgent(): Agent {
     });
   } catch (error) {
     logger.error(
-      `Failed to initialize coder agent: ${
-        error instanceof Error ? error.message : String(error)
+      `Failed to initialize coder agent: ${error instanceof Error ? error.message : String(error)
       }`
     );
     throw error;
