@@ -8,17 +8,18 @@
 import { randomUUID } from "crypto";
 import { createLogger } from "@mastra/core/logger";
 import signoz, { createAISpan } from "../services/signoz";
-import { createLangSmithRun, trackFeedback } from "../services/langsmith";
-import { LangfuseService } from "../services/langfuse"; // Langfuse integration
+import { configureLangSmithTracing, createLangSmithRun, trackFeedback } from "../services/langsmith";
+import { langfuse } from "../services/langfuse";
 import type { ThreadInfo, CreateThreadOptions } from "../types";
 import { ThreadManagerError, CreateThreadOptionsSchema } from "../types";
 import { sharedMemory } from "../database/index";
 
-// Initialize Langfuse client for observability
-const langfuseService = new LangfuseService();
-
 const logger = createLogger({ name: "thread-manager", level: "info" });
 
+const langsmithClient = configureLangSmithTracing();
+if (langsmithClient) {
+  logger.info("LangSmith tracing enabled for Mastra agents");
+}
 /**
  * Manages conversation threads to ensure consistent memory access
  */
@@ -26,6 +27,9 @@ export class ThreadManager {
   private threads: Map<string, ThreadInfo> = new Map();
   private resourceThreads: Map<string, Set<string>> = new Map();
   private threadReadStatus: Map<string, Date> = new Map(); // threadId -> lastReadAt
+  private creatingThreads: Set<string> = new Set(); // Recursion guard
+  // --- Thread creation context flag to prevent tracing/logging recursion ---
+  private isCreatingThread: boolean = false;
 
   /**
    * Creates a new conversation thread
@@ -35,14 +39,28 @@ export class ThreadManager {
    * @throws ThreadManagerError if validation fails
    */
   public async createThread(options: CreateThreadOptions): Promise<ThreadInfo> {
-    // Validate input
+    // Strictly prevent tracing/logging recursion during thread creation
+    if (this.isCreatingThread) {
+      // No tracing, logging, or span creation allowed in recursive context
+      return this._createThreadCore(options);
+    }
+    this.isCreatingThread = true;
+    try {
+      return await this._createThreadCore(options);
+    } finally {
+      this.isCreatingThread = false;
+    }
+  }
+
+  // Core thread creation logic, optionally with tracing/logging
+  private async _createThreadCore(options: CreateThreadOptions): Promise<ThreadInfo> {
     const parseResult = CreateThreadOptionsSchema.safeParse(options);
     if (!parseResult.success) {
-      logger.error(JSON.stringify({ event: "thread.create.validation_failed", errors: parseResult.error.errors, options }));
+      if (!this.isCreatingThread) logger.error(JSON.stringify({ event: "thread.create.validation_failed", errors: parseResult.error.errors, options }));
       throw new ThreadManagerError("Invalid thread creation options");
     }
-    const span = createAISpan("thread.create", { resourceId: options.resourceId });
-    logger.info("Creating thread", { resourceId: options.resourceId, metadata: options.metadata });
+    const span = this.isCreatingThread ? null : createAISpan("thread.create", { resourceId: options.resourceId });
+    if (!this.isCreatingThread) logger.info("Creating thread", { resourceId: options.resourceId, metadata: options.metadata });
     const startTime = Date.now();
     let runId: string | undefined;
     try {
@@ -58,22 +76,43 @@ export class ThreadManager {
         this.resourceThreads.set(options.resourceId, new Set());
       }
       this.resourceThreads.get(options.resourceId)?.add(threadId);
-      logger.info(JSON.stringify({ event: "thread.created", threadId, resourceId: options.resourceId }));
-      span.setStatus({ code: 1 });
-      signoz.recordMetrics(span, { latencyMs: Date.now() - startTime, status: "success" });
-      runId = await createLangSmithRun("thread.create", [options.resourceId]);
-      await trackFeedback(runId, { score: 1, comment: "Thread created successfully" });
-      // Record thread creation trace in Langfuse
-      langfuseService.createTrace("thread.create", { metadata: { threadId, resourceId: options.resourceId } });
+      if (!this.isCreatingThread) logger.info(JSON.stringify({ event: "thread.created", threadId, resourceId: options.resourceId }));
+      if (span) {
+        span.setStatus({ code: 1 });
+        if (!this.isCreatingThread) signoz.recordMetrics(span, { latencyMs: Date.now() - startTime, status: "success" });
+      }
+      if (!this.isCreatingThread) {
+        runId = await createLangSmithRun("thread.create", [options.resourceId]);
+        await trackFeedback(runId, { score: 1, comment: "Thread created successfully" });
+        // Record thread creation trace in Langfuse
+        const trace = langfuse.createTrace("thread.create", {
+          metadata: {
+            threadId,
+            resourceId: options.resourceId,
+            ...options.metadata,
+            ...(options.usage_details && { usage_details: options.usage_details }),
+            ...(options.cost_details && { cost_details: options.cost_details })
+          },
+        });
+        if (trace) {
+          trace.event({
+            name: "thread-created",
+            input: threadId,
+            metadata: { resourceId: options.resourceId, ...options.metadata },
+          });
+        }
+      }
       return threadInfo;
     } catch (error) {
-      signoz.recordMetrics(span, { latencyMs: Date.now() - startTime, status: "error", errorMessage: String(error) });
-      if (runId) await trackFeedback(runId, { score: 0, comment: "Thread creation failed", value: error });
-      logger.error(JSON.stringify({ event: "thread.create.failed", error: String(error) }));
-      span.setStatus({ code: 2, message: String(error) });
+      if (span) {
+        signoz.recordMetrics(span, { latencyMs: Date.now() - startTime, status: "error", errorMessage: String(error) });
+        span.setStatus({ code: 2, message: String(error) });
+      }
+      if (!this.isCreatingThread && runId) await trackFeedback(runId, { score: 0, comment: "Thread creation failed", value: error });
+      if (!this.isCreatingThread) logger.error(JSON.stringify({ event: "thread.create.failed", error: String(error) }));
       throw new ThreadManagerError(String(error));
     } finally {
-      span.end();
+      if (span) span.end();
     }
   }
 
@@ -84,8 +123,24 @@ export class ThreadManager {
    * @returns Thread information or undefined if not found
    */
   public getThread(threadId: string): ThreadInfo | undefined {
-    // TODO: Add access control check here if threads are user-specific
-    langfuseService.createTrace("thread.get", { metadata: { threadId } });
+    const thread = this.threads.get(threadId);
+    const metadata = thread?.metadata || {};
+    const trace = langfuse.createTrace("thread.get", {
+      metadata: {
+        threadId,
+        ...metadata,
+        ...(thread?.usage_details && { usage_details: thread.usage_details }),
+        ...(thread?.cost_details && { cost_details: thread.cost_details })
+      },
+    });
+    if (trace) {
+      trace.event({
+        name: "thread-get",
+        input: threadId,
+        metadata: {},
+
+      });
+    }
     const span = createAISpan("thread.get", { threadId });
     try {
       const thread = this.threads.get(threadId);
@@ -108,8 +163,25 @@ export class ThreadManager {
    * @returns Array of thread information objects
    */
   public getThreadsByResource(resourceId: string): ThreadInfo[] {
-    // TODO: Add access control check here if threads are user-specific
-    langfuseService.createTrace("thread.getByResource", { metadata: { resourceId } });
+    const threads = this.getThreadsByResource(resourceId);
+    const firstThread = threads[0];
+    const metadata = firstThread?.metadata || {};
+    const trace = langfuse.createTrace("thread.getByResource", {
+      metadata: {
+        resourceId,
+        ...metadata,
+        ...(firstThread?.usage_details && { usage_details: firstThread.usage_details }),
+        ...(firstThread?.cost_details && { cost_details: firstThread.cost_details })
+      },
+    });
+    if (trace) {
+      trace.event({
+        name: "thread-getByResource",
+        input: resourceId,
+        metadata: {},
+
+      });
+    }
     const span = createAISpan("thread.getByResource", { resourceId });
     try {
       const threadIds = this.resourceThreads.get(resourceId) || new Set();
@@ -135,7 +207,24 @@ export class ThreadManager {
    * @returns Most recent thread information or undefined if none exists
    */
   public getMostRecentThread(resourceId: string): ThreadInfo | undefined {
-    langfuseService.createTrace("thread.getMostRecent", { metadata: { resourceId } });
+    const thread = this.getMostRecentThread(resourceId);
+    const metadata = thread?.metadata || {};
+    const trace = langfuse.createTrace("thread.getMostRecent", {
+      metadata: {
+        resourceId,
+        ...metadata,
+        ...(thread?.usage_details && { usage_details: thread.usage_details }),
+        ...(thread?.cost_details && { cost_details: thread.cost_details })
+      },
+    });
+    if (trace) {
+      trace.event({
+        name: "thread-getMostRecent",
+        input: resourceId,
+        metadata: {},
+
+      });
+    }
     const span = createAISpan("thread.getMostRecent", { resourceId });
     try {
       const threads = this.getThreadsByResource(resourceId);
@@ -169,58 +258,49 @@ export class ThreadManager {
     resourceId: string,
     metadata?: Record<string, unknown>
   ): Promise<ThreadInfo> {
-    langfuseService.createTrace("thread.getOrCreate", { metadata: { resourceId } });
-    const span = createAISpan("thread.getOrCreate", { resourceId });
+    if (this.creatingThreads.has(resourceId)) {
+      throw new ThreadManagerError(`Recursive getOrCreateThread detected for resourceId: ${resourceId}`);
+    }
+    this.creatingThreads.add(resourceId);
     try {
-      const existingThread = this.getMostRecentThread(resourceId);
-      if (existingThread) {
-        logger.info(JSON.stringify({ event: "thread.getOrCreate", resourceId, threadId: existingThread.id, found: true }));
-        span.setStatus({ code: 1 });
-        return existingThread;
+      // Strictly prevent tracing/logging recursion during thread creation
+      // All tracing/logging inside createThread is guarded by isCreatingThread
+      // Check if thread exists for resourceId
+      for (const [id, thread] of this.threads.entries()) {
+        if (thread.resourceId === resourceId) {
+          return thread;
+        }
       }
-      logger.info(JSON.stringify({ event: "thread.getOrCreate", resourceId, found: false }));
-      const newThread = await this.createThread({ resourceId, metadata });
-      span.setStatus({ code: 1 });
-      return newThread;
-    } catch (error) {
-      logger.error(JSON.stringify({ event: "thread.getOrCreate.failed", error: String(error) }));
-      span.setStatus({ code: 2, message: String(error) });
-      throw new ThreadManagerError(String(error));
+      // If not found, create a new thread
+      return await this.createThread({ resourceId, metadata });
     } finally {
-      span.end();
+      this.creatingThreads.delete(resourceId);
     }
   }
 
   /**
    * Mark a thread as read (updates lastReadAt)
    * @param threadId - The ID of the thread to mark as read
-   * @param date - Optional date (defaults to now)
-   */
-  public markThreadAsRead(threadId: string, date: Date = new Date()): void {
-    langfuseService.createTrace("thread.markAsRead", { metadata: { threadId } });
-    const span = createAISpan("thread.markAsRead", { threadId });
-    try {
-      this.threadReadStatus.set(threadId, date);
-      const thread = this.threads.get(threadId);
-      if (thread) {
-        thread.lastReadAt = date;
-        logger.info(JSON.stringify({ event: "thread.markAsRead", threadId, date }));
-      }
-      span.setStatus({ code: 1 });
-    } catch (error) {
-      logger.error(JSON.stringify({ event: "thread.markAsRead.failed", error: String(error) }));
-      span.setStatus({ code: 2, message: String(error) });
-    } finally {
-      span.end();
-    }
-  }
-
-  /**
-   * Get unread threads for a resource (threads never read or with new activity)
-   * @param resourceId - The resource ID to check
-   * @returns Array of unread ThreadInfo
-   */
   public getUnreadThreadsByResource(resourceId: string): ThreadInfo[] {
+    const threads = this.getThreadsByResource(resourceId);
+    const firstThread = threads[0];
+    const metadata = firstThread?.metadata || {};
+    const trace = langfuse.createTrace("thread.getUnreadByResource", {
+      metadata: {
+        resourceId,
+        ...metadata,
+        ...(firstThread?.usage_details && { usage_details: firstThread.usage_details }),
+        ...(firstThread?.cost_details && { cost_details: firstThread.cost_details })
+      },
+    });
+    if (trace) {
+      trace.event({
+        name: "thread-getUnreadByResource",
+        input: resourceId,
+        metadata: {},
+
+      });
+    }
     const span = createAISpan("thread.getUnreadByResource", { resourceId });
     try {
       const threads = this.getThreadsByResource(resourceId);
@@ -244,6 +324,24 @@ export class ThreadManager {
    * Retrieve persisted memory for a thread.
    */
   public async getThreadMemory(threadId: string): Promise<any> {
+    const thread = this.threads.get(threadId);
+    const metadata = thread?.metadata || {};
+    const trace = langfuse.createTrace("memory.get", {
+      metadata: {
+        threadId,
+        ...metadata,
+        ...(thread?.usage_details && { usage_details: thread.usage_details }),
+        ...(thread?.cost_details && { cost_details: thread.cost_details })
+      },
+    });
+    if (trace) {
+      trace.event({
+        name: "memory-get",
+        input: threadId,
+        metadata: {},
+
+      });
+    }
     const span = createAISpan("memory.get", { threadId });
     try {
       if (!sharedMemory) throw new ThreadManagerError("Memory not initialized");
@@ -262,6 +360,24 @@ export class ThreadManager {
    * Save memory for a thread.
    */
   public async saveThreadMemory(threadId: string, data: any): Promise<void> {
+    const thread = this.threads.get(threadId);
+    const metadata = thread?.metadata || {};
+    const trace = langfuse.createTrace("memory.save", {
+      metadata: {
+        threadId,
+        ...metadata,
+        ...(thread?.usage_details && { usage_details: thread.usage_details }),
+        ...(thread?.cost_details && { cost_details: thread.cost_details })
+      },
+    });
+    if (trace) {
+      trace.event({
+        name: "memory-save",
+        input: threadId,
+        metadata: { data },
+
+      });
+    }
     const span = createAISpan("memory.save", { threadId });
     try {
       if (!sharedMemory) throw new ThreadManagerError("Memory not initialized");

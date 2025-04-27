@@ -9,14 +9,14 @@ import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions'
 // Import types and values from OpenTelemetry packages
 import * as api from '@opentelemetry/api';
 import { Resource as OTResource, resourceFromAttributes, detectResources } from '@opentelemetry/resources';
-import type { 
+import type {
   SimpleSpanProcessor,
   BatchSpanProcessor,
   SpanProcessor
 } from '@opentelemetry/sdk-trace-base';
 import type { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
-import type { 
-  OTLPTraceExporter 
+import type {
+  OTLPTraceExporter
 } from '@opentelemetry/exporter-trace-otlp-http';
 import type { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 
@@ -24,8 +24,8 @@ import type { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 import type { Client as LangSmithClient } from 'langsmith';
 
 // Export core OpenTelemetry types for use in the application
-export type { 
-  SimpleSpanProcessor, 
+export type {
+  SimpleSpanProcessor,
   BatchSpanProcessor,
   SpanProcessor,
   NodeTracerProvider,
@@ -71,10 +71,10 @@ export interface LangSmithConfig {
 export interface OtelConfig {
   /** Name to identify your service in traces */
   serviceName?: string;
- 
+
   /** Enable/disable telemetry (defaults to true) */
   enabled?: boolean;
- 
+
   /** Control how many traces are sampled */
   sampling?: {
     type: "ratio" | "always_on" | "always_off" | "parent_based";
@@ -83,7 +83,7 @@ export interface OtelConfig {
       probability: number; // For parent_based sampling
     };
   };
- 
+
   /** Where to send telemetry data */
   export?: {
     type: "otlp" | "console";
@@ -106,11 +106,11 @@ export interface OtelConfig {
 }
 
 /** Valid types for telemetry attribute values */
-export type AttributeValue = 
-  | string 
-  | number 
-  | boolean 
-  | Array<string | number | boolean> 
+export type AttributeValue =
+  | string
+  | number
+  | boolean
+  | Array<string | number | boolean>
   | null;
 
 /**
@@ -178,7 +178,7 @@ export const OTelAttributeNames = {
   SESSION_ID: 'session.id',
   TRACE_ID: 'trace.id',
   SPAN_ID: 'span.id',
-  
+
   // AI specific
   MODEL_NAME: 'ai.model.name',
   MODEL_PROVIDER: 'ai.model.provider',
@@ -186,7 +186,7 @@ export const OTelAttributeNames = {
   COMPLETION_TOKENS: 'ai.completion.tokens',
   TOTAL_TOKENS: 'ai.tokens.total',
   LATENCY_MS: 'ai.latency.ms',
-  
+
   // Mastra specific
   AGENT_ID: 'mastra.agent.id',
   AGENT_TYPE: 'mastra.agent.type',
@@ -194,7 +194,7 @@ export const OTelAttributeNames = {
   WORKFLOW_ID: 'mastra.workflow.id',
   MEMORY_ID: 'mastra.memory.id',
   THREAD_ID: 'mastra.thread.id',
-  
+
   // Error
   ERROR: 'error',
   ERROR_MESSAGE: 'error.message',
@@ -226,13 +226,16 @@ export type OTelAttributes = {
  * Token usage information for LLM calls
  */
 export interface TokenInfo {
-  /** Number of tokens in the prompt */
   promptTokens?: number;
-  /** Number of tokens in the completion */
   completionTokens?: number;
-  /** Total token count */
   totalTokens?: number;
 }
+
+export type LangfusePromptUsage = {
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+};
 
 /**
  * Trace collector interface for Mastra's telemetry system
@@ -240,19 +243,19 @@ export interface TokenInfo {
 export interface TraceCollector {
   /** Name of the collector */
   name: string;
-  
+
   /** Called when a trace starts */
   onStart?: (trace: {
     name: string;
     metadata?: Record<string, any>;
   }) => Promise<any>;
-  
+
   /** Called when a trace ends */
   onEnd?: (trace: {
     name: string;
     metadata?: Record<string, any>;
   }, context: any) => Promise<void>;
-  
+
   /** Called when an event occurs within a trace */
   onEvent?: (event: {
     type: string;
@@ -272,34 +275,34 @@ export interface TraceCollector {
 export interface OTelService {
   /** Initialize OpenTelemetry from Mastra config */
   initFromConfig(config: OtelConfig): api.Tracer | null;
-  
+
   /** Initialize OpenTelemetry with custom options */
   init(options: OTelInitOptions): api.Tracer | null;
-  
+
   /** Get the current tracer instance */
   getTracer(): api.Tracer;
-  
+
   /** Create a new span */
   createSpan(name: string, options?: api.SpanOptions, parentContext?: api.Context): api.Span;
-  
+
   /** Run a function within a span */
   withSpan<T>(name: string, fn: (span: api.Span) => Promise<T>, attributes?: Record<string, AttributeValue>): Promise<T>;
-  
+
   /** Create a specialized span for LLM operations */
   createLlmSpan(name: string, modelName: string, provider: string, input?: string | object): api.Span;
-  
+
   /** Record LLM response data on a span */
   recordLlmResponse(span: api.Span, output: string | object, tokenInfo?: TokenInfo, latencyMs?: number): void;
-  
+
   /** Set user context on the active span */
   setUserContext(userId: string, sessionId?: string): void;
-  
+
   /** Get the active span from the current context */
   getActiveSpan(): api.Span | null;
-  
+
   /** Get the trace ID of the current context */
   getCurrentTraceId(): string | null;
-  
+
   /** Gracefully shut down OpenTelemetry */
   shutdown(): Promise<void>;
 }
@@ -307,11 +310,44 @@ export interface OTelService {
 /**
  * Langfuse trace creation options
  */
+/**
+ * Langfuse trace creation options. Supports custom metrics: usage_details, cost_details, latencyMs, score, etc.
+ */
 export interface LangfuseTraceOptions {
   userId?: string;
-  metadata?: Record<string, unknown>;
+  sessionId?: string;
+  model?: string;
+  provider?: string;
+  score?: number;
+  latencyMs?: number;
+  usage_details?: {
+    input?: number;
+    output?: number;
+    cache_read_input_tokens?: number;
+    total?: number;
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+  };
+  cost_details?: {
+    input?: number;
+    output?: number;
+    cache_read_input_tokens?: number;
+    total?: number;
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+  };
+  evalScore?: number;
+  evalComment?: string;
+  promptTemplate?: string;
+  promptVersion?: string;
+  temperature?: number;
+  topP?: number;
   tags?: string[];
+  metadata?: Record<string, unknown>;
 }
+
 
 /**
  * Langfuse span creation options
@@ -327,6 +363,9 @@ export interface LangfuseSpanOptions {
 /**
  * Langfuse generation event options
  */
+/**
+ * Langfuse generation event options. Supports custom metrics: usage_details, cost_details, latencyMs, score, etc.
+ */
 export interface LangfuseGenerationOptions {
   traceId: string;
   input: unknown;
@@ -334,19 +373,82 @@ export interface LangfuseGenerationOptions {
   promptTokens?: number;
   completionTokens?: number;
   model?: string;
+  provider?: string;
+  score?: number;
+  latencyMs?: number;
+  usage_details?: {
+    input?: number;
+    output?: number;
+    cache_read_input_tokens?: number;
+    total?: number;
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+  };
+  cost_details?: {
+    input?: number;
+    output?: number;
+    cache_read_input_tokens?: number;
+    total?: number;
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+  };
+  evalScore?: number;
+  evalComment?: string;
+  promptTemplate?: string;
+  promptVersion?: string;
+  temperature?: number;
+  topP?: number;
+  userId?: string;
+  sessionId?: string;
+  tags?: string[];
   metadata?: Record<string, unknown>;
 }
 
+
+
 /**
- * Langfuse score options
+ * Langfuse trace options
  */
-export interface LangfuseScoreOptions {
-  name: string;
-  value: number;
-  traceId?: string;
+export interface LangfuseTraceOptions {
+  userId?: string;
+  sessionId?: string;
+  model?: string;
+  provider?: string;
+  score?: number;
+  latencyMs?: number;
+  usage_details?: {
+    input?: number;
+    output?: number;
+    cache_read_input_tokens?: number;
+    total?: number;
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+  };
+  cost_details?: {
+    input?: number;
+    output?: number;
+    cache_read_input_tokens?: number;
+    total?: number;
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+  };
+  evalScore?: number;
+  evalComment?: string;
+  promptTemplate?: string;
+  promptVersion?: string;
+  temperature?: number;
+  topP?: number;
+  tags?: string[];
+  metadata?: Record<string, unknown>;
   spanId?: string;
   generationId?: string;
   comment?: string;
-  metadata?: Record<string, unknown>;
-  tags?: string[];
+  // Allow extra fields for future compatibility
+  [key: string]: unknown;
 }
+
+// [REMOVED] LangfuseObservationOptions: Use event(), span(), and generation() methods for all observations.

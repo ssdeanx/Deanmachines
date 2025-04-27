@@ -36,6 +36,7 @@ import {
   resourceFromAttributes,
   detectResources,
 } from './types';
+import { langfuse } from './langfuse';
 
 const logger = createLogger({ name: 'opentelemetry-tracing', level: 'info' });
 
@@ -208,9 +209,18 @@ export function initOpenTelemetry(
   }
 
   process.on('SIGTERM', async () => {
-    await sdk.shutdown();
-    logger.info('OpenTelemetry SDK shut down');
-    process.exit(0);
+    try {
+      await sdk.shutdown();
+      logger.info('OpenTelemetry SDK shut down');
+      if (langfuse && typeof langfuse.flush === "function") {
+        await langfuse.flush();
+        logger.info('Langfuse events flushed on shutdown');
+      }
+      process.exit(0);
+    } catch (err) {
+      logger.error('Error during shutdown', { error: (err as Error).message });
+      process.exit(1);
+    }
   });
 
   return sdk;
@@ -238,6 +248,57 @@ export function createHistogram(name: string, description?: string): Histogram {
   return meter.createHistogram(name, { description });
 }
 
+/**
+ * Create a span and log to Langfuse for unified tracing.
+ * @param name - The span name
+ * @param options - Span options (attributes, etc.)
+ * @returns The created span
+ * @example
+ *   const span = createTracedSpan("my-operation", { attributes: { foo: "bar" } });
+ *   // ...do work...
+ *   span.end();
+ */
+export function createTracedSpan(name: string, options?: Record<string, any>) {
+  const tracer = getTracer();
+  const span = tracer?.startSpan(name, options);
+  langfuse.createTrace(name, { metadata: options, tags: ["otel", "langfuse", name] });
+  return span;
+}
+
+/**
+ * Inject trace context into headers for distributed tracing.
+ * @param headers - The headers object to inject into
+ */
+export function injectTraceContext(headers: Record<string, string>) {
+  propagation.inject(context.active(), headers);
+}
+
+/**
+ * Extract trace context from headers for distributed tracing.
+ * @param headers - The headers object to extract from
+ */
+export function extractTraceContext(headers: Record<string, string>) {
+  return propagation.extract(context.active(), headers);
+}
+
+/**
+ * Flush both OTEL and Langfuse events.
+ * @returns Promise that resolves when all events are flushed
+ */
+export async function flushTracing(): Promise<void> {
+  try {
+    if (meterProviderInstance && typeof (meterProviderInstance as any).shutdown === "function") {
+      await (meterProviderInstance as any).shutdown();
+    }
+    if (langfuse && typeof langfuse.flush === "function") {
+      await langfuse.flush();
+    }
+    logger.info("Flushed OTEL and Langfuse events");
+  } catch (err) {
+    logger.error("Error flushing tracing events", { error: (err as Error).message });
+  }
+}
+
 export default {
   init: initOpenTelemetry,
   initializeDefaultTracing,
@@ -247,4 +308,23 @@ export default {
   logWithTraceContext,
   createCounter,
   createHistogram,
+  createTracedSpan,
+  injectTraceContext,
+  extractTraceContext,
+  flushTracing,
+  langfuse, // Export singleton for convenience
 };
+
+// JSDoc usage example:
+/**
+ * Example usage:
+ * 
+ * import { createTracedSpan, langfuse } from './tracing';
+ * 
+ * const span = createTracedSpan("my-operation", { foo: "bar" });
+ * // ...do work...
+ * span.end();
+ * 
+ * // To flush all events:
+ * await flushTracing();
+ */

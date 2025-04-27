@@ -1,3 +1,63 @@
+ERROR [2025-04-27 12:37:46.831 -0400] (notion_get_self): [Agent:Master Agent] - Failed tool execution
+    runId: "masterAgent"
+    threadId: "796d5527-2885-4e37-9a2e-3b3105d6c6cc"
+    resourceId: "masterAgent"
+    agentName: "Master Agent"
+    description: "Get current user."
+    args: {}
+    error: {}
+2025-04-27T16:38:03.449Z [Runner] Sending heartbeat ping...
+2025-04-27T16:38:03.558Z [Runner] Sending heartbeat ping...
+Exception in PromiseRejectCallback:
+file:///C:/Users/dm/Documents/Deanmachines/.mastra/output/index.mjs:11475
+}
+^
+
+RangeError: Maximum call stack size exceeded
+
+Exception in PromiseRejectCallback:
+file:///C:/Users/dm/Documents/Deanmachines/.mastra/output/index.mjs:11453
+    const res = await net.execute(input, opts);
+                          ^
+
+RangeError: Maximum call stack size exceeded
+
+Exception in PromiseRejectCallback:
+file:///C:/Users/dm/Documents/Deanmachines/.mastra/output/index.mjs:11475
+}
+^
+
+RangeError: Maximum call stack size exceeded
+
+Exception in PromiseRejectCallback:
+file:///C:/Users/dm/Documents/Deanmachines/.mastra/output/index.mjs:11453
+    const res = await net.execute(input, opts);
+                          ^
+
+RangeError: Maximum call stack size exceeded
+
+Exception in PromiseRejectCallback:
+file:///C:/Users/dm/Documents/Deanmachines/.mastra/output/index.mjs:11475
+}
+^
+
+RangeError: Maximum call stack size exceeded
+
+Exception in PromiseRejectCallback:
+file:///C:/Users/dm/Documents/Deanmachines/.mastra/output/index.mjs:11453
+    const res = await net.execute(input, opts);
+                          ^
+
+RangeError: Maximum call stack size exceeded
+
+file:///C:/Users/dm/Documents/Deanmachines/.mastra/output/index.mjs:11437
+async function executeWithThread(net, input, opts = {}) {
+                                ^
+
+
+
+
+
 'docker_obsidian_list_files_in_dir',
     'docker_obsidian_list_files_in_vault',
     'docker_obsidian_get_file_contents',

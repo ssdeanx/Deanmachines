@@ -11,7 +11,7 @@ import type { MastraStorage, MastraVector } from '@mastra/core';
 import { configureLangSmithTracing } from '../services/langsmith';
 import { createLogger } from '@mastra/core/logger';
 import { ThreadManager, threadManager } from '../utils/thread-manager';
-import { LangfuseService } from '../services/langfuse'; // Langfuse integration
+import { langfuse } from '../services/langfuse'; // Langfuse integration
 
 // Define the memory configuration type
 export interface MemoryConfig {
@@ -61,8 +61,7 @@ if (langsmithClient) {
 }
 
 // Initialize Langfuse for database observability
-const langfuseService = new LangfuseService();
-if (langfuseService) {
+if (langfuse) {
   logger.info("Langfuse tracing enabled for Mastra database");
 }
 
@@ -84,7 +83,13 @@ const vector = new LibSQLVector({
 // Function to create a configured Memory instance
 export function createMemory(options: Partial<MemoryConfig> = defaultMemoryConfig): Memory {
   // Trace memory creation
-  langfuseService.createTrace('memory.create', { metadata: { options } });
+  langfuse.createTrace('memory.create', {
+    metadata: {
+      options,
+      ...('usage_details' in options ? { usage_details: (options as any).usage_details } : {}),
+      ...('cost_details' in options ? { cost_details: (options as any).cost_details } : {})
+    }
+  });
   return new Memory({
     storage: storage as unknown as MastraStorage,
     vector: vector as unknown as MastraVector,
@@ -97,8 +102,6 @@ export const sharedMemory = createMemory();
 
 // Ensure threadManager initializes only after sharedMemory is ready
 export const initThreadManager = (async () => {
-  // Trace thread manager initialization
-  langfuseService.createTrace('initThreadManager');
   // Wait for memory to initialize (if it has async init)
   if (typeof (sharedMemory as any).init === 'function') {
     await (sharedMemory as any).init();
@@ -107,14 +110,22 @@ export const initThreadManager = (async () => {
     await new Promise(res => setTimeout(res, 10));
   }
   // Create a default thread to ensure threadManager works with memory
+  let defaultThread;
   try {
-    await threadManager.getOrCreateThread('mastra_memory');
+    defaultThread = await threadManager.getOrCreateThread('mastra_memory');
   } catch (err) {
     // Log but do not block init
     if (typeof logger !== 'undefined') {
       logger.error('Failed to create default thread in threadManager:', err);
     }
   }
+  // Trace thread manager initialization, including thread metrics if available
+  langfuse.createTrace('initThreadManager', {
+    metadata: {
+      ...(defaultThread?.usage_details ? { usage_details: defaultThread.usage_details } : {}),
+      ...(defaultThread?.cost_details ? { cost_details: defaultThread.cost_details } : {})
+    }
+  });
   return threadManager;
 })();
 

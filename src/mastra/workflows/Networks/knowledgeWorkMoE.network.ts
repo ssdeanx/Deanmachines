@@ -27,12 +27,10 @@ import { applySharedHooks, instrumentNetwork } from "./networkHelpers";
 // Async initialization for KnowledgeWorkMoENetwork
 let knowledgeWorkMoENetwork: KnowledgeWorkMoENetwork | null = null;
 
+// Logger and tracing setup
 const logger = createLogger({ name: "MoE-Network", level: "info" });
-
-const langsmithClient = configureLangSmithTracing();
-if (langsmithClient) {
-  logger.info("LangSmith tracing enabled for agent network");
-}
+// NOTE: Tracing/logging that could trigger thread creation must only be performed inside runtime execution paths (e.g., in execute, not constructor/global).
+// Any tracing requiring thread context is now handled in runtime initializers or execution paths only.
 
 // Define the type for the agents map more explicitly
 type AgentRegistry = typeof allAgents;

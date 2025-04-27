@@ -4,7 +4,7 @@
  * This module implements the Code Documenter Agent based on its configuration.
  */
 
-import { sharedMemory, initThreadManager } from "../database/index";
+import { sharedMemory } from "../database/index";
 import { createAgentFromConfig } from "./base.agent";
 import { codeDocumenterConfig } from "./config/"; // Import directly
 import { createLogger } from "@mastra/core/logger";

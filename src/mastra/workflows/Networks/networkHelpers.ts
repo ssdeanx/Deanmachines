@@ -13,6 +13,8 @@ import fs from 'fs';
 import EventEmitter from 'events';
 // import { storage } from "../../database/supabase";
 
+// NOTE: Tracing/logging that could trigger thread creation must only be performed inside runtime execution paths (e.g., inside executeWithThread, not at module/global scope).
+// Any tracing requiring thread context is now handled in runtime initializers or execution paths only.
 const tracer = trace.getTracer('mastra-network-helpers');
 const logger = createLogger({ name: 'NetworkHelpers', level: 'info' });
 
@@ -39,7 +41,30 @@ export function instrumentNetwork(
   net: any,
   config: { wrapExecute?: boolean; wrapStream?: boolean; wrapGenerate?: boolean } = {}
 ): void {
-  if (config.wrapExecute !== false) net.execute = (input: any, options?: any) => executeWithThread(net, input, options);
+  if (config.wrapExecute !== false) {
+    if (!net._originalExecute) {
+      net._originalExecute = net.execute;
+    } else {
+      if (net.execute === executeWithThread) return;
+    }
+    net.execute = (input: any, options?: any) => executeWithThread(net, input, options);
+  }
+  if (config.wrapStream !== false && typeof net.stream === 'function') {
+    if (!net._originalStream) {
+      net._originalStream = net.stream;
+    } else {
+      if (net.stream === streamWithThread) return;
+    }
+    net.stream = (input: any, options?: any) => streamWithThread(net, input, options);
+  }
+  if (config.wrapGenerate !== false && typeof net.generate === 'function') {
+    if (!net._originalGenerate) {
+      net._originalGenerate = net.generate;
+    } else {
+      if (net.generate === generateWithThread) return;
+    }
+    net.generate = (input: any, options?: any) => generateWithThread(net, input, options);
+  }
 }
 
 /** Types **/
@@ -70,6 +95,20 @@ export function useMiddleware(mw: Middleware) { globalMiddlewares.push(mw); }
 export function clearMiddleware() { globalMiddlewares.length = 0; }
 
 /** Execution wrappers **/
+export async function generateWithThread(net: any, input: any, opts: ExecOptions = {}): Promise<any> {
+  const span = tracer.startSpan('generateWithThread', { attributes: { net: net.name } });
+  if (!net._originalGenerate) throw new Error('[generateWithThread] net._originalGenerate missing.');
+  try {
+    const res = await net._originalGenerate.call(net, input, opts);
+    return res;
+  } catch (e: any) {
+    span.recordException(e); span.setStatus({ code: SpanStatusCode.ERROR, message: e.message });
+    throw e;
+  } finally {
+    span.end();
+  }
+}
+
 export async function executeWithThread(net: any, input: any, opts: ExecOptions = {}): Promise<any> {
   invocationCount.set(net, (invocationCount.get(net) || 0) + 1);
   const span = tracer.startSpan('executeWithThread', { attributes: { net: net.name } });
@@ -86,7 +125,11 @@ export async function executeWithThread(net: any, input: any, opts: ExecOptions 
   for (const m of globalMiddlewares) if (m.before) ({ input, options: opts } = await m.before(net, input, opts));
   hookMap.get(net)?.onBeforeInvoke?.(input, opts);
   try {
-    const res = await net.execute(input, opts);
+    // Always call the original implementation to avoid recursion
+    if (!net._originalExecute) {
+      throw new Error('[executeWithThread] net._originalExecute is missing. Network was not properly instrumented.');
+    }
+    const res = await net._originalExecute.call(net, input, opts);
     hookMap.get(net)?.onAfterInvoke?.(res, opts);
     for (const m of globalMiddlewares) if (m.after) await m.after(net, res, opts);
     return res;
@@ -105,7 +148,8 @@ export async function executeWithThread(net: any, input: any, opts: ExecOptions 
 
 export async function* streamWithThread(net: any, input: any, opts: ExecOptions = {}): AsyncIterable<StreamChunk> {
   const span = tracer.startSpan('streamWithThread', { attributes: { net: net.name } });
-  const iter = net.stream(input, opts);
+  if (!net._originalStream) throw new Error('[streamWithThread] net._originalStream missing.');
+  const iter = net._originalStream.call(net, input, opts);
   try { for await (const c of iter) yield c; }
   catch (e: any) { span.recordException(e); span.setStatus({ code: SpanStatusCode.ERROR, message: e.message }); throw e; }
   finally { span.end(); }

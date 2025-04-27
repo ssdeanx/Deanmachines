@@ -16,6 +16,7 @@ import { Mastra } from "@mastra/core";
 import { createLogger } from "@mastra/core/logger";
 import { initObservability } from "./services"; // Initialize telemetry services
 import { LangfuseService } from "./services/langfuse"; // Langfuse integration
+
 import agents from "./agents"; // Central agent registry map
 // Networks or workflows are causing
 //SYNCHRONOUS TERMINATION NOTICE: When explicitly exiting the process via process.exit or via a parent process, asynchronous tasks in your exitHooks will not run. Either remove these tasks, use gracefulExit() instead of process.exit(), or ensure your parent process sends a SIGINT to the process running this code.
@@ -25,11 +26,12 @@ import { networks } from "./workflows/Networks/agentNetwork"; // Import agent ne
 
 
 
-// Initialize telemetry (SigNoz + OpenTelemetry) as early as possible
-initObservability({
+// Initialize telemetry (SigNoz + OpenTelemetry + Langfuse) as early as possible
+const observability = initObservability({
   serviceName: process.env.MASTRA_SERVICE_NAME || "deanmachines-ai-mastra",
   signozEnabled: true,
   otelEnabled: true,
+  langfuseEnabled: true,
   exporters: [
     {
       type: 'otlp',
@@ -38,8 +40,8 @@ initObservability({
   ],
 });
 
-// Initialize Langfuse for platform observability
-const langfuseService = new LangfuseService();
+// Access the langfuse singleton if needed
+const langfuseService = observability.langfuse;
 
 
 // Configure logger with appropriate level based on environment
@@ -50,11 +52,22 @@ const logger = createLogger({
 
 logger.info("Initializing Mastra instance...");
 
-// Trace Mastra initialization start
-if (langfuseService) {
-  langfuseService.createTrace("mastra.initialization.start", { metadata: { agentCount: Object.keys(agents).length } });
-  logger.info("Langfuse tracing enabled for Mastra platform");
+// To avoid ReferenceError/circular import issues, do not call langfuseService.createTrace at the top-level.
+// Instead, call this function from your main entrypoint after all modules are loaded.
+export function registerMastraWithLangfuse(agentCount: number) {
+  if (langfuseService) {
+    try {
+      langfuseService.createTrace("mastra.initialization.start", { metadata: { agentCount } });
+      langfuseService.createTrace("mastra.initialized", { metadata: { agentCount } });
+      logger.info("Langfuse tracing enabled for Mastra platform");
+    } catch (err) {
+      logger.warn("Langfuse mastra trace failed", { error: err });
+    }
+  } else {
+    logger.warn("LangfuseService not initialized, skipping observability trace.");
+  }
 }
+
 export const mastra = new Mastra({
   agents: agents, // All registered agents
   networks: networks, // All registered agent networks
@@ -73,5 +86,3 @@ if (agentCount > 0) {
   logger.debug(`Registered Agent IDs: ${Object.keys(agents).join(", ")}`);
 }
 
-// Record Mastra ready state in Langfuse
-langfuseService.createTrace("mastra.initialized", { metadata: { agentCount } });

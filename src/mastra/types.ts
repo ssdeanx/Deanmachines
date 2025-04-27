@@ -259,6 +259,32 @@ export interface LangSmithConfig {
 /**
  * Thread information with creation metadata
  */
+/**
+ * Detailed usage metrics for a thread (e.g., token counts, input/output, etc.)
+ */
+export interface UsageDetails {
+  input?: number;
+  output?: number;
+  cache_read_input_tokens?: number;
+  total?: number;
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+}
+
+/**
+ * Detailed cost metrics for a thread (e.g., cost breakdowns, token costs, etc.)
+ */
+export interface CostDetails {
+  input?: number;
+  output?: number;
+  cache_read_input_tokens?: number;
+  total?: number;
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+}
+
 export interface ThreadInfo {
   /** Unique thread identifier */
   id: string;
@@ -270,6 +296,10 @@ export interface ThreadInfo {
   metadata?: Record<string, unknown>;
   /** When the thread was last read */
   lastReadAt?: Date;
+  /** Optional usage metrics for the thread (e.g., token counts) */
+  usage_details?: UsageDetails;
+  /** Optional cost metrics for the thread (e.g., cost breakdowns) */
+  cost_details?: CostDetails;
 }
 
 /**
@@ -282,7 +312,12 @@ export interface CreateThreadOptions {
   resourceId: string;
   /** Optional metadata for thread categorization */
   metadata?: Record<string, unknown>;
+  /** Optional usage metrics for the thread (e.g., token counts) */
+  usage_details?: UsageDetails;
+  /** Optional cost metrics for the thread (e.g., cost breakdowns) */
+  cost_details?: CostDetails;
 }
+
 
 /**
  * Custom error for thread management failures
@@ -313,6 +348,28 @@ export const ThreadInfoSchema = z.object({
   createdAt: z.date(),
   metadata: z.record(z.unknown()).optional(),
   lastReadAt: z.date().optional(),
+  usage_details: z
+    .object({
+      input: z.number().optional(),
+      output: z.number().optional(),
+      cache_read_input_tokens: z.number().optional(),
+      total: z.number().optional(),
+      promptTokens: z.number().optional(),
+      completionTokens: z.number().optional(),
+      totalTokens: z.number().optional(),
+    })
+    .optional(),
+  cost_details: z
+    .object({
+      input: z.number().optional(),
+      output: z.number().optional(),
+      cache_read_input_tokens: z.number().optional(),
+      total: z.number().optional(),
+      promptTokens: z.number().optional(),
+      completionTokens: z.number().optional(),
+      totalTokens: z.number().optional(),
+    })
+    .optional(),
 });
 
 /**
@@ -322,6 +379,28 @@ export const CreateThreadOptionsSchema = z.object({
   threadId: z.string().optional(),
   resourceId: z.string(),
   metadata: z.record(z.unknown()).optional(),
+  usage_details: z
+    .object({
+      input: z.number().optional(),
+      output: z.number().optional(),
+      cache_read_input_tokens: z.number().optional(),
+      total: z.number().optional(),
+      promptTokens: z.number().optional(),
+      completionTokens: z.number().optional(),
+      totalTokens: z.number().optional(),
+    })
+    .optional(),
+  cost_details: z
+    .object({
+      input: z.number().optional(),
+      output: z.number().optional(),
+      cache_read_input_tokens: z.number().optional(),
+      total: z.number().optional(),
+      promptTokens: z.number().optional(),
+      completionTokens: z.number().optional(),
+      totalTokens: z.number().optional(),
+    })
+    .optional(),
 });
 
 // Re-export types from services for backward compatibility

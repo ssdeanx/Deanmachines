@@ -18,13 +18,10 @@ import { configureLangSmithTracing } from "../../services/langsmith";
 import { applySharedHooks, instrumentNetwork } from "./networkHelpers";
 // import { storage } from "../../database/supabase";
 
-// Configure logger for the network
+// Logger and tracing setup
 const logger = createLogger({ name: "product-launch-network", level: "info" });
-
-const langsmithClient = configureLangSmithTracing();
-if (langsmithClient) {
-  logger.info("LangSmith tracing enabled for agent network");
-}
+// NOTE: Tracing/logging that could trigger thread creation must only be performed inside runtime execution paths (e.g., in execute, not constructor/global).
+// Any tracing requiring thread context is now handled in runtime initializers or execution paths only.
 
 /**
  * ProductLaunchNetwork

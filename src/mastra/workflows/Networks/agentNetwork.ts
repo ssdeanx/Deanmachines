@@ -17,10 +17,8 @@ import { applySharedHooks, instrumentNetwork, renderTemplate, scheduleHealthChec
 
 const logger = createLogger({ name: "agentNetwork", level: "info" });
 
-const langsmithClient = configureLangSmithTracing();
-if (langsmithClient) {
-  logger.info("LangSmith tracing enabled for agent network");
-}
+// LangSmith tracing and any tracing/logging that could trigger thread creation must only be initialized at runtime, not at module scope.
+// Any tracing requiring thread context is now handled in runtime initializers or execution paths only.
 
 // Base configuration for all networks to match agent configuration
 // Core properties shared by all networks
@@ -115,8 +113,8 @@ const contentCreationHooks = {
 /**
  * Exported promise that resolves to all initialized agent networks after all async setup is complete.
  */
-let networks: Record<string, AgentNetwork> = {};
-export { networks };
+// Exported async initializer for all agent networks. All instantiation and hook attachment is done at runtime.
+export let networks: Record<string, AgentNetwork> = {};
 export const networksPromise: Promise<Record<string, AgentNetwork>> = (async () => {
 
 
@@ -278,10 +276,8 @@ export const networksPromise: Promise<Record<string, AgentNetwork>> = (async () 
   });
   instrumentNetwork(contentCreationNetwork);
 
-  // --- MoE Network Instantiation (Added) ---
-
-  // 1. Define the expert agent IDs for the MoE network instance
-  // Explicitly type the array elements as keys of the allAgents object.
+  // --- MoE Network Instantiation (Runtime Safe) ---
+  // All logic here is runtime-only; no thread or tracing operations at module load.
   const moeExpertIds: (keyof typeof agents)[] = [
     "researchAgent",
     "analystAgent",
@@ -298,20 +294,14 @@ export const networksPromise: Promise<Record<string, AgentNetwork>> = (async () 
     "uiUxCoderAgent",
     // 'agenticAssistant' // Fallback agent is added automatically by the MoE class if valid & not listed.
   ];
-
-  // 2. Configure the router model for the MoE network
-  const moeRouterConfig = DEFAULT_MODELS.GOOGLE_STANDARD // Use a capable model for routing
-
-  // 3. Instantiate the MoE network with a unique ID
+  const moeRouterConfig = DEFAULT_MODELS.GOOGLE_STANDARD;
   const knowledgeWorkMoENetwork = new KnowledgeWorkMoENetwork(
     moeExpertIds,
-    agents, // Pass the full agent registry
+    agents,
     moeRouterConfig,
-    "knowledge-work-moe-v1", // Unique ID for this network instance
-    "masterAgent" // Registry key for masterAgent fallback
+    "knowledge-work-moe-v1",
+    "masterAgent"
   );
-
-  // Instrument and monitor MoE network
   instrumentNetwork(knowledgeWorkMoENetwork);
 
   // --- Master Exploration and Master Debug Networks (Added) ---
@@ -382,13 +372,13 @@ export const networksPromise: Promise<Record<string, AgentNetwork>> = (async () 
   // scheduleMemoryCompaction removed ( disabled)
   // scheduleMemoryCompaction(masterDebugNetwork);
 
-  // Schedule periodic health checks
+  // Schedule periodic health checks (runtime only; does NOT create threads at module load)
   scheduleHealthChecks(
     [deanInsightsNetwork, dataFlowNetwork, contentCreationNetwork, knowledgeWorkMoENetwork, masterExplorationNetwork, masterDebugNetwork],
     60000
   );
 
-  // Register fallback to MoE network on errors
+  // Register fallback to MoE network on errors (runtime only)
   registerNetworkHooks(deanInsightsNetwork, {
     onErrorInvoke: (_err, input, opts) => fallbackNetworkInvoke([knowledgeWorkMoENetwork], input, opts),
   });
@@ -410,15 +400,7 @@ export const networksPromise: Promise<Record<string, AgentNetwork>> = (async () 
    */
   // ... all other networks as in your original code ...
 
-  let networks = {
-    "dean-insights": deanInsightsNetwork,
-    "data-flow": dataFlowNetwork,
-    "content-creation": contentCreationNetwork,
-    "knowledge-work-moe-v1": knowledgeWorkMoENetwork,
-    "master-exploration": masterExplorationNetwork,
-    "master-debug": masterDebugNetwork,
-  };
-  // If you need to reassign networks, just assign to it (no redeclaration)
+  // Export all instantiated networks in a map format compatible with Mastra configuration.
   networks = {
     "dean-insights": deanInsightsNetwork,
     "data-flow": dataFlowNetwork,

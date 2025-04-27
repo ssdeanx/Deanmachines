@@ -9,11 +9,10 @@ import { Agent } from '@mastra/core/agent';
 import { createLogger } from '@mastra/core/logger';
 import { Tool } from '@mastra/core/tools';
 import { MastraVoice } from '@mastra/core/voice';
-
 import { sharedMemory } from '../database/index';
 import { createResponseHook } from '../hooks';
-import { configureLangSmithTracing } from '../services/langsmith';
-import { LangfuseService } from '../services/langfuse'; // Langfuse integration
+import { langfuse } from "../services/langfuse"; // Use the singleton Langfuse instance for agent observability
+import { configureLangSmithTracing } from "../services/langsmith";
 import { allToolsMap } from '../tools';
 import * as evalTools from '../tools/evals';
 import * as MastraTypes from '../types';
@@ -35,8 +34,7 @@ if (langsmithClient) {
   logger.info("LangSmith tracing enabled for Mastra agents");
 }
 
-// Initialize Langfuse for agent observability
-const langfuseService = new LangfuseService();
+
 
 // Extend Agent with evaluation methods
 type EvalInputs = Record<string, any>;
@@ -66,8 +64,26 @@ export function createAgentFromConfig({
   onError?: (error: Error) => Promise<{ text: string }>;
 }): ExtendedAgent {
 
-  // Trace agent creation start
-  langfuseService.createTrace('agent.create', { metadata: { agentId: config.id, toolCount: config.toolIds.length } });
+  // Trace agent creation start, robust and context-enriched
+  try {
+    // Attach OpenTelemetry traceId if available
+    let traceId: string | undefined;
+    try {
+      const currentSpan = (globalThis as any).trace?.getSpan?.((globalThis as any).context?.active?.());
+      traceId = currentSpan?.spanContext().traceId;
+    } catch { }
+    langfuse.createTrace('agent.create', {
+      metadata: {
+        agentId: config.id,
+        toolCount: config.toolIds.length,
+        ...(traceId && { traceId }),
+        ...(config.usage_details && { usage_details: config.usage_details }),
+        ...(config.cost_details && { cost_details: config.cost_details })
+      }
+    });
+  } catch (err) {
+    logger.warn("Langfuse agent.create trace failed", { agentId: config.id, error: err });
+  }
 
   // Validate configuration
   if (!config.id || !config.name || !config.instructions) {
@@ -201,8 +217,24 @@ export async function getOrCreateAgentThread(
   resourceId: string,
   metadata?: MastraTypes.CreateThreadOptions["metadata"]
 ): Promise<MastraTypes.ThreadInfo> {
-  // Trace agent thread retrieval/creation
-  langfuseService.createTrace('agent.getOrCreateThread', { metadata: { resourceId } });
+  // Trace agent thread retrieval/creation, robust and context-enriched
+  try {
+    let traceId: string | undefined;
+    try {
+      const currentSpan = (globalThis as any).trace?.getSpan?.((globalThis as any).context?.active?.());
+      traceId = currentSpan?.spanContext().traceId;
+    } catch { }
+    langfuse.createTrace('agent.getOrCreateThread', {
+      metadata: {
+        resourceId,
+        ...(traceId ? { traceId } : {}),
+        ...(metadata?.usage_details ? { usage_details: metadata.usage_details } : {}),
+        ...(metadata?.cost_details ? { cost_details: metadata.cost_details } : {})
+      }
+    });
+  } catch (err) {
+    logger.warn("Langfuse agent.getOrCreateThread trace failed", { resourceId, error: err });
+  }
 
   try {
     const thread = await threadManager.getOrCreateThread(resourceId, metadata);

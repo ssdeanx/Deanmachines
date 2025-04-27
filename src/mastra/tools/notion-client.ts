@@ -436,6 +436,8 @@ export class NotionClient extends AIFunctionsProvider {
   async oauthToken(
     params: { grant_type: string; code: string; redirect_uri: string; external_account?: any }
   ): Promise<any> {
+    // Fix: pick expects the first argument to be an object, and the rest as string keys
+    // If params is an object, this is correct:
     return this.ky
       .post('/oauth/token', {
         json: pick(params, 'grant_type', 'code', 'redirect_uri', 'external_account')

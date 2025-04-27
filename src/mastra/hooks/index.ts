@@ -9,14 +9,13 @@
 import { trace, context, SpanStatusCode } from '@opentelemetry/api';
 import { createLogger } from '@mastra/core/logger';
 import { AgentGenerateOptions } from '@mastra/core/agent';
-import { LangfuseService } from '../services/langfuse'; // Langfuse integration
+import { langfuse } from '../services/langfuse'; // Langfuse singleton
 
 // Configure logger
 const logger = createLogger({ name: 'mastra-hooks', level: 'debug' });
 
 // Initialize Langfuse for hook observability
-const langfuseService = new LangfuseService();
-if (langfuseService) {
+if (langfuse) {
   logger.info("Langfuse tracing enabled for Mastra hooks");
 }
 
@@ -80,7 +79,7 @@ export function createResponseHook(config: ResponseHookConfig = {}) {
       // Record validation attempt in Langfuse if available
       if (traceId) {
         try {
-          langfuseService.createScore({
+          langfuse.createScore({
             name: `response-validation-${attempt}`,
             value: validateResponse(response) ? 1.0 : 0.0,
             traceId,
@@ -269,7 +268,7 @@ export function createStreamHooks(enableTracing = true) {
           const traceId = currentSpan?.spanContext().traceId;
 
           if (traceId) {
-            langfuseService.createScore({
+            langfuse.createScore({
               name: 'stream-error',
               value: 0.0,
               traceId,
@@ -311,7 +310,19 @@ export function createToolHooks(toolName: string, enableTracing = true) {
         logger.debug(`Tool ${toolName} execution started`, {
           inputType: typeof input,
         });
-        langfuseService.createTrace("tool.start", { metadata: { toolName, inputType: typeof input } });
+        // Improved: Attach traceId/spanId to metadata if available
+        let traceId: string | undefined;
+        try {
+          const currentSpan = trace.getSpan(context.active());
+          traceId = currentSpan?.spanContext().traceId;
+        } catch { }
+        try {
+          langfuse.createTrace("tool.start", {
+            metadata: { toolName, inputType: typeof input, ...(traceId && { traceId }) }
+          });
+        } catch (err) {
+          logger.warn("Langfuse tool.start trace failed", { toolName, error: err });
+        }
 
         if (toolSpan) {
           toolSpan.setAttribute('tool.name', toolName);
@@ -337,7 +348,19 @@ export function createToolHooks(toolName: string, enableTracing = true) {
 
       try {
         logger.debug(`Tool ${toolName} execution completed successfully`);
-        langfuseService.createTrace("tool.end", { metadata: { toolName } });
+        // Improved: Attach traceId/spanId to metadata if available
+        let traceId: string | undefined;
+        try {
+          const currentSpan = trace.getSpan(context.active());
+          traceId = currentSpan?.spanContext().traceId;
+        } catch { }
+        try {
+          langfuse.createTrace("tool.end", {
+            metadata: { toolName, ...(traceId && { traceId }) }
+          });
+        } catch (err) {
+          logger.warn("Langfuse tool.end trace failed", { toolName, error: err });
+        }
 
         if (toolSpan) {
           toolSpan.setAttribute('tool.name', toolName);
@@ -367,7 +390,25 @@ export function createToolHooks(toolName: string, enableTracing = true) {
           errorMessage: error.message,
           errorStack: error.stack,
         });
-        langfuseService.createTrace("tool.error", { metadata: { toolName, errorName: error.name, errorMessage: error.message } });
+        // Improved: Attach traceId/spanId to metadata if available
+        let traceId: string | undefined;
+        try {
+          const currentSpan = trace.getSpan(context.active());
+          traceId = currentSpan?.spanContext().traceId;
+        } catch { }
+        try {
+          langfuse.createTrace("tool.error", {
+            metadata: {
+              toolName,
+              errorName: error.name,
+              errorMessage: error.message,
+              ...(traceId && { traceId }),
+              errorStack: error.stack
+            }
+          });
+        } catch (err) {
+          logger.warn("Langfuse tool.error trace failed", { toolName, error: err });
+        }
 
         if (toolSpan) {
           toolSpan.setAttribute('tool.name', toolName);

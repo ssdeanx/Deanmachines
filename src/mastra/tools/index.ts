@@ -16,7 +16,7 @@ import { env } from "process";
 import { z, ZodType, ZodTypeAny } from "zod"; // Import specific Zod types
 import { Tool, createTool } from "@mastra/core/tools"; // Using Mastra core Tool
 import { createLogger } from "@mastra/core/logger";
-import { LangfuseService } from "../services/langfuse"; // Langfuse integration
+
 // Note: createMastraTools from @agentic/mastra is used internally by tool modules now
 
 // === Internal tool imports ===
@@ -89,7 +89,7 @@ import {
 import { tracingTools } from "./tracingTools";
 import { createMastraPolygonTools, TickerDetailsSchema } from "./polygon"; // Import Mastra helper for Polygon tools
 import { createMastraRedditTools, SubredditPostSchema } from "./reddit"; // Import Mastra helper for Reddit tools
-import { createMastraNotionTools } from "./notion-client"; // <-- Add this line
+import { createMastraNotionTools } from './notion-client'; // <-- Add this line
 import { puppeteerTool } from "./puppeteerTool";
 import { hyperAgentTool } from "./hyper-functionCalls";
 
@@ -127,10 +127,9 @@ export { createMastraNotionTools }; // <-- Add this line
 // === Configure Logger ===
 const logger = createLogger({ name: "tool-initialization", level: "info" });
 
-// Initialize Langfuse for tool registry
-const langfuseService = new LangfuseService();
-if (langfuseService) logger.info("Langfuse tracing enabled for tool-initialization");
-langfuseService.createTrace("tools.index.loaded", { metadata: { module: "tools.index" } });
+
+
+
 
 // === Environment Configuration ===
 
@@ -374,48 +373,21 @@ try {
   logger.error("Failed to initialize E2B tools:", { error });
 }
 
-// --- LlamaIndex Tools ---
-// --- Start Comment Out LlamaIndex ---
-/*
-try {
-    const llamaIndexArrayRaw = await createLlamaIndexTools();
-    if (Array.isArray(llamaIndexArrayRaw)) {
-      const llamaIndexTools = llamaIndexArrayRaw.map(llamaTool => {
-          // ... (adaptation logic) ...
-          let inputSchemaInstance: z.ZodSchema | undefined = undefined;
-          if (llamaTool.metadata.parameters && llamaTool.metadata.parameters instanceof z.ZodSchema) {
-              inputSchemaInstance = llamaTool.metadata.parameters;
-          } else {
-              logger.warn(`LlamaIndex tool "${llamaTool.metadata.name}" has invalid or missing parameters schema. Defaulting to z.any().`);
-              inputSchemaInstance = z.any().describe("Input schema was missing or invalid.");
-          }
-          const mastraTool: Tool<any, any> = {
-              id: llamaTool.metadata.name,
-              description: llamaTool.metadata.description,
-              inputSchema: inputSchemaInstance,
-              execute: llamaTool.call as any,
-          };
-          return ensureToolOutputSchema(mastraTool);
-      });
-      extraTools.push(...llamaIndexTools);
-      logger.info(`Added ${llamaIndexTools.length} LlamaIndex tools.`);
-    } else {
-        logger.warn("createLlamaIndexTools did not return an array.");
-    }
-} catch (error) {
-    logger.error("Failed to initialize LlamaIndex tools:", { error });
-}
-*/
-// --- End Comment Out LlamaIndex ---
-
 // --- MCP Tools (using Mastra helper, async initialization) ---
 try {
   // Note: If this file is not top-level async, you must move this to an async setup/init function!
   // For top-level await (ESM), this works as-is.
   const mcpToolsObject = await createMastraMcpTools();
   const mcpToolsArray = Object.values(mcpToolsObject);
-  extraTools.push(...mcpToolsArray.map(tool => tool as Tool<any, any>));
-  logger.info(`Added ${mcpToolsArray.length} MCP tools.`);
+  // Prevent duplicate tool registration: filter out any tool IDs already in extraTools or coreTools or additionalTools
+  const existingToolIds = new Set([
+    ...extraTools.map(t => t.id),
+    ...coreTools.map(t => t.id),
+    ...additionalTools.map(t => t.id),
+  ]);
+  const filteredMcpTools = mcpToolsArray.filter(tool => !existingToolIds.has(tool.id));
+  extraTools.push(...filteredMcpTools.map(tool => tool as Tool<any, any>));
+  logger.info(`Added ${filteredMcpTools.length} MCP tools.`);
 } catch (error) {
   logger.error("Failed to initialize MCP tools:", { error });
 }
@@ -498,34 +470,15 @@ try {
   logger.error("Failed to initialize Reddit tools:", { error });
 }
 
-// --- LLM Chain Tools ---
-// --- Start Comment Out LLM Chain ---
-/*
+// --- Notion Tools (using Mastra helper) ---
 try {
-    const llmChainToolsObject = createMastraLLMChainTools();
-    const llmChainToolsArray = Object.values(llmChainToolsObject);
-
-    const processedLLMTools = llmChainToolsArray.map(tool => {
-        let validatedTool = { ...tool } as Tool<any, any>;
-        // ... (explicit schema assignment logic) ...
-         if (validatedTool.id === 'llm-chain') {
-            // ... schema checks ...
-        } else if (validatedTool.id === 'ai-sdk-prompt') {
-            // ... schema checks ...
-        } else {
-            // ... warning and schema check ...
-        }
-        // ... final validation and return null if invalid ...
-        return validatedTool;
-    }).filter((tool): tool is Tool<any, any> => tool !== null);
-
-    extraTools.push(...processedLLMTools);
-    logger.info(`Added ${processedLLMTools.length} LLM Chain tools.`);
+  const notionToolsObject = createMastraNotionTools();
+  const notionToolsArray = Object.values(notionToolsObject);
+  extraTools.push(...notionToolsArray.map(tool => tool as Tool<any, any>));
+  logger.info(`Added ${notionToolsArray.length} Notion tools.`);
 } catch (error) {
-    logger.error("Failed to initialize LLM Chain tools:", { error });
+  logger.error("Failed to initialize Notion tools:", { error });
 }
-*/
-// --- End Comment Out LLM Chain ---
 
 // --- GitHub Tools (using Mastra helper) ---
 try {
@@ -639,6 +592,49 @@ export const toolGroups = {
   extra: extraTools, // Contains all tools added above
 };
 
+// === Thread-aware tool for echoing threadId and message for tracing/debugging. ===
+const threadEchoLogger = createLogger({ name: "thread-echo-tool", level: "info" });
+
+export const threadEchoTool = createTool({
+  id: "thread-echo",
+  description: "Echoes the threadId for tracing and debugging.",
+  inputSchema: z.object({
+    threadId: z.string(),
+    message: z.string(),
+    metadata: z.record(z.any()).optional(),
+  }),
+  outputSchema: z.object({
+    echoedThreadId: z.string(),
+    message: z.string(),
+    traceId: z.string().optional(),
+    spanId: z.string().optional(),
+    timestamp: z.string(),
+  }),
+  async execute({ context }) {
+    // Record thread event (no Langfuse)
+    const { threadId, message, metadata } = context;
+    threadEchoLogger.info(JSON.stringify({
+      event: "tool.execute",
+      tool: "thread-echo",
+      threadId,
+      message,
+      metadata,
+    }));
+    // Optionally, return trace/span info for downstream correlation
+    return {
+      echoedThreadId: threadId,
+      message,
+      timestamp: new Date().toISOString(),
+    };
+  },
+});
+
+// Add to coreTools for registration
+coreTools.push(threadEchoTool);
+
+// === Add thread-aware tools to toolGroups for easy access ===
+(toolGroups as any).thread = [threadEchoTool];
+
 // === Log Initialization Results ===
 logger.info(`Initialized ${allTools.length} tools successfully.`);
 logger.info(
@@ -652,8 +648,8 @@ logger.info(`E2B tools included: ${extraTools.some(t => t.id.startsWith('e2b_'))
 logger.info(`Arxiv tools included: ${extraTools.some(t => t.id.startsWith('arxiv_'))}`); // Assuming helper creates IDs like 'arxiv_...'
 logger.info(`AI SDK tools included: ${extraTools.some(t => t.id.startsWith('ai-sdk_'))}`); // Assuming helper creates IDs like 'ai-sdk_...'
 logger.info(`AI SDK tools included: ${extraTools.some(t => t.id.startsWith('ai-sdk_'))}`); // Assuming helper creates IDs like 'ai-sdk_...'
-// Record all tools registration in Langfuse
-langfuseService.createTrace("tools.registered", { metadata: { toolIds: allTools.map(tool => tool.id) } });
+// To avoid ReferenceError/circular import issues, do not call langfuse.createTrace at the top-level.
+// Instead, call this function from your main entrypoint after all modules are loaded.
 
 // For backward compatibility.
 export { allToolsMap as toolMap };
@@ -676,36 +672,3 @@ export { threadManager } from "../utils/thread-manager";
  *   // In your execute function:
  *   logger.info({ event: "tool.execute", tool: "myTool", threadId, ... })
  */
-
-const threadEchoLogger = createLogger({ name: "thread-echo-tool", level: "info" });
-
-/**
- * Thread-aware tool for echoing threadId and message for tracing/debugging.
- */
-export const threadEchoTool = createTool({
-  id: "thread-echo",
-  description: "Echoes the threadId for tracing and debugging.",
-  inputSchema: z.object({
-    threadId: z.string(),
-    message: z.string(),
-  }),
-  outputSchema: z.object({
-    echoedThreadId: z.string(),
-    message: z.string(),
-  }),
-  async execute({ context }) {
-    threadEchoLogger.info(JSON.stringify({
-      event: "tool.execute",
-      tool: "thread-echo",
-      threadId: context.threadId,
-      message: context.message,
-    }));
-    return {
-      echoedThreadId: context.threadId,
-      message: context.message,
-    };
-  },
-});
-
-// Add to coreTools for registration
-coreTools.push(threadEchoTool);

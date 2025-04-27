@@ -8,6 +8,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v0.2.6] - 2025-04-27
+
+### Security, Stability & Observability Improvements
+
+#### Thread Management, Recursion Guard, and Langfuse Tracing Refactor
+
+- **Fixed: Stack Overflow & Infinite Recursion in Thread Management**
+  - Added a robust recursion guard to `getOrCreateThread` in `src/mastra/utils/thread-manager.ts` using a `Set` to track active thread creation and prevent infinite recursion/stack overflow. Cleanup is ensured via `try/finally`.
+  - All code paths now throw a clear `ThreadManagerError` if recursion is detected, with full cleanup and error logging.
+
+- **Refactored: Langfuse Integration for Observability**
+  - Replaced all usage of custom `LangfuseService` and ad-hoc langfuse instances with a singleton `langfuse` import across all tracing and scoring logic.
+  - Updated all tracing (`createTrace`, `createScore`) in:
+    - `src/mastra/tools/evals.ts`
+    - `src/mastra/database/index.ts`
+    - `src/mastra/hooks/index.ts`
+    - Any other tools in `src/mastra/tools/` now route tracing/scoring through the singleton.
+  - Ensured all langfuse traces and scores are correlated with OpenTelemetry spans (traceId/spanId) for end-to-end observability.
+
+- **Audited: All Mastra Tooling for Recursion Safety**
+  - Confirmed that all tools and hooks now use the singleton `langfuse` instance, eliminating risk of recursion or circular instantiation during tool initialization, thread creation, or tracing.
+  - Verified that `graphRag.ts` and all other tool modules are compliant.
+
+- **Improved: Error Handling & Logging**
+  - Enhanced error and warning logging in thread management and tracing code for easier debugging and auditability.
+  - All hooks and tools now provide robust error messages and log context for failures in tracing or thread management.
+
+- **Files Affected:**
+  - `src/mastra/utils/thread-manager.ts`
+  - `src/mastra/tools/evals.ts`
+  - `src/mastra/database/index.ts`
+  - `src/mastra/hooks/index.ts`
+  - All other tool modules in `src/mastra/tools/` (audit confirmed)
+
+- **Testing & Monitoring:**
+  - Manual and code review confirmed that stack overflow and recursion errors are resolved.
+  - Next steps: Monitor logs in production for any residual thread management or tracing issues; audit any new tools for the singleton langfuse pattern.
+
+---
+
 ## [v0.2.5] - 2025-04-27
 
 ### Added

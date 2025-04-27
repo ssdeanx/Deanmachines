@@ -472,7 +472,10 @@ export const PersonaConfigSchema = z.object({
 
 /**
  * Base configuration interface for all agent configs
+ *
+ * Extended for observability: supports usage_details and cost_details for thread/cost metrics.
  */
+import type { UsageDetails, CostDetails } from '../../types';
 export interface BaseAgentConfig {
   /** Unique identifier for the agent */
   id: string;
@@ -520,6 +523,11 @@ export interface BaseAgentConfig {
 
   /** Optional voice configuration */
   voiceConfig?: VoiceConfig;  // ← now exactly matches createVoice()
+
+  /** Optional usage metrics for observability (thread-level) */
+  usage_details?: UsageDetails;
+  /** Optional cost metrics for observability (thread-level) */
+  cost_details?: CostDetails;
 }
 
 // you can still re-export the enum if you like:
