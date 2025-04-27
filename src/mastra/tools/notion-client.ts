@@ -5,6 +5,7 @@ import {
   getEnv,
   pick,
   sanitizeSearchParams,
+  AIFunctionSet,
 } from "@agentic/core";
 import {
   UserObjectSchema,
@@ -71,6 +72,10 @@ import {
 import { z } from 'zod'
 import defaultKy, { type KyInstance } from 'ky'
 import { createMastraTools } from "@agentic/mastra";
+import { createAISDKTools } from "./ai-sdk";
+import { createGenkitTools } from "./genkit";
+import type { Genkit } from "genkit";
+
 /**
  * A Mastra‐compatible Notion client that exposes each endpoint
  * as an @aiFunction.  Register via createMastraTools().
@@ -445,7 +450,6 @@ export class NotionClient extends AIFunctionsProvider {
       .json<any>()
   }
 }
-
 /**
  * Helper to create Mastra-compatible Notion tools.
  */
@@ -453,7 +457,9 @@ export function createMastraNotionTools(config: { apiKey?: string } = {}) {
   const apiKey = config.apiKey ?? getEnv("NOTION_API_KEY");
   if (!apiKey) throw new Error("NOTION_API_KEY is required in env or config");
   const notionClient = new NotionClient({ apiKey });
-  const mastraTools = createMastraTools(notionClient);
+  // Always extract functions from the client using Array.from
+  const fns = Array.from(notionClient.functions);
+  const mastraTools = createMastraTools(...fns);
 
   // Patch outputSchema for each tool (Mastra expects this pattern)
   if (mastraTools.notion_get_self) {
@@ -524,3 +530,21 @@ export function createMastraNotionTools(config: { apiKey?: string } = {}) {
 
 // Export adapter for convenience
 export { createMastraTools };
+
+export function createAISDKNotionTools(config: { apiKey?: string } = {}) {
+  const apiKey = config.apiKey ?? getEnv("NOTION_API_KEY");
+  if (!apiKey) throw new Error("NOTION_API_KEY is required");
+  const client = new NotionClient({ apiKey });
+  // Always extract functions from the client using Array.from
+  const fns = Array.from(client.functions);
+  return createAISDKTools(...fns);
+}
+
+export function createGenkitNotionTools(genkit: Genkit, config: { apiKey?: string } = {}) {
+  const apiKey = config.apiKey ?? getEnv("NOTION_API_KEY");
+  if (!apiKey) throw new Error("NOTION_API_KEY is required");
+  const client = new NotionClient({ apiKey });
+  // Always extract functions from the client using Array.from
+  const fns = Array.from(client.functions);
+  return createGenkitTools(genkit, ...fns);
+}

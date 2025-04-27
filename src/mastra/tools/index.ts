@@ -89,7 +89,7 @@ import {
 import { tracingTools } from "./tracingTools";
 import { createMastraPolygonTools, TickerDetailsSchema } from "./polygon"; // Import Mastra helper for Polygon tools
 import { createMastraRedditTools, SubredditPostSchema } from "./reddit"; // Import Mastra helper for Reddit tools
-import { createMastraNotionTools } from './notion-client'; // <-- Add this line
+import { createMastraNotionTools, createAISDKNotionTools, createGenkitNotionTools } from './notion-client'; // Import Notion tools
 import { puppeteerTool } from "./puppeteerTool";
 import { hyperAgentTool } from "./hyper-functionCalls";
 
@@ -102,7 +102,8 @@ export * from "./rlFeedback";
 export * from "./rlReward";
 export * from "./github";
 export * from "./graphRag";
-export * from "./calculator";
+export { CalculatorClient, createMastraCalculatorTools, createAISDKCalculatorTools, createGenkitCalculatorTools } from "./calculator";
+export { createMastraNotionTools, createAISDKNotionTools, createGenkitNotionTools } from './notion-client';
 export * from "./arxiv";
 export * from "./wikibase";
 export * from "./ai-sdk";
@@ -122,7 +123,6 @@ export * from "./reddit";
 export * from "./mcptool";
 export * from "./puppeteerTool";
 export * from "./hyper-functionCalls";
-export { createMastraNotionTools }; // <-- Add this line
 
 // === Configure Logger ===
 const logger = createLogger({ name: "tool-initialization", level: "info" });
