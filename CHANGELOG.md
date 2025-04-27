@@ -8,6 +8,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v0.2.5] - 2025-04-27
+
+### Added
+
+- **Full Notion Tool Suite**: Implemented a comprehensive, Mastra-compatible Notion client and tool suite.
+  - All Notion API endpoints are now available as tools, including: user, page, database, block, comment, and OAuth token endpoints.
+  - All input and output schemas are defined with Zod and strictly match the Notion API.
+  - All tool output schemas are patched in `createMastraNotionTools` for runtime validation and Mastra compatibility.
+  - OAuth token endpoint and all advanced Notion features (filter_properties, children, archived, etc.) are supported.
+  - All schemas and tool exports are compatible with the main tool barrel (`index.ts`), enabling seamless registration and discovery in the Mastra tool registry.
+
+### Changed
+
+- **Schema Consistency**: Ensured all Notion input/output schemas in `notion.ts` and `notionSchema.ts` match the fields and usage in the Notion client.
+- **Barrel Integration**: Verified that `createMastraNotionTools` is exported and registered in the main tool barrel, so all Notion tools are available via `allTools`, `allToolsMap`, and `toolGroups`.
+
+### Fixed
+
+- **Type Safety**: All Notion tool methods use Zod inference for input and output types, ensuring runtime and compile-time validation.
+- **Parameter Handling**: All GET/POST/PATCH requests use `pick` and `sanitizeSearchParams` to only send/receive allowed fields, matching Notion API requirements.
+
+---
+
 ## [v0.2.4] - 2025-04-27
 
 ### Changed

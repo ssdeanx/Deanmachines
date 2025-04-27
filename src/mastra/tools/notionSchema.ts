@@ -1,74 +1,41 @@
 import { z } from 'zod'
 
 /**
- * Zod schemas and TS types for Notion API endpoints.
- * These schemas must exactly match the shapes that your NotionClient
- * sends and receives, so that Mastra can validate inputs & outputs.
+ * Zod schemas and TS types for Notion API *output* (response) shapes.
+ * These must match the outputs returned by NotionClient methods.
  */
 
-/** -------------------------------------------------------------------------
- * GET /users/me
- * ----------------------------------------------------------------------- */
-export const GetSelfParamsSchema = z.object({})
-export const GetSelfResponseSchema = z.object({
+// User object (used for /users/me, /users/{user_id}, /users)
+export const UserObjectSchema = z.object({
   object: z.literal('user'),
   id: z.string().uuid(),
   name: z.string().optional(),
   avatar_url: z.string().url().nullable().optional(),
   type: z.union([z.literal('person'), z.literal('bot')]),
-  person: z
-    .object({
-      email: z.string().email(),
-    })
-    .optional(),
-  bot: z
-    .object({
-      owner: z
-        .object({
-          type: z.union([z.literal('workspace'), z.literal('user')]),
-          workspace: z.boolean().optional(),
-          user: z.string().uuid().optional(),
-        })
-        .optional(),
-    })
-    .optional(),
+  person: z.object({
+    email: z.string().email(),
+  }).optional(),
+  bot: z.object({
+    owner: z.object({
+      type: z.union([z.literal('workspace'), z.literal('user')]),
+      workspace: z.boolean().optional(),
+      user: z.string().uuid().optional(),
+    }).optional(),
+  }).optional(),
 })
-export type GetSelfParams = z.infer<typeof GetSelfParamsSchema>
-export type GetSelfResponse = z.infer<typeof GetSelfResponseSchema>
+export type UserObject = z.infer<typeof UserObjectSchema>
 
-/** -------------------------------------------------------------------------
- * GET /users/{user_id}
- * ----------------------------------------------------------------------- */
-export const GetUserParamsSchema = z.object({
-  user_id: z.string().uuid(),
-})
-export const GetUserResponseSchema = GetSelfResponseSchema
-export type GetUserParams = z.infer<typeof GetUserParamsSchema>
-export type GetUserResponse = z.infer<typeof GetUserResponseSchema>
-
-/** -------------------------------------------------------------------------
- * GET /users
- * ----------------------------------------------------------------------- */
-export const ListUsersParamsSchema = z.object({
-  start_cursor: z.string().optional(),
-  page_size: z.number().min(1).max(100).optional(),
-})
+// List users response
 export const ListUsersResponseSchema = z.object({
   object: z.literal('list'),
-  results: z.array(GetSelfResponseSchema),
+  results: z.array(UserObjectSchema),
   next_cursor: z.string().nullable(),
   has_more: z.boolean(),
 })
-export type ListUsersParams = z.infer<typeof ListUsersParamsSchema>
 export type ListUsersResponse = z.infer<typeof ListUsersResponseSchema>
 
-/** -------------------------------------------------------------------------
- * GET /pages/{page_id}
- * ----------------------------------------------------------------------- */
-export const GetPageParamsSchema = z.object({
-  page_id: z.string().uuid(),
-})
-export const GetPageResponseSchema = z.object({
+// Page object (used for /pages/{page_id}, create/update page, query database)
+export const PageObjectSchema = z.object({
   object: z.literal('page'),
   id: z.string().uuid(),
   created_time: z.string(),
@@ -80,50 +47,18 @@ export const GetPageResponseSchema = z.object({
   properties: z.record(z.any()),
   url: z.string().url(),
 })
-export type GetPageParams = z.infer<typeof GetPageParamsSchema>
-export type GetPageResponse = z.infer<typeof GetPageResponseSchema>
+export type PageObject = z.infer<typeof PageObjectSchema>
 
-/** -------------------------------------------------------------------------
- * PATCH /pages/{page_id}
- * ----------------------------------------------------------------------- */
-export const UpdatePageParamsSchema = z.object({
-  page_id: z.string().uuid(),
-  properties: z.record(z.any()).optional(),
-})
-export const UpdatePageResponseSchema = GetPageResponseSchema
-export type UpdatePageParams = z.infer<typeof UpdatePageParamsSchema>
-export type UpdatePageResponse = z.infer<typeof UpdatePageResponseSchema>
+// Create page response (same as PageObjectSchema)
+export const CreatePageResponseSchema = PageObjectSchema;
+export type CreatePageResponse = z.infer<typeof CreatePageResponseSchema>;
 
-/** -------------------------------------------------------------------------
- * POST /pages
- * ----------------------------------------------------------------------- */
-export const CreatePageParamsSchema = z.object({
-  parent: z.union([
-    z.object({ database_id: z.string().uuid() }),
-    z.object({ page_id: z.string().uuid() }),
-  ]),
-  properties: z.record(z.any()),
-  children: z
-    .array(
-      z.object({
-        object: z.literal('block'),
-        type: z.string(),
-        [z.string()]: z.any(),
-      })
-    )
-    .optional(),
-})
-export const CreatePageResponseSchema = GetPageResponseSchema
-export type CreatePageParams = z.infer<typeof CreatePageParamsSchema>
-export type CreatePageResponse = z.infer<typeof CreatePageResponseSchema>
+// Update page response (same as PageObjectSchema)
+export const UpdatePageResponseSchema = PageObjectSchema;
+export type UpdatePageResponse = z.infer<typeof UpdatePageResponseSchema>;
 
-/** -------------------------------------------------------------------------
- * GET /databases/{database_id}
- * ----------------------------------------------------------------------- */
-export const GetDatabaseParamsSchema = z.object({
-  database_id: z.string().uuid(),
-})
-export const GetDatabaseResponseSchema = z.object({
+// Database object (used for /databases/{database_id}, create/update database)
+export const DatabaseObjectSchema = z.object({
   object: z.literal('database'),
   id: z.string().uuid(),
   created_time: z.string(),
@@ -139,78 +74,103 @@ export const GetDatabaseResponseSchema = z.object({
   ),
   properties: z.record(z.any()),
 })
-export type GetDatabaseParams = z.infer<typeof GetDatabaseParamsSchema>
-export type GetDatabaseResponse = z.infer<typeof GetDatabaseResponseSchema>
+export type DatabaseObject = z.infer<typeof DatabaseObjectSchema>
 
-/** -------------------------------------------------------------------------
- * POST /databases/{database_id}/query
- * ----------------------------------------------------------------------- */
-export const QueryDatabaseParamsSchema = z.object({
-  database_id: z.string().uuid(),
-  filter: z.any().optional(),
-  sorts: z.array(z.any()).optional(),
-  start_cursor: z.string().optional(),
-  page_size: z.number().min(1).max(100).optional(),
-})
+// Database create/update response (same as DatabaseObjectSchema)
+export const CreateDatabaseResponseSchema = DatabaseObjectSchema;
+export type CreateDatabaseResponse = z.infer<typeof CreateDatabaseResponseSchema>;
+export const UpdateDatabaseResponseSchema = DatabaseObjectSchema;
+export type UpdateDatabaseResponse = z.infer<typeof UpdateDatabaseResponseSchema>;
+
+// Query database response (POST /databases/{database_id}/query)
 export const QueryDatabaseResponseSchema = z.object({
   object: z.literal('list'),
-  results: z.array(GetPageResponseSchema),
+  results: z.array(PageObjectSchema),
   next_cursor: z.string().nullable(),
   has_more: z.boolean(),
 })
-export type QueryDatabaseParams = z.infer<typeof QueryDatabaseParamsSchema>
 export type QueryDatabaseResponse = z.infer<typeof QueryDatabaseResponseSchema>
 
-/** -------------------------------------------------------------------------
- * GET /blocks/{block_id}
- * ----------------------------------------------------------------------- */
-export const GetBlockParamsSchema = z.object({
-  block_id: z.string().uuid(),
-})
+// Search response
+export const SearchResponseSchema = z.object({
+  object: z.literal('list'),
+  results: z.array(
+    z.union([PageObjectSchema, DatabaseObjectSchema])
+  ),
+  next_cursor: z.string().nullable(),
+  has_more: z.boolean(),
+});
+export type SearchResponse = z.infer<typeof SearchResponseSchema>;
+
+// List databases response
+export const ListDatabasesResponseSchema = z.object({
+  object: z.literal('list'),
+  results: z.array(DatabaseObjectSchema),
+  next_cursor: z.string().nullable(),
+  has_more: z.boolean(),
+});
+export type ListDatabasesResponse = z.infer<typeof ListDatabasesResponseSchema>;
+
+// Block object (used for /blocks/{block_id}, block children)
 export const BlockObjectSchema = z.object({
   object: z.literal('block'),
   id: z.string().uuid(),
   type: z.string(),
-  [z.string()]: z.any(),
-})
-export const GetBlockResponseSchema = BlockObjectSchema
-export type GetBlockParams = z.infer<typeof GetBlockParamsSchema>
-export type GetBlockResponse = z.infer<typeof GetBlockResponseSchema>
+  // All other block-specific fields are dynamic
+}).catchall(z.any())
+export type BlockObject = z.infer<typeof BlockObjectSchema>
 
-/** -------------------------------------------------------------------------
- * GET /blocks/{block_id}/children
- * ----------------------------------------------------------------------- */
-export const ListBlockChildrenParamsSchema = z.object({
-  block_id: z.string().uuid(),
-  start_cursor: z.string().optional(),
-  page_size: z.number().min(1).max(100).optional(),
-})
+// Delete block response (same as BlockObjectSchema)
+export const DeleteBlockResponseSchema = BlockObjectSchema;
+export type DeleteBlockResponse = z.infer<typeof DeleteBlockResponseSchema>;
+
+// Update block response (same as BlockObjectSchema)
+export const UpdateBlockResponseSchema = BlockObjectSchema;
+export type UpdateBlockResponse = z.infer<typeof UpdateBlockResponseSchema>;
+
+// List block children response (GET /blocks/{block_id}/children)
 export const ListBlockChildrenResponseSchema = z.object({
   object: z.literal('list'),
   results: z.array(BlockObjectSchema),
   next_cursor: z.string().nullable(),
   has_more: z.boolean(),
 })
-export type ListBlockChildrenParams = z.infer<typeof ListBlockChildrenParamsSchema>
 export type ListBlockChildrenResponse = z.infer<typeof ListBlockChildrenResponseSchema>
 
-/** -------------------------------------------------------------------------
- * PATCH /blocks/{block_id}/children
- * ----------------------------------------------------------------------- */
-export const AppendBlockChildrenParamsSchema = z.object({
-  block_id: z.string().uuid(),
-  children: z.array(
-    z.object({
-      object: z.literal('block'),
-      type: z.string(),
-      [z.string()]: z.any(),
-    })
-  ),
-})
+// Append block children response (PATCH /blocks/{block_id}/children)
 export const AppendBlockChildrenResponseSchema = ListBlockChildrenResponseSchema
-export type AppendBlockChildrenParams = z.infer<
-  typeof AppendBlockChildrenParamsSchema
->
-export type AppendBlockChildrenResponse = z.infer<
-  typeof AppendBlockChildrenResponseSchema
->
+export type AppendBlockChildrenResponse = z.infer<typeof AppendBlockChildrenResponseSchema>
+
+// Get page property response (dynamic, so use z.any())
+export const GetPagePropertyResponseSchema = z.any();
+export type GetPagePropertyResponse = z.infer<typeof GetPagePropertyResponseSchema>;
+
+// Comment object
+export const CommentObjectSchema = z.object({
+  object: z.literal('comment'),
+  id: z.string().uuid(),
+  parent: z.any(),
+  discussion_id: z.string(),
+  rich_text: z.array(z.any()),
+  created_by: z.any(),
+  created_time: z.string(),
+  last_edited_time: z.string(),
+});
+export type CommentObject = z.infer<typeof CommentObjectSchema>;
+
+// List comments response
+export const ListCommentsResponseSchema = z.object({
+  object: z.literal('list'),
+  results: z.array(CommentObjectSchema),
+  next_cursor: z.string().nullable(),
+  has_more: z.boolean(),
+});
+export type ListCommentsResponse = z.infer<typeof ListCommentsResponseSchema>;
+
+// Create comment response (same as CommentObjectSchema)
+export const CreateCommentResponseSchema = CommentObjectSchema;
+export type CreateCommentResponse = z.infer<typeof CreateCommentResponseSchema>;
+
+// OAuth token response (generic, as Notion returns a token object)
+export const OauthTokenResponseSchema = z.any();
+export type OauthTokenResponse = z.infer<typeof OauthTokenResponseSchema>;
