@@ -20,3 +20,4 @@ gcp-vertexai-credentials.json
 prod-ca-2021.crt
 openapi.json
 .windsurf.rules
+.vercel
