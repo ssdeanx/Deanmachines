@@ -5,9 +5,15 @@ import { createGoogleModel } from "../agents/config/index";
 import { generateText } from "ai";
 import { createLogger } from "@mastra/core/logger";
 import { configureLangSmithTracing } from "../services/langsmith";
+import { LangfuseService } from "../services/langfuse"; // Langfuse integration
 
 const logger = createLogger({ name: "evals", level: "info" });
 
+// Initialize Langfuse for evaluation observability
+const langfuseService = new LangfuseService();
+if (langfuseService) {
+  logger.info("Langfuse tracing enabled for evaluation tools");
+}
 // enable LangSmith tracing for eval tools
 const langsmithClient = configureLangSmithTracing();
 if (langsmithClient) {
@@ -32,6 +38,7 @@ export const tokenCountEvalTool = createTool({
     error: z.string().optional(),
   }),
   execute: async ({ context }) => {
+    langfuseService.createTrace("eval.tokenCount", { metadata: { evalType: "token-count" } });
     const span = sigNoz.createSpan("eval.tokenCount", { evalType: "token-count" });
     const startTime = performance.now();
     try {
@@ -63,6 +70,7 @@ export const completenessEvalTool = createTool({
     error: z.string().optional(),
   }),
   execute: async ({ context }) => {
+    langfuseService.createTrace("eval.completeness", { metadata: { evalType: "completeness" } });
     const span = sigNoz.createSpan("eval.completeness", { evalType: "completeness" });
     const startTime = performance.now();
     try {
@@ -99,6 +107,7 @@ export const contentSimilarityEvalTool = createTool({
     error: z.string().optional(),
   }),
   execute: async ({ context }) => {
+    langfuseService.createTrace("eval.contentSimilarity", { metadata: { evalType: "content-similarity" } });
     const span = sigNoz.createSpan("eval.contentSimilarity", { evalType: "content-similarity" });
     const startTime = performance.now();
     try {
@@ -139,6 +148,7 @@ export const answerRelevancyEvalTool = createTool({
     error: z.string().optional(),
   }),
   execute: async ({ context }) => {
+    langfuseService.createTrace("eval.answerRelevancy", { metadata: { evalType: "answer-relevancy" } });
     const span = sigNoz.createSpan("eval.answerRelevancy", { evalType: "answer-relevancy" });
     const startTime = performance.now();
     try {
@@ -187,6 +197,7 @@ export const contextPrecisionEvalTool = createTool({
     error: z.string().optional(),
   }),
   execute: async ({ context }) => {
+    langfuseService.createTrace("eval.contextPrecision", { metadata: { evalType: "context-precision" } });
     const span = sigNoz.createSpan("eval.contextPrecision", { evalType: "context-precision" });
     const startTime = performance.now();
     const modelId = getEvalModelId();
@@ -241,6 +252,7 @@ export const contextPositionEvalTool = createTool({
     error: z.string().optional(),
   }),
   execute: async ({ context }) => {
+    langfuseService.createTrace("eval.contextPosition", { metadata: { evalType: "context-position" } });
     const span = sigNoz.createSpan("eval.contextPosition", { evalType: "context-position" });
     const startTime = performance.now();
     const modelId = getEvalModelId();
@@ -302,6 +314,7 @@ export const toneConsistencyEvalTool = createTool({
     error: z.string().optional(),
   }),
   execute: async ({ context }) => {
+    langfuseService.createTrace("eval.toneConsistency", { metadata: { evalType: "tone-consistency" } });
     const span = sigNoz.createSpan("eval.toneConsistency", { evalType: "tone-consistency" });
     const startTime = performance.now();
     const modelId = getEvalModelId();
@@ -359,6 +372,7 @@ export const keywordCoverageEvalTool = createTool({
     error: z.string().optional(),
   }),
   execute: async ({ context }) => {
+    langfuseService.createTrace("eval.keywordCoverage", { metadata: { evalType: "keyword-coverage" } });
     const span = sigNoz.createSpan("eval.keywordCoverage", { evalType: "keyword-coverage" });
     const startTime = performance.now();
     const modelId = getEvalModelId();
@@ -410,6 +424,7 @@ export const textualDifferenceEvalTool = createTool({
     error: z.string().optional(),
   }),
   execute: async ({ context }) => {
+    langfuseService.createTrace("eval.textualDifference", { metadata: { evalType: "textual-difference" } });
     const span = sigNoz.createSpan("eval.textualDifference", { evalType: "textual-difference" });
     const startTime = performance.now();
     try {
@@ -461,6 +476,7 @@ export const faithfulnessEvalTool = createTool({
     error: z.string().optional(),
   }),
   execute: async ({ context }) => {
+    langfuseService.createTrace("eval.faithfulness", { metadata: { evalType: "faithfulness" } });
     const span = sigNoz.createSpan("eval.faithfulness", { evalType: "faithfulness" });
     const startTime = performance.now();
     try {
@@ -501,6 +517,7 @@ export const biasEvalTool = createTool({
     error: z.string().optional(),
   }),
   execute: async ({ context }) => {
+    langfuseService.createTrace("eval.biasEval", { metadata: { evalType: "bias" } });
     const span = sigNoz.createSpan("eval.biasEval", { evalType: "bias" });
     try {
       // Simple keyword-based heuristic for bias
@@ -536,6 +553,7 @@ export const toxicityEvalTool = createTool({
     error: z.string().optional(),
   }),
   execute: async ({ context }) => {
+    langfuseService.createTrace("eval.toxicityEval", { metadata: { evalType: "toxicity" } });
     const span = sigNoz.createSpan("eval.toxicityEval", { evalType: "toxicity" });
     try {
       // Simple keyword-based heuristic for toxicity
@@ -572,6 +590,7 @@ export const hallucinationEvalTool = createTool({
     error: z.string().optional(),
   }),
   execute: async ({ context }) => {
+    langfuseService.createTrace("eval.hallucinationEval", { metadata: { evalType: "hallucination" } });
     const span = sigNoz.createSpan("eval.hallucinationEval", { evalType: "hallucination" });
     try {
       // Heuristic: If context is provided, count sentences not matching any context
@@ -612,6 +631,7 @@ export const summarizationEvalTool = createTool({
     error: z.string().optional(),
   }),
   execute: async ({ context }) => {
+    langfuseService.createTrace("eval.summarizationEval", { metadata: { evalType: "summarization" } });
     const span = sigNoz.createSpan("eval.summarizationEval", { evalType: "summarization" });
     try {
       // Heuristic: coverage = # of reference keywords in summary / total keywords

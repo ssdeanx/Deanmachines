@@ -17,7 +17,7 @@ export const NetworkConfigSchema = z.object({
     })
     .optional()
     .describe("Hooks for error handling and response processing"),
-  useSupabaseMemory: z.boolean().optional().describe("Whether to persist memory between calls using Supabase"),
+  //  useSupabaseMemory: z.boolean().optional().describe("Whether to persist memory between calls using Supabase"),
   threadManagerOptions: z.record(z.any()).optional().describe("Options for thread manager behavior"),
 });
 

@@ -3,6 +3,8 @@ import { Langfuse } from "langfuse";
 import { createLogger } from "@mastra/core/logger";
 import type { LangfuseTraceOptions, LangfuseSpanOptions, LangfuseGenerationOptions, LangfuseScoreOptions } from "./types";
 import { env } from "process";
+import { trace as otelTrace, context as otelContext } from "@opentelemetry/api";
+import { OTelAttributeNames } from "./types";
 
 /**
  * Langfuse Integration Service
@@ -22,7 +24,7 @@ const logger = createLogger({ name: "langfuse-service", level: "info" });
 const envSchema = z.object({
   LANGFUSE_PUBLIC_KEY: z.string().min(1, "Langfuse public key is required"),
   LANGFUSE_SECRET_KEY: z.string().min(1, "Langfuse secret key is required"),
-  LANGFUSE_HOST: z.string().url().optional().default("https://cloud.langfuse.com"),
+  LANGFUSE_HOST: z.string().url().optional().default("http://localhost:3000"),
 });
 
 /**
@@ -48,8 +50,7 @@ function validateEnv() {
     }
     logger.error("Langfuse environment validation failed:", { error });
     throw new Error(
-      `Langfuse service configuration error: ${
-        error instanceof Error ? error.message : String(error)
+      `Langfuse service configuration error: ${error instanceof Error ? error.message : String(error)
       }`
     );
   }
@@ -73,8 +74,7 @@ function createLangfuseClient() {
   } catch (error) {
     logger.error("Failed to create Langfuse client:", { error });
     throw new Error(
-      `Langfuse client creation failed: ${
-        error instanceof Error ? error.message : String(error)
+      `Langfuse client creation failed: ${error instanceof Error ? error.message : String(error)
       }`
     );
   }
@@ -108,6 +108,11 @@ export class LangfuseService {
         'gen_ai.system': 'langfuse',
         ...(userId && { 'gen_ai.request.user_id': userId }),
       };
+      const currentOtelSpan = otelTrace.getSpan(otelContext.active());
+      if (currentOtelSpan) {
+        enrichedMetadata[OTelAttributeNames.TRACE_ID] = currentOtelSpan.spanContext().traceId;
+        enrichedMetadata[OTelAttributeNames.SPAN_ID] = currentOtelSpan.spanContext().spanId;
+      }
       logger.debug("Creating Langfuse trace", { name, userId, metadata: enrichedMetadata, tags });
       return this.client.trace({ name, userId, metadata: enrichedMetadata, tags } as any);
     } catch (error) {
@@ -131,6 +136,11 @@ export class LangfuseService {
         'gen_ai.system': 'langfuse',
         'gen_ai.operation.name': name,
       };
+      const currentOtelSpan = otelTrace.getSpan(otelContext.active());
+      if (currentOtelSpan) {
+        enrichedMetadata[OTelAttributeNames.TRACE_ID] = currentOtelSpan.spanContext().traceId;
+        enrichedMetadata[OTelAttributeNames.SPAN_ID] = currentOtelSpan.spanContext().spanId;
+      }
       logger.debug("Creating Langfuse span", { name, metadata: enrichedMetadata, ...rest });
       return this.client.span({ name, metadata: enrichedMetadata, ...rest } as any);
     } catch (error) {
@@ -157,6 +167,8 @@ export class LangfuseService {
         ...(promptTokens !== undefined && { 'gen_ai.usage.input_tokens': promptTokens }),
         ...(completionTokens !== undefined && { 'gen_ai.usage.output_tokens': completionTokens }),
       };
+      const currentOtelSpan = otelTrace.getSpan(otelContext.active());
+      if (currentOtelSpan && !traceId) enrichedMetadata[OTelAttributeNames.TRACE_ID] = currentOtelSpan.spanContext().traceId;
       logger.debug("Logging Langfuse generation", {
         name,
         traceId,
@@ -164,16 +176,7 @@ export class LangfuseService {
         output,
         metadata: enrichedMetadata,
       });
-      return this.client.generation({
-        name,
-        traceId,
-        input,
-        output,
-        metadata: enrichedMetadata,
-        promptTokens,
-        completionTokens,
-        model,
-      } as any);
+      return this.client.generation({ name, traceId, input, output, metadata: enrichedMetadata, promptTokens, completionTokens, model } as any);
     } catch (error) {
       logger.error("Error logging generation:", { error, name });
       throw new Error(`Failed to log Langfuse generation: ${error instanceof Error ? error.message : String(error)}`);
@@ -191,15 +194,19 @@ export class LangfuseService {
     try {
       logger.debug("Creating Langfuse score", options);
 
-      // Ensure at least one of traceId, spanId, or generationId is provided
       if (!options.traceId && !options.spanId && !options.generationId) {
         throw new Error("At least one of traceId, spanId, or generationId must be provided");
       }
 
-      // TypeScript type assertion to satisfy the compiler
-      return this.client.score(options as any);
+      const finalOptions = { ...options };
+      const currentOtelSpan = otelTrace.getSpan(otelContext.active());
+      if (!finalOptions.traceId && currentOtelSpan) finalOptions.traceId = currentOtelSpan.spanContext().traceId;
+      if (finalOptions.metadata && finalOptions.traceId) {
+        finalOptions.metadata = { ...finalOptions.metadata, [OTelAttributeNames.TRACE_ID]: finalOptions.traceId };
+      }
+      return this.client.score(finalOptions as any);
     } catch (error) {
-      logger.error("Error creating score:", { error, name: options.name });
+      logger.error("Error creating Langfuse score", { error, options });
       throw new Error(`Failed to create Langfuse score: ${error instanceof Error ? error.message : String(error)}`);
     }
   }

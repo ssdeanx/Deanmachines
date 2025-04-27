@@ -9,9 +9,13 @@ import { randomUUID } from "crypto";
 import { createLogger } from "@mastra/core/logger";
 import signoz, { createAISpan } from "../services/signoz";
 import { createLangSmithRun, trackFeedback } from "../services/langsmith";
+import { LangfuseService } from "../services/langfuse"; // Langfuse integration
 import type { ThreadInfo, CreateThreadOptions } from "../types";
 import { ThreadManagerError, CreateThreadOptionsSchema } from "../types";
-import { sharedMemory, initThreadManager } from "../database/index";
+import { sharedMemory } from "../database/index";
+
+// Initialize Langfuse client for observability
+const langfuseService = new LangfuseService();
 
 const logger = createLogger({ name: "thread-manager", level: "info" });
 
@@ -59,6 +63,8 @@ export class ThreadManager {
       signoz.recordMetrics(span, { latencyMs: Date.now() - startTime, status: "success" });
       runId = await createLangSmithRun("thread.create", [options.resourceId]);
       await trackFeedback(runId, { score: 1, comment: "Thread created successfully" });
+      // Record thread creation trace in Langfuse
+      langfuseService.createTrace("thread.create", { metadata: { threadId, resourceId: options.resourceId } });
       return threadInfo;
     } catch (error) {
       signoz.recordMetrics(span, { latencyMs: Date.now() - startTime, status: "error", errorMessage: String(error) });
@@ -79,6 +85,7 @@ export class ThreadManager {
    */
   public getThread(threadId: string): ThreadInfo | undefined {
     // TODO: Add access control check here if threads are user-specific
+    langfuseService.createTrace("thread.get", { metadata: { threadId } });
     const span = createAISpan("thread.get", { threadId });
     try {
       const thread = this.threads.get(threadId);
@@ -102,6 +109,7 @@ export class ThreadManager {
    */
   public getThreadsByResource(resourceId: string): ThreadInfo[] {
     // TODO: Add access control check here if threads are user-specific
+    langfuseService.createTrace("thread.getByResource", { metadata: { resourceId } });
     const span = createAISpan("thread.getByResource", { resourceId });
     try {
       const threadIds = this.resourceThreads.get(resourceId) || new Set();
@@ -127,6 +135,7 @@ export class ThreadManager {
    * @returns Most recent thread information or undefined if none exists
    */
   public getMostRecentThread(resourceId: string): ThreadInfo | undefined {
+    langfuseService.createTrace("thread.getMostRecent", { metadata: { resourceId } });
     const span = createAISpan("thread.getMostRecent", { resourceId });
     try {
       const threads = this.getThreadsByResource(resourceId);
@@ -160,6 +169,7 @@ export class ThreadManager {
     resourceId: string,
     metadata?: Record<string, unknown>
   ): Promise<ThreadInfo> {
+    langfuseService.createTrace("thread.getOrCreate", { metadata: { resourceId } });
     const span = createAISpan("thread.getOrCreate", { resourceId });
     try {
       const existingThread = this.getMostRecentThread(resourceId);
@@ -187,6 +197,7 @@ export class ThreadManager {
    * @param date - Optional date (defaults to now)
    */
   public markThreadAsRead(threadId: string, date: Date = new Date()): void {
+    langfuseService.createTrace("thread.markAsRead", { metadata: { threadId } });
     const span = createAISpan("thread.markAsRead", { threadId });
     try {
       this.threadReadStatus.set(threadId, date);

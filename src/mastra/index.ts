@@ -15,12 +15,13 @@
 import { Mastra } from "@mastra/core";
 import { createLogger } from "@mastra/core/logger";
 import { initObservability } from "./services"; // Initialize telemetry services
+import { LangfuseService } from "./services/langfuse"; // Langfuse integration
 import agents from "./agents"; // Central agent registry map
 // Networks or workflows are causing
 //SYNCHRONOUS TERMINATION NOTICE: When explicitly exiting the process via process.exit or via a parent process, asynchronous tasks in your exitHooks will not run. Either remove these tasks, use gracefulExit() instead of process.exit(), or ensure your parent process sends a SIGINT to the process running this code.
 
-//import { ragWorkflow, multiAgentWorkflow } from "./workflows";
-//import { networks } from "./workflows/Networks/agentNetwork"; // Import agent networks from the networks file
+import { ragWorkflow, multiAgentWorkflow } from "./workflows";
+import { networks } from "./workflows/Networks/agentNetwork"; // Import agent networks from the networks file
 
 
 
@@ -37,6 +38,10 @@ initObservability({
   ],
 });
 
+// Initialize Langfuse for platform observability
+const langfuseService = new LangfuseService();
+
+
 // Configure logger with appropriate level based on environment
 const logger = createLogger({
   name: "DeanMachinesAI-MastraCore",
@@ -45,12 +50,15 @@ const logger = createLogger({
 
 logger.info("Initializing Mastra instance...");
 
+// Trace Mastra initialization start
+if (langfuseService) {
+  langfuseService.createTrace("mastra.initialization.start", { metadata: { agentCount: Object.keys(agents).length } });
+  logger.info("Langfuse tracing enabled for Mastra platform");
+}
 export const mastra = new Mastra({
   agents: agents, // All registered agents
-  // Networks or workflows are causing
-  //SYNCHRONOUS TERMINATION NOTICE: When explicitly exiting the process via process.exit or via a parent process, asynchronous tasks in your exitHooks will not run. Either remove these tasks, use gracefulExit() instead of process.exit(), or ensure your parent process sends a SIGINT to the process running this code.
-  //networks: networks, // All registered agent networks
-  //workflows: { ragWorkflow, multiAgentWorkflow },
+  networks: networks, // All registered agent networks
+  workflows: { ragWorkflow, multiAgentWorkflow }, // All registered workflows
   logger: logger,
   // Telemetry is initialized globally via initObservability
 });
@@ -65,3 +73,5 @@ if (agentCount > 0) {
   logger.debug(`Registered Agent IDs: ${Object.keys(agents).join(", ")}`);
 }
 
+// Record Mastra ready state in Langfuse
+langfuseService.createTrace("mastra.initialized", { metadata: { agentCount } });

@@ -27,6 +27,10 @@ import { marketResearchAgent } from "./marketResearch.agent";
 import { socialMediaAgent } from "./socialMedia.agent";
 import { seoAgent } from "./seoAgent.agent";
 import { masterAgent } from "./master.agent";
+import { LangfuseService } from "../services/langfuse"; // Langfuse integration
+import { createLogger } from '@mastra/core/logger';
+
+const logger = createLogger({ name: "agent-initialization", level: "debug" });// Configure logger for agent initialization
 
 // Export individual agents
 export {
@@ -80,6 +84,13 @@ const agents = {
 
 // Export agents object for Mastra configuration
 export default agents;
+
+// Instrument agents registration in Langfuse
+const langfuseService = new LangfuseService();
+if (langfuseService) {
+  logger.info("LangSmith tracing enabled for Mastra agents");
+}
+langfuseService.createTrace("agents.registered", { metadata: { agentIds: Object.keys(agents) } });
 
 // Export type for OpenAPI/Swagger documentation
 export type AgentIds = keyof typeof agents;

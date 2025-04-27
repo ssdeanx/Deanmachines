@@ -11,7 +11,7 @@ import { trace, context, SpanStatusCode } from '@opentelemetry/api';
 import type { ZodType } from 'zod';
 import fs from 'fs';
 import EventEmitter from 'events';
-import { storage } from "../../database/supabase";
+// import { storage } from "../../database/supabase";
 
 const tracer = trace.getTracer('mastra-network-helpers');
 const logger = createLogger({ name: 'NetworkHelpers', level: 'info' });

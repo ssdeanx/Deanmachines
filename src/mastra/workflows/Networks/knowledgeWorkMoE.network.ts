@@ -22,7 +22,7 @@ import { masterAgentConfig } from "../../agents/config/master.config"; // Import
 import { createLogger } from "@mastra/core/logger";
 import { configureLangSmithTracing } from "../../services/langsmith";
 import { applySharedHooks, instrumentNetwork } from "./networkHelpers";
-import { storage } from "../../database/supabase"; // Import Supabase/Postgres-backed memory instance
+// import { storage } from "../../database/supabase"; // Import Supabase/Postgres-backed memory instance
 
 // Async initialization for KnowledgeWorkMoENetwork
 let knowledgeWorkMoENetwork: KnowledgeWorkMoENetwork | null = null;

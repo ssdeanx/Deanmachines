@@ -1,9 +1,10 @@
-import { createAISpan, recordMetrics } from "../services/signoz";
+
+//import { createAISpan, recordMetrics } from "../services/signoz";
 import { threadManager } from "../utils/thread-manager";
 import { Step, Workflow } from "@mastra/core/workflows";
 import { z } from "zod";
 import { researchAgent, analystAgent, writerAgent } from "../agents";
-import { storage } from "../database/supabase";
+//import { storage } from "../database/supabase";
 
 import { PineconeStore } from "@langchain/pinecone";
 import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";

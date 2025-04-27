@@ -177,6 +177,7 @@ export const OTelAttributeNames = {
   USER_ID: 'user.id',
   SESSION_ID: 'session.id',
   TRACE_ID: 'trace.id',
+  SPAN_ID: 'span.id',
   
   // AI specific
   MODEL_NAME: 'ai.model.name',
@@ -346,4 +347,6 @@ export interface LangfuseScoreOptions {
   spanId?: string;
   generationId?: string;
   comment?: string;
+  metadata?: Record<string, unknown>;
+  tags?: string[];
 }

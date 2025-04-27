@@ -9,10 +9,16 @@
 import { trace, context, SpanStatusCode } from '@opentelemetry/api';
 import { createLogger } from '@mastra/core/logger';
 import { AgentGenerateOptions } from '@mastra/core/agent';
-import { langfuse } from '../services/langfuse';
+import { LangfuseService } from '../services/langfuse'; // Langfuse integration
 
 // Configure logger
 const logger = createLogger({ name: 'mastra-hooks', level: 'debug' });
+
+// Initialize Langfuse for hook observability
+const langfuseService = new LangfuseService();
+if (langfuseService) {
+  logger.info("Langfuse tracing enabled for Mastra hooks");
+}
 
 // Define the AgentResponse type locally based on usage
 interface AgentResponse {
@@ -53,28 +59,28 @@ export function createResponseHook(config: ResponseHookConfig = {}) {
     attempt = 1
   ): Promise<AgentResponse> {
     // Start an OpenTelemetry span for this hook if tracing is enabled
-    const hookSpan = enableTracing 
+    const hookSpan = enableTracing
       ? trace.getTracer('mastra-hooks').startSpan('response-hook')
       : null;
-    
+
     try {
       // Get OTLP Context for correlation with observability tools
       const currentContext = context.active();
       const currentSpan = trace.getSpan(currentContext);
       const traceId = currentSpan?.spanContext().traceId;
       const spanId = currentSpan?.spanContext().spanId;
-      
+
       logger.debug(`Response hook executing (attempt ${attempt}/${maxAttempts})`, {
         traceId,
         spanId,
         hasText: !!response.text,
         textLength: response.text?.length,
       });
-      
+
       // Record validation attempt in Langfuse if available
       if (traceId) {
         try {
-          langfuse.createScore({
+          langfuseService.createScore({
             name: `response-validation-${attempt}`,
             value: validateResponse(response) ? 1.0 : 0.0,
             traceId,
@@ -106,7 +112,7 @@ export function createResponseHook(config: ResponseHookConfig = {}) {
           logger.info(`Empty response, retrying (${attempt}/${maxAttempts})`);
           return onResponse(response, attempt + 1);
         }
-        
+
         logger.warn(`Maximum retry attempts reached (${maxAttempts})`);
         if (hookSpan) {
           hookSpan.setStatus({
@@ -115,7 +121,7 @@ export function createResponseHook(config: ResponseHookConfig = {}) {
           });
           hookSpan.end();
         }
-        
+
         return {
           text: "I apologize, but I couldn't generate a proper response. Please try rephrasing your request.",
           error: "Empty response after maximum retries",
@@ -125,13 +131,13 @@ export function createResponseHook(config: ResponseHookConfig = {}) {
       // Check response length if text is present
       if (response.text && response.text.length < minResponseLength) {
         logger.debug(`Response too short (${response.text.length} < ${minResponseLength}), adding suggestion for elaboration`);
-        
+
         if (hookSpan) {
           hookSpan.setAttribute('response.tooShort', true);
           hookSpan.setAttribute('response.length', response.text.length);
           hookSpan.end();
         }
-        
+
         return {
           ...response,
           text:
@@ -147,7 +153,7 @@ export function createResponseHook(config: ResponseHookConfig = {}) {
       return response;
     } catch (error) {
       logger.error("Response hook error:", { error });
-      
+
       if (hookSpan) {
         hookSpan.setStatus({
           code: SpanStatusCode.ERROR,
@@ -156,7 +162,7 @@ export function createResponseHook(config: ResponseHookConfig = {}) {
         hookSpan.recordException(error instanceof Error ? error : new Error('Unknown error'));
         hookSpan.end();
       }
-      
+
       return {
         text: "I encountered an error processing the response. Please try again.",
         error: error instanceof Error ? error.message : "Unknown error",
@@ -177,7 +183,7 @@ export function createStreamHooks(enableTracing = true) {
       const streamSpan = enableTracing
         ? trace.getTracer('mastra-hooks').startSpan('stream-start')
         : null;
-        
+
       try {
         const currentSpan = trace.getSpan(context.active());
         const traceId = currentSpan?.spanContext().traceId;
@@ -187,14 +193,14 @@ export function createStreamHooks(enableTracing = true) {
           ? options.context[options.context.length - 1]
           : null;
         const inputContent = typeof lastMessage?.content === 'string' ? lastMessage.content : null;
-        
-        logger.debug('Stream processing started', { 
-          traceId, 
+
+        logger.debug('Stream processing started', {
+          traceId,
           spanId,
           inputLength: inputContent ? inputContent.length : 'no-string-content',
           hasMessages: Array.isArray(options.context) ? options.context.length : 'no-messages',
         });
-        
+
         if (streamSpan) {
           streamSpan.setAttribute('stream.started', true);
           streamSpan.end();
@@ -210,15 +216,15 @@ export function createStreamHooks(enableTracing = true) {
         }
       }
     },
-    
-    onStreamEnd: async (result: any): Promise<void> => {
+
+    onStreamEnd: async (_result: any): Promise<void> => {
       const streamSpan = enableTracing
         ? trace.getTracer('mastra-hooks').startSpan('stream-end')
         : null;
-        
+
       try {
         logger.debug('Stream processing ended successfully');
-        
+
         if (streamSpan) {
           streamSpan.setAttribute('stream.completed', true);
           streamSpan.end();
@@ -234,12 +240,12 @@ export function createStreamHooks(enableTracing = true) {
         }
       }
     },
-    
+
     onStreamError: async (error: Error): Promise<void> => {
       const streamSpan = enableTracing
         ? trace.getTracer('mastra-hooks').startSpan('stream-error')
         : null;
-        
+
       try {
         // Detailed error logging for debugging GOAL-001
         logger.error('Stream processing error:', {
@@ -247,7 +253,7 @@ export function createStreamHooks(enableTracing = true) {
           errorMessage: error.message,
           errorStack: error.stack,
         });
-        
+
         if (streamSpan) {
           streamSpan.setStatus({
             code: SpanStatusCode.ERROR,
@@ -256,14 +262,14 @@ export function createStreamHooks(enableTracing = true) {
           streamSpan.recordException(error);
           streamSpan.end();
         }
-        
+
         // Record error in Langfuse
         try {
           const currentSpan = trace.getSpan(context.active());
           const traceId = currentSpan?.spanContext().traceId;
-          
+
           if (traceId) {
-            langfuse.createScore({
+            langfuseService.createScore({
               name: 'stream-error',
               value: 0.0,
               traceId,
@@ -300,12 +306,13 @@ export function createToolHooks(toolName: string, enableTracing = true) {
       const toolSpan = enableTracing
         ? trace.getTracer('mastra-hooks').startSpan(`tool-${toolName}-start`)
         : null;
-        
+
       try {
         logger.debug(`Tool ${toolName} execution started`, {
           inputType: typeof input,
         });
-        
+        langfuseService.createTrace("tool.start", { metadata: { toolName, inputType: typeof input } });
+
         if (toolSpan) {
           toolSpan.setAttribute('tool.name', toolName);
           toolSpan.setAttribute('tool.started', true);
@@ -322,15 +329,16 @@ export function createToolHooks(toolName: string, enableTracing = true) {
         }
       }
     },
-    
-    onToolEnd: async (result: unknown): Promise<void> => {
+
+    onToolEnd: async (_result: unknown): Promise<void> => {
       const toolSpan = enableTracing
         ? trace.getTracer('mastra-hooks').startSpan(`tool-${toolName}-end`)
         : null;
-        
+
       try {
         logger.debug(`Tool ${toolName} execution completed successfully`);
-        
+        langfuseService.createTrace("tool.end", { metadata: { toolName } });
+
         if (toolSpan) {
           toolSpan.setAttribute('tool.name', toolName);
           toolSpan.setAttribute('tool.completed', true);
@@ -347,19 +355,20 @@ export function createToolHooks(toolName: string, enableTracing = true) {
         }
       }
     },
-    
+
     onToolError: async (error: Error): Promise<void> => {
       const toolSpan = enableTracing
         ? trace.getTracer('mastra-hooks').startSpan(`tool-${toolName}-error`)
         : null;
-        
+
       try {
         logger.error(`Tool ${toolName} execution failed:`, {
           errorName: error.name,
           errorMessage: error.message,
           errorStack: error.stack,
         });
-        
+        langfuseService.createTrace("tool.error", { metadata: { toolName, errorName: error.name, errorMessage: error.message } });
+
         if (toolSpan) {
           toolSpan.setAttribute('tool.name', toolName);
           toolSpan.setStatus({

@@ -11,12 +11,12 @@ import { google } from "@ai-sdk/google";
 import { AgentNetwork, type AgentNetworkConfig } from "@mastra/core/network";
 import { coderAgent, copywriterAgent } from "../../agents";
 import { createResponseHook } from "../../hooks";
-import type * as MastraTypes from '../../types';
+//import type * as MastraTypes from '../../types';
 import type { AgentResponse, ResponseHookConfig } from '../../types';
 import { createLogger } from "@mastra/core/logger";
 import { configureLangSmithTracing } from "../../services/langsmith";
 import { applySharedHooks, instrumentNetwork } from "./networkHelpers";
-import { storage } from "../../database/supabase";
+// import { storage } from "../../database/supabase";
 
 // Configure logger for the network
 const logger = createLogger({ name: "product-launch-network", level: "info" });
@@ -49,35 +49,37 @@ const productLaunchHooks: ResponseHookConfig = {
   },
 };
 
+// Fully define ProductLaunchNetwork configuration using AgentNetworkConfig
+const PRODUCT_LAUNCH_NETWORK_CONFIG: AgentNetworkConfig = {
+  name: "Product Launch Network",
+  model: google("models/gemini-2.0-flash"),
+  agents: [coderAgent, copywriterAgent],
+  instructions: `
+    You are a product launch coordinator that manages collaboration between development and marketing teams.
+
+    Your job is to:
+    1. Analyze incoming requests related to product launches
+    2. Route tasks to the appropriate specialized agent:
+       - Coder Agent: For code generation, documentation, and technical implementation
+       - Copywriter Agent: For marketing materials, product descriptions, and promotional content
+    3. Synthesize the outputs from both teams into cohesive deliverables
+    4. Maintain alignment between technical capabilities and marketing messaging
+
+    When coordinating:
+    - Ensure technical documentation matches actual functionality
+    - Confirm marketing claims are supported by the implemented features
+    - Facilitate communication between technical and marketing teams when needed
+    - Balance technical accuracy with compelling messaging
+
+    Based on the user's request, determine which agent would be best equipped to handle it.
+    If the task requires both coding and marketing expertise, coordinate between the agents.
+    Always provide clear reasoning for your agent selection decisions.
+  `,
+};
+
 export let productLaunchNetwork: AgentNetwork | null = null;
 export const productLaunchNetworkPromise: Promise<AgentNetwork> = (async () => {
-  const network = new AgentNetwork({
-    name: "Product Launch Network",
-    model: google("models/gemini-2.0-flash"),
-    agents: [coderAgent, copywriterAgent],
-    instructions: `
-      You are a product launch coordinator that manages collaboration between development and marketing teams.
-
-      Your job is to:
-      1. Analyze incoming requests related to product launches
-      2. Route tasks to the appropriate specialized agent:
-         - Coder Agent: For code generation, documentation, and technical implementation
-         - Copywriter Agent: For marketing materials, product descriptions, and promotional content
-      3. Synthesize the outputs from both teams into cohesive deliverables
-      4. Maintain alignment between technical capabilities and marketing messaging
-
-      When coordinating:
-      - Ensure technical documentation matches actual functionality
-      - Confirm marketing claims are supported by the implemented features
-      - Facilitate communication between technical and marketing teams when needed
-      - Balance technical accuracy with compelling messaging
-
-      Based on the user's request, determine which agent would be best equipped to handle it.
-      If the task requires both coding and marketing expertise, coordinate between the agents.
-      Always provide clear reasoning for your agent selection decisions.
-    `,
-
-  });
+  const network = new AgentNetwork(PRODUCT_LAUNCH_NETWORK_CONFIG);
 
   // Apply shared hooks and instrumentation
   applySharedHooks(network, {
@@ -117,4 +119,3 @@ export function initializeProductLaunchNetwork(): AgentNetwork | null {
 }
 
 // Export the initialized network and hooks
-

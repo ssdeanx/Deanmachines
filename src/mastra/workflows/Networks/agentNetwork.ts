@@ -9,7 +9,6 @@ import { google } from "@ai-sdk/google";
 import { AgentNetwork, type AgentNetworkConfig } from "@mastra/core/network";
 import { createResponseHook } from "../../hooks"; // Assuming this path is correct
 import agents from "../../agents"; // Central agent registry map
-import { env } from "process";
 import { DEFAULT_MODELS } from "../../agents/config"; // Import for MoE config
 import { KnowledgeWorkMoENetwork } from "./knowledgeWorkMoE.network"; // Import the MoE network class
 import { createLogger } from "@mastra/core/logger";
@@ -29,7 +28,7 @@ const baseNetworkConfig: Partial<AgentNetworkConfig> = {
   model: google("models/gemini-2.0-flash"),
   // Note: shared hooks are applied in individual network configurations
   //  is handled separately as it may not be part of AgentNetworkConfig
-  };
+};
 
 // --- Original Hook Definitions (Unchanged) ---
 const deanInsightsHooks = {
@@ -119,7 +118,7 @@ const contentCreationHooks = {
 let networks: Record<string, AgentNetwork> = {};
 export { networks };
 export const networksPromise: Promise<Record<string, AgentNetwork>> = (async () => {
-  
+
 
   // Now safe to instantiate networks
   const deanInsightsNetwork = new AgentNetwork({
@@ -381,7 +380,7 @@ export const networksPromise: Promise<Record<string, AgentNetwork>> = (async () 
   });
   instrumentNetwork(masterDebugNetwork);
   // scheduleMemoryCompaction removed ( disabled)
-// scheduleMemoryCompaction(masterDebugNetwork);
+  // scheduleMemoryCompaction(masterDebugNetwork);
 
   // Schedule periodic health checks
   scheduleHealthChecks(

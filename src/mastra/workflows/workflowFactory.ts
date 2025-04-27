@@ -18,7 +18,7 @@ import { createLogger } from "@mastra/core/logger";
 import { configureLangSmithTracing } from "../services/langsmith";
 import { memoryRequestSchema, memoryResponseSchema } from "./workflowSchemas";
 import { threadManager } from "../utils/thread-manager";
-import { storage } from "../database/supabase";
+//import { storage } from "../database/supabase";
 
 
 
@@ -224,13 +224,13 @@ export const createDynamicWorkflowStep = new Step({
 export const mainWorkflow = new Workflow({
   name: "main-workflow",
   triggerSchema: mainTriggerSchema,
-  mastra: new Mastra({ storage }),
+  //  mastra: new Mastra({ storage }),
 })
   .step(createDynamicWorkflowStep)
   .commit();
 
 export const mastra = new Mastra({
-  storage,
+  //  storage,
   workflows: { mainWorkflow },
 });
 

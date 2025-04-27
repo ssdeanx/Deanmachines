@@ -13,6 +13,7 @@ import { MastraVoice } from '@mastra/core/voice';
 import { sharedMemory } from '../database/index';
 import { createResponseHook } from '../hooks';
 import { configureLangSmithTracing } from '../services/langsmith';
+import { LangfuseService } from '../services/langfuse'; // Langfuse integration
 import { allToolsMap } from '../tools';
 import * as evalTools from '../tools/evals';
 import * as MastraTypes from '../types';
@@ -25,14 +26,17 @@ import {
 } from './config';
 
 
-// Configure logger for agent initialization
-const logger = createLogger({ name: "agent-initialization", level: "debug" });
+const logger = createLogger({ name: "agent-initialization", level: "debug" });// Configure logger for agent initialization
+
 
 // Configure LangSmith tracing once at startup
 const langsmithClient = configureLangSmithTracing();
 if (langsmithClient) {
   logger.info("LangSmith tracing enabled for Mastra agents");
 }
+
+// Initialize Langfuse for agent observability
+const langfuseService = new LangfuseService();
 
 // Extend Agent with evaluation methods
 type EvalInputs = Record<string, any>;
@@ -61,6 +65,9 @@ export function createAgentFromConfig({
   memory: typeof sharedMemory;
   onError?: (error: Error) => Promise<{ text: string }>;
 }): ExtendedAgent {
+
+  // Trace agent creation start
+  langfuseService.createTrace('agent.create', { metadata: { agentId: config.id, toolCount: config.toolIds.length } });
 
   // Validate configuration
   if (!config.id || !config.name || !config.instructions) {
@@ -194,6 +201,9 @@ export async function getOrCreateAgentThread(
   resourceId: string,
   metadata?: MastraTypes.CreateThreadOptions["metadata"]
 ): Promise<MastraTypes.ThreadInfo> {
+  // Trace agent thread retrieval/creation
+  langfuseService.createTrace('agent.getOrCreateThread', { metadata: { resourceId } });
+
   try {
     const thread = await threadManager.getOrCreateThread(resourceId, metadata);
     await threadManager.getOrCreateThread('mastra_memory');

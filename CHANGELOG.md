@@ -3,14 +3,35 @@
 
 All notable changes to the DeanMachines Mastra Backend will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),  
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [v0.2.4] - 2025-04-27
+
+### Changed
+
+- Renamed unused `result` parameters to `_result` in `createStreamHooks.onStreamEnd` and `createToolHooks.onToolEnd` to resolve TS warnings.
+- Enhanced `LangfuseService` to correlate with OpenTelemetry spans:
+  - Imported `trace` & `context` from `@opentelemetry/api` and `OTelAttributeNames`.
+  - Injected active OTEL `traceId`/`spanId` into `createTrace`, `createSpan`, and `logGeneration` metadata.
+  - Updated `createScore` to default to the active OTEL `traceId` if missing, enrich metadata, and support optional `metadata` and `tags`.
+- Extended telemetry types in `src/mastra/services/types.ts`:
+  - Added `SPAN_ID` constant to `OTelAttributeNames`.
+  - Extended `LangfuseScoreOptions` with `metadata` and `tags`.
+
+## [v0.2.3] - 2025-04-27
+
+### Changed
+
+- Commented out Supabase memory initialization (`storage` imports) in network modules (`networkHelpers.ts`, `knowledgeWorkMoE.network.ts`, `productLaunchNetwork.ts`) to work around `storages.init` async errors.
+- Refactored `productLaunchNetwork.ts` to use a fully typed `AgentNetworkConfig` constant and removed unsupported config properties to ensure type compliance with `AgentNetworkConfig`.
+
 ## [v0.2.2] - 2025-04-25
 
 ### Added
+
 - Monkey-patch `LibSQLStore.init` in `src/mastra/libsql-patch.ts` to satisfy MastraStorage API  // Delete
 - Early import of `libsql-patch` in `src/mastra/index.ts` to apply the patch before creating the Mastra instance
 - Extended Agent with `evals()` and `liveEvals()` methods in `src/mastra/agents/base.agent.ts`
@@ -18,15 +39,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Deferred `threadManager.getOrCreateThread('mastra_memory')` via `process.nextTick` in `src/mastra/database/index.ts`
 
 ### Changed
+
 - Typed agent instance as `any` and returned `ExtendedAgent` to bypass TS type mismatches in `createAgentFromConfig`
 - Updated `createAgentFromConfig` signature to return `ExtendedAgent` instead of `Agent`
 
 ### Fixed (Workarounds)
+
 - Added streaming for agents
 - Stubbed `storage.init()` in `createMemory` and via `libsql-patch` to avoid `TypeError: storage.init is not a function` during Mastra core initialization
 - Deferred memory thread initialization to break circular dependency causing `threadManager` to be accessed before initialization
 
 ### Known Issues
+
 - **Storage Init Mismatch**: Mastra core’s `ensureInit` method invokes `storage.init()`, assuming storage implementations provide this hook. However, `LibSQLStore` from `@mastra/libsql` does not implement an `init` method, causing `TypeError: storage.init is not a function`. We have applied a stub as a temporary workaround, but the permanent solution requires updating the `@mastra/libsql` package or adjusting Mastra core’s storage interface.
 
 - **SigNoz Tracing Order**: Spans created in modules like `thread-manager.ts` happen at import time, before `initSigNoz()` is called in `src/mastra/index.ts`. This leads to `Error: SigNoz tracing has not been initialized successfully. Call initSigNoz first.` when creating spans. To resolve, observability (SigNoz/OpenTelemetry) must be initialized *before* any modules that call `createAISpan()` or use `getTracer()`.
@@ -474,60 +498,7 @@ const { text } = await copywriterAgent.generate(writingResult);
 
 ### Added
 
-- Comprehensive evals toolset in `tools/evals.ts` with SigNoz tracing: includes completeness, answer relevancy, content similarity, context precision, context position, tone consistency, keyword coverage, textual difference, faithfulness, and token count metrics.
-- All eval tools output normalized scores, explanations, and are ready for agent/workflow integration.
-- LlamaIndex tool output schema and type safety improvements.
-
-### Changed
-
-- Integrated SigNoz tracing into all eval tools and reinforced tracing in agent and tool workflows.
-- Updated RL Trainer agent config and tool registration for robust RL workflows.
-- Updated tool barrel (`tools/index.ts`) to ensure all schemas and tools are exported only once and are available for agent configs.
-
-### Fixed
-
-- Removed all duplicate schema/tool exports in `wikibase.ts`, `wikidata-client.ts`, `github.ts`, `llamaindex.ts`, and `evals.ts`.
-- Fixed throttle type mismatches and replaced unsupported string methods for broader TypeScript compatibility.
-- Lint and type errors resolved across all affected files.
-
-## [v0.0.8] - 2025-04-14
-
-### Fixed
-
-- Vertex AI authentication and model instantiation now use GOOGLE_APPLICATION_CREDENTIALS for robust, cross-platform support (Windows included).
-- provider.utils.ts updated to prefer GOOGLE_APPLICATION_CREDENTIALS and only fallback to inline credentials if necessary.
-- Cleaned up .env recommendations: removed GOOGLE_CLIENT_EMAIL and GOOGLE_PRIVATE_KEY when using GOOGLE_APPLICATION_CREDENTIALS.
-- Confirmed model.utils.ts and config.types.ts are compatible with new Vertex AI credential handling.
-- All lint/type errors related to provider/model instantiation and type mismatches.
-- Ensured all tool schemas are patched and validated at registration.
-
-### Changed
-
-- Updated documentation and .env guidance for Vertex AI best practices.
-- README and internal comments clarified for provider setup and troubleshooting.
-
-- Date: 2025-04-16
-- Time: 16:00 UTC
-
-## [v0.0.7] - 2025-04-15  
-
-- Integrated UpstashVector as a modular vector store alongside LibSQL for hybrid memory and RAG workflows.  
-- Refactored workflowFactory.ts for type safety, tracing, error handling, and modular dynamic workflow creation.  
-- Added and re-exported Upstash vector helpers in database/index.ts for best-practice access.  
-- Implemented tracing wrappers for memory operations in database/index.ts using SigNoz.  
-- Improved type safety and error handling in workflowFactory.ts and related workflow logic.  
-- Ensured all lint/type errors are fixed after every file edit.  
-- Updated README and documentation to reflect new memory, RAG, and workflow patterns.  
-- Added csv-reader, docx-reader, tools  
-
-- Date: 2025-04-15  
-- Time: 15:00 UTC
-
-## [v0.0.6] - 2025-04-15
-
-### Added
-
-- Productionized all eval tools in `src/mastra/tools/evals.ts` with Vertex AI LLM integration, robust prompts, JSON parsing, latency/model/tokens in output, and fallback heuristics.
+- Comprehensive evals toolset in `src/mastra/tools/evals.ts` with Vertex AI LLM integration, robust prompts, JSON parsing, latency/model/tokens in output, and fallback heuristics.
 - All eval tools are now imported and registered in the main tool barrel file (`src/mastra/tools/index.ts`), with output schemas patched for type safety.
 - Moved `getMainBranchRef` from coreTools to extraTools for better separation of core and extra tools.
 - Ensured all tools are discoverable via `allTools`, `allToolsMap`, and `toolGroups`.

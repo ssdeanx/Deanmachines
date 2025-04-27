@@ -2,7 +2,7 @@ import { Workflow, Step } from "@mastra/core/workflows";
 import { Mastra, type Mastra as MastraType } from "@mastra/core";
 import { createLogger } from "@mastra/core/logger";
 import { z } from "zod";
-import { storage } from "../database/supabase";
+//import { storage } from "../database/supabase";
 import { researchAgent } from "../agents/research.agent";
 import { analystAgent } from "../agents/analyst.agent";
 import { writerAgent } from "../agents/writer.agent";
@@ -166,7 +166,7 @@ export const multiAgentWorkflow = new Workflow({
   .commit();
 
 export const mastra: MastraType = new Mastra({
-  storage, // Use supabase/Postgres memory directly
+  // storage, // Use supabase/Postgres memory directly
   agents: {
     research: researchAgent,
     analyst: analystAgent,

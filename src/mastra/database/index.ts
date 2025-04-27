@@ -11,6 +11,7 @@ import type { MastraStorage, MastraVector } from '@mastra/core';
 import { configureLangSmithTracing } from '../services/langsmith';
 import { createLogger } from '@mastra/core/logger';
 import { ThreadManager, threadManager } from '../utils/thread-manager';
+import { LangfuseService } from '../services/langfuse'; // Langfuse integration
 
 // Define the memory configuration type
 export interface MemoryConfig {
@@ -59,6 +60,13 @@ if (langsmithClient) {
   logger.info('LangSmith tracing enabled for database operations');
 }
 
+// Initialize Langfuse for database observability
+const langfuseService = new LangfuseService();
+if (langfuseService) {
+  logger.info("Langfuse tracing enabled for Mastra database");
+}
+
+
 export const storage = new LibSQLStore({
   url: process.env.DATABASE_URL || 'file:.mastra/mastra.db',
   authToken: process.env.DATABASE_KEY,
@@ -75,6 +83,8 @@ const vector = new LibSQLVector({
 
 // Function to create a configured Memory instance
 export function createMemory(options: Partial<MemoryConfig> = defaultMemoryConfig): Memory {
+  // Trace memory creation
+  langfuseService.createTrace('memory.create', { metadata: { options } });
   return new Memory({
     storage: storage as unknown as MastraStorage,
     vector: vector as unknown as MastraVector,
@@ -87,6 +97,8 @@ export const sharedMemory = createMemory();
 
 // Ensure threadManager initializes only after sharedMemory is ready
 export const initThreadManager = (async () => {
+  // Trace thread manager initialization
+  langfuseService.createTrace('initThreadManager');
   // Wait for memory to initialize (if it has async init)
   if (typeof (sharedMemory as any).init === 'function') {
     await (sharedMemory as any).init();
