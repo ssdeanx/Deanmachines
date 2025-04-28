@@ -21,3 +21,17 @@ prod-ca-2021.crt
 openapi.json
 .windsurfrules
 .vercel
+.repomix
+llm.txt
+llm-full.txt
+sleeptimecompute.md
+pattrns.md
+general-tools.md
+Agent-Fails.md
+*.db
+*.db-shm
+*.db-wal
+mcp.md
+mcp-svr.md
+repomix-output.md
+codeviz-diagram-2025-04-28T13-11-52.drawio

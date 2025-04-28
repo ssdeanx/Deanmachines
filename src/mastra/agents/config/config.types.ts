@@ -14,8 +14,8 @@ import type { VoiceConfig, VoiceProvider } from "../../voice";  // ← reuse!
 /**
  * Supported AI model providers
  */
-export type ModelProvider = "google" | "vertex" | "openai" | "anthropic" | "ollama";
-const ModelProviderSchema = z.enum(["google", "vertex", "openai", "anthropic", "ollama"]); // Schema for provider type
+export type ModelProvider = "google" | "vertex" | "openai" | "anthropic" | "ollama" | "openai-compatible"; // ← add openai-compatible
+const ModelProviderSchema = z.enum(["google", "vertex", "openai", "anthropic", "ollama", "openai-compatible"]); // ← add
 
 /** Default Maximum Tokens for Model Output */
 export const DEFAULT_MAX_TOKENS = 8192;
@@ -283,6 +283,26 @@ export const DEFAULT_MODELS = {
       enhancedThinking: false,
       grounding: false,
       responseCaching: false,
+    },
+  },
+
+  // OPENAI-COMPATIBLE PROVIDER MODELS
+  OPENAI_COMPATIBLE_STANDARD: {
+    provider: "openai-compatible" as const,
+    modelId: "gpt-4o", // or any compatible model
+    temperature: 0.7,
+    topP: 0.95,
+    maxTokens: DEFAULT_MAX_TOKENS,
+    capabilities: {
+      maxContextTokens: 128000,
+      multimodalInput: true,
+      imageGeneration: true,
+      audioOutput: true,
+      functionCalling: true,
+      structuredOutput: true,
+      enhancedThinking: true,
+      grounding: true,
+      responseCaching: true,
     },
   },
 };

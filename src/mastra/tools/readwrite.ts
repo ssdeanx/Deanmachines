@@ -9,19 +9,18 @@
 
 import { createTool, ToolExecutionContext } from "@mastra/core/tools";
 import { z } from "zod";
-import * as fs from "fs-extra";
+import * as fsPromises from "fs/promises";
 
 import { resolve, dirname, extname, join } from "path";
-import { createLangSmithRun, trackFeedback } from "../services/langsmith";
+import { langfuse } from "../services/langfuse";
 import {
-  ReadFileInputSchema, ReadFileOutputSchema,
-  WriteFileInputSchema, WriteFileOutputSchema,
-  EditFileInputSchema, EditFileOutputSchema,
-  DeleteFileInputSchema, DeleteFileOutputSchema,
-  ListFilesInputSchema, ListFilesOutputSchema,
-  ReadKnowledgeFileInputSchema, ReadKnowledgeFileOutputSchema,
-  WriteKnowledgeFileInputSchema, WriteKnowledgeFileOutputSchema,
-  CreateFileInputSchema, CreateFileOutputSchema,
+  ReadFileInputSchema,
+  WriteFileInputSchema,
+  DeleteFileInputSchema,
+  ListFilesInputSchema,
+  ReadKnowledgeFileInputSchema,
+  ReadKnowledgeFileOutputSchema,
+  WriteKnowledgeFileInputSchema,
 } from "./readwriteschema";
 /**
  * Supported file encoding types
@@ -76,6 +75,13 @@ function resolveKnowledgePath(path: string): string {
 const MASTRA_DIR = resolve(process.cwd(), ".mastra");
 function isInMastraDir(path: string): boolean {
   return resolve(path).startsWith(MASTRA_DIR);
+}
+
+/**
+ * Utility to ensure directory exists
+ */
+async function ensureDir(path: string) {
+  await fsPromises.mkdir(path, { recursive: true });
 }
 
 /**
@@ -134,7 +140,7 @@ export const readFileTool = createTool({
   execute: async (
     { context }: { context: z.infer<typeof ReadFileInputSchema> }
   ) => {
-    const runId = await createLangSmithRun("read-file", ["file", "read"]);
+    const trace = langfuse.createTrace("read-file", { tags: ["file", "read"] });
 
     try {
       // Resolve the absolute path
@@ -147,12 +153,13 @@ export const readFileTool = createTool({
 
       // Check if the file exists
       try {
-        await fs.access(absolutePath);
+        await fsPromises.access(absolutePath);
       } catch (error) {
-        await trackFeedback(runId, {
+        langfuse.createScore({
+          traceId: trace.id,
           score: 0,
           comment: `File does not exist: ${absolutePath}`,
-          key: "file_read_failure",
+          name: "file_read_failure",
         });
 
         return {
@@ -171,14 +178,15 @@ export const readFileTool = createTool({
       }
 
       // Get file stats
-      const stats = await fs.stat(absolutePath);
+      const stats = await fsPromises.stat(absolutePath);
 
       // Check file size
       if (stats.size > 10485760) {
-        await trackFeedback(runId, {
+        langfuse.createScore({
+          traceId: trace.id,
           score: 0,
           comment: `File too large: ${stats.size} bytes (max: 10MB)`,
-          key: "file_read_failure",
+          name: "file_read_failure",
         });
 
         return {
@@ -197,14 +205,9 @@ export const readFileTool = createTool({
       }
 
       // Read the file
-      // Pass encoding in options object for clearer type inference
-      const content = await fs.readFile(absolutePath, context.encoding as BufferEncoding);
-      // Ensure content is a string (should be, given encoding option)
-      if (typeof content !== "string") {
-        throw new Error("File content is not a string. Check encoding.");
-      }
-      let processedContent = content;
-      const allLines = content.split(/\r?\n/);
+      const content = await fsPromises.readFile(absolutePath, context.encoding as BufferEncoding);
+      let processedContent = content.toString();
+      const allLines = processedContent.split(/\r?\n/);
       let readLines = allLines.length;
       if (context.startLine !== undefined || context.endLine !== undefined) {
         const startLine = Math.max(0, context.startLine || 0);
@@ -214,10 +217,11 @@ export const readFileTool = createTool({
             : allLines.length - 1;
 
         if (startLine > endLine) {
-          await trackFeedback(runId, {
+          langfuse.createScore({
+            traceId: trace.id,
             score: 0.5,
             comment: `Invalid line range: start (${startLine}) > end (${endLine})`,
-            key: "file_read_warning",
+            name: "file_read_warning",
           });
 
           return {
@@ -240,12 +244,13 @@ export const readFileTool = createTool({
         readLines = endLine - startLine + 1;
       }
 
-      // Track success in LangSmith
-      await trackFeedback(runId, {
+      // Track success in LangFuse
+      langfuse.createScore({
+        traceId: trace.id,
         score: 1,
         comment: `Successfully read file: ${absolutePath} (${stats.size} bytes)`,
-        key: "file_read_success",
-        value: {
+        name: "file_read_success",
+        metadata: {
           path: absolutePath,
           size: stats.size,
           lineCount: allLines.length,
@@ -268,11 +273,12 @@ export const readFileTool = createTool({
     } catch (error) {
       console.error("Error reading file:", error);
 
-      // Track failure in LangSmith
-      await trackFeedback(runId, {
+      // Track failure in LangFuse
+      langfuse.createScore({
+        traceId: trace.id,
         score: 0,
         comment: error instanceof Error ? error.message : "Unknown error",
-        key: "file_read_failure",
+        name: "file_read_failure",
       });
 
       return {
@@ -319,7 +325,7 @@ export const writeToFileTool = createTool({
   }),
   execute: async (executionContext: { context: z.infer<typeof WriteFileInputSchema> }) => {
     const { context } = executionContext;
-    const runId = await createLangSmithRun("write-file", ["file", "write"]);
+    const trace = langfuse.createTrace("write-file", { tags: ["file", "write"] });
 
     try {
       // Resolve the absolute path
@@ -350,10 +356,11 @@ export const writeToFileTool = createTool({
       // Check content size
       const contentSize = Buffer.byteLength(context.content, context.encoding as BufferEncoding);
       if (contentSize > maxSizeBytes) {
-        await trackFeedback(runId, {
+        langfuse.createScore({
+          traceId: trace.id,
           score: 0,
           comment: `Content too large: ${contentSize} bytes (max: ${maxSizeBytes} bytes)`,
-          key: "file_write_failure",
+          name: "file_write_failure",
         });
 
         return {
@@ -371,13 +378,13 @@ export const writeToFileTool = createTool({
 
       // Create parent directories if requested
       if (context.createDirectory) {
-        await fs.ensureDir(dirname(absolutePath));
+        await ensureDir(dirname(absolutePath));
       }
 
       // Check if the file exists
       let fileExists = false;
       try {
-        await fs.access(absolutePath);
+        await fsPromises.access(absolutePath);
         fileExists = true;
       } catch (error) {
         // File doesn't exist
@@ -385,10 +392,11 @@ export const writeToFileTool = createTool({
 
       // Handle write mode
       if (fileExists && context.mode === FileWriteMode.CREATE_NEW) {
-        await trackFeedback(runId, {
+        langfuse.createScore({
+          traceId: trace.id,
           score: 0,
           comment: `File already exists and mode is ${FileWriteMode.CREATE_NEW}`,
-          key: "file_write_failure",
+          name: "file_write_failure",
         });
 
         return {
@@ -406,17 +414,18 @@ export const writeToFileTool = createTool({
 
       // Write or append to the file based on the mode
       if (context.mode === FileWriteMode.APPEND && fileExists) {
-        await fs.appendFile(absolutePath, context.content, { encoding: context.encoding });
+        await fsPromises.appendFile(absolutePath, context.content, { encoding: context.encoding });
       } else {
-        await fs.writeFile(absolutePath, context.content, { encoding: context.encoding });
+        await fsPromises.writeFile(absolutePath, context.content, { encoding: context.encoding });
       }
 
-      // Track success in LangSmith
-      await trackFeedback(runId, {
+      // Track success in LangFuse
+      langfuse.createScore({
+        traceId: trace.id,
         score: 1,
         comment: `Successfully wrote to file: ${absolutePath} (${contentSize} bytes)`,
-        key: "file_write_success",
-        value: { path: absolutePath, size: contentSize, mode: context.mode },
+        name: "file_write_success",
+        metadata: { path: absolutePath, size: contentSize, mode: context.mode },
       });
 
       return {
@@ -432,11 +441,12 @@ export const writeToFileTool = createTool({
     } catch (error) {
       console.error("Error writing to file:", error);
 
-      // Track failure in LangSmith
-      await trackFeedback(runId, {
+      // Track failure in LangFuse
+      langfuse.createScore({
+        traceId: trace.id,
         score: 0,
         comment: error instanceof Error ? error.message : "Unknown error",
-        key: "file_write_failure",
+        name: "file_write_failure",
       });
 
       return {
@@ -462,7 +472,7 @@ export const readKnowledgeFileTool = createTool({
   execute: async (
     executionContext: ToolExecutionContext<typeof ReadKnowledgeFileInputSchema>
   ) => {
-    const runId = await createLangSmithRun("read-knowledge-file", ["knowledge", "read"]);
+    const trace = langfuse.createTrace("read-knowledge-file", { tags: ["knowledge", "read"] });
 
     try {
       const knowledgePath = resolveKnowledgePath(executionContext.context.path);
@@ -477,9 +487,7 @@ export const readKnowledgeFileTool = createTool({
       }
 
       // Modify context to use knowledge path and provide default startLine and maxSizeBytes
-      // Also pass the container from the current execution context
       return await readFileTool.execute({
-        container: executionContext.container, // Pass the container
         context: {
           ...executionContext.context,
           path: knowledgePath,
@@ -492,15 +500,17 @@ export const readKnowledgeFileTool = createTool({
         threadId: executionContext.threadId,
         resourceId: executionContext.resourceId,
         mastra: executionContext.mastra,
+        runtimeContext: executionContext.runtimeContext,
       });
     } catch (error) {
       console.error("Error reading knowledge file:", error);
 
-      // Track failure in LangSmith
-      await trackFeedback(runId, {
+      // Track failure in LangFuse
+      langfuse.createScore({
+        traceId: trace.id,
         score: 0,
         comment: error instanceof Error ? error.message : "Unknown error",
-        key: "knowledge_read_failure",
+        name: "knowledge_read_failure",
       });
 
       return {
@@ -546,7 +556,7 @@ export const writeKnowledgeFileTool = createTool({
   execute: async (
     executionContext: ToolExecutionContext<typeof WriteKnowledgeFileInputSchema>
   ) => {
-    const runId = await createLangSmithRun("write-knowledge-file", ["knowledge", "write"]);
+    const trace = langfuse.createTrace("write-knowledge-file", { tags: ["knowledge", "write"] });
 
     try {
       const knowledgePath = resolveKnowledgePath(executionContext.context.path);
@@ -562,21 +572,28 @@ export const writeKnowledgeFileTool = createTool({
 
       // Modify context to use knowledge path and include default maxSizeBytes
       return writeToFileTool.execute({
-        container: executionContext.container, // Pass the container
         context: {
           ...executionContext.context,
           path: knowledgePath,
           encoding: executionContext.context.encoding as FileEncoding,
+          maxSizeBytes: 10485760, // Add default maxSizeBytes from readFileTool schema
         },
+        // Pass along other relevant execution context details if needed
+        runId: executionContext.runId,
+        threadId: executionContext.threadId,
+        resourceId: executionContext.resourceId,
+        mastra: executionContext.mastra,
+        runtimeContext: executionContext.runtimeContext,
       });
     } catch (error) {
       console.error("Error writing to knowledge file:", error);
 
-      // Track failure in LangSmith
-      await trackFeedback(runId, {
+      // Track failure in LangFuse
+      langfuse.createScore({
+        traceId: trace.id,
         score: 0,
         comment: error instanceof Error ? error.message : "Unknown error",
-        key: "knowledge_write_failure",
+        name: "knowledge_write_failure",
       });
 
       return {
@@ -650,7 +667,7 @@ export const createFileTool = createTool({
 
     try {
       // Check if file exists
-      await fs.access(absolutePath);
+      await fsPromises.access(absolutePath);
       return {
         metadata: {
           path: absolutePath,
@@ -664,19 +681,32 @@ export const createFileTool = createTool({
     } catch {
       // File does not exist, proceed
     }
-    if (executionContext.context.createDirectory) {
-      await fs.ensureDir(dirname(absolutePath));
+    try {
+      if (executionContext.context.createDirectory) {
+        await ensureDir(dirname(absolutePath));
+      }
+      await fsPromises.writeFile(absolutePath, executionContext.context.content, { encoding: executionContext.context.encoding });
+      return {
+        metadata: {
+          path: absolutePath,
+          size: Buffer.byteLength(executionContext.context.content, executionContext.context.encoding),
+          extension: extname(absolutePath),
+          encoding: executionContext.context.encoding,
+        },
+        success: true,
+      };
+    } catch (error) {
+      return {
+        metadata: {
+          path: absolutePath,
+          size: 0,
+          extension: extname(absolutePath),
+          encoding: executionContext.context.encoding,
+        },
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error creating file",
+      };
     }
-    await fs.writeFile(absolutePath, executionContext.context.content, { encoding: executionContext.context.encoding });
-    return {
-      metadata: {
-        path: absolutePath,
-        size: Buffer.byteLength(executionContext.context.content, executionContext.context.encoding),
-        extension: extname(absolutePath),
-        encoding: executionContext.context.encoding,
-      },
-      success: true,
-    };
   },
 });
 
@@ -735,7 +765,7 @@ export const editFileTool = createTool({
 
     try {
       // Read file content as string using the specified encoding
-      let content = await fs.readFile(absolutePath, { encoding: executionContext.context.encoding });
+      let content = await fsPromises.readFile(absolutePath, { encoding: executionContext.context.encoding });
       let edits = 0;
       let newContent: string; // Declare newContent here
       if (executionContext.context.isRegex) {
@@ -750,7 +780,7 @@ export const editFileTool = createTool({
         const searchRegex = new RegExp(executionContext.context.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "g");
         edits = (content.match(searchRegex) || []).length;
       }
-      await fs.writeFile(absolutePath, newContent, { encoding: executionContext.context.encoding });
+      await fsPromises.writeFile(absolutePath, newContent, { encoding: executionContext.context.encoding });
       return {
         metadata: {
           path: absolutePath,
@@ -812,7 +842,7 @@ export const deleteFileTool = createTool({
     }
 
     try {
-      await fs.remove(absolutePath);
+      await fsPromises.rm(absolutePath, { recursive: true, force: true });
       return { path: absolutePath, success: true };
     } catch (err) {
       return {
@@ -827,10 +857,10 @@ export const deleteFileTool = createTool({
 // Define the `walk` function to handle directory traversal
 async function walk(directory: string): Promise<string[]> {
   const results: string[] = [];
-  const files = await fs.readdir(directory);
+  const files = await fsPromises.readdir(directory);
   for (const file of files) {
     const fullPath = resolve(directory, file);
-    const stat = await fs.stat(fullPath);
+    const stat = await fsPromises.stat(fullPath);
     if (stat.isDirectory()) {
       results.push(...(await walk(fullPath)));
     } else {
@@ -870,10 +900,10 @@ export const listFilesTool = createTool({
     const results: { name: string; path: string; isDirectory: boolean; extension: string }[] = [];
 
     async function processDirectory(directory: string) {
-      const files = await fs.readdir(directory);
+      const files = await fsPromises.readdir(directory);
       for (const file of files) {
         const fullPath = resolve(directory, file);
-        const stat = await fs.stat(fullPath);
+        const stat = await fsPromises.stat(fullPath);
         if (stat.isDirectory()) {
           results.push({ name: file, path: fullPath, isDirectory: true, extension: "" });
           if (executionContext.context.recursive) {
@@ -953,7 +983,7 @@ export const mkdirTool = createTool({
     const absolutePath = resolve(executionContext.context.path);
 
     try {
-      await fs.ensureDir(absolutePath); // Removed invalid `recursive` option
+      await ensureDir(absolutePath);
       return { path: absolutePath, success: true };
     } catch (error) {
       return {
@@ -990,7 +1020,8 @@ export const copyTool = createTool({
     const destinationPath = resolve(executionContext.context.destination);
 
     try {
-      await fs.copy(sourcePath, destinationPath, { overwrite: executionContext.context.overwrite });
+      // Copy file or directory recursively
+      await fsPromises.cp(sourcePath, destinationPath, { recursive: true, force: executionContext.context.overwrite });
       return { source: sourcePath, destination: destinationPath, success: true };
     } catch (error) {
       return {
@@ -1026,7 +1057,7 @@ export const moveTool = createTool({
     const destinationPath = resolve(executionContext.context.destination);
 
     try {
-      await fs.move(sourcePath, destinationPath, { overwrite: executionContext.context.overwrite });
+      await fsPromises.rename(sourcePath, destinationPath);
       return { source: sourcePath, destination: destinationPath, success: true };
     } catch (error) {
       return {

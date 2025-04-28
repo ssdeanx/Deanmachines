@@ -8,6 +8,107 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [v0.2.7] - 2025-04-27 22:00 EST
+
+### Changed
+
+- **Observability: Switched from LangSmith to Langfuse for File Tools**
+  - All file read/write tools in `src/mastra/tools/readwrite.ts` now use the singleton `langfuse` service (`src/mastra/services/langfuse.ts`) for tracing and scoring.
+  - Removed all imports and usage of `createLangSmithRun` and `trackFeedback` from file tools.
+  - All tool executions now create traces and scores via `langfuse.createTrace` and `langfuse.createScore`, ensuring unified observability and analytics.
+  - Error and success events for file operations are now consistently logged and scored in Langfuse, with trace IDs for correlation.
+  - Updated documentation and comments to reflect the new observability pattern.
+
+- **Refactor: Cleaned up File Tool Imports**
+  - Removed all references to `services/langsmith.ts` in file tools.
+  - All file tool modules now import only from `services/langfuse.ts` for observability.
+
+### Migration Notes
+
+- **Langfuse is now the only supported tracing and scoring backend for file tools.**
+- All new tools and hooks should use the singleton `langfuse` instance for observability.
+- No changes are required to agent configs or tool registration; this is an internal observability refactor.
+
+---
+
+### Added
+
+- **Universal Model Provider Support**:  
+  - Added full, type-safe support for all major AI model providers: **OpenAI**, **OpenAI-Compatible**, **Anthropic**, **Ollama**, **Google**, and **Vertex**.
+  - Each provider now has its own setup and client config utilities, Zod schema validation, and is included in the main provider/model utility exports.
+  - The `ModelProvider` type and schema now include `"openai-compatible"` for seamless integration of third-party OpenAI API-compatible endpoints.
+  - Default model configurations for all providers, including OpenAI-Compatible, are available in `config.types.ts` under `DEFAULT_MODELS`.
+
+- **Exports and Barrel Files**:
+  - All provider setup and client config functions/types for OpenAI, OpenAI-Compatible, Anthropic, and Ollama are now exported from the config barrel (`index.ts`).
+  - Model creation utilities for all providers are exported and available for agent configs.
+  - The main config barrel (`index.ts`) now re-exports all provider/model setup and config functions/types for OpenAI, OpenAI-Compatible, Anthropic, and Ollama, in addition to Google and Vertex.
+
+- **Type Safety and Consistency**:
+  - All provider and model utility functions are type-safe and follow a consistent pattern.
+  - Provider setup functions use Zod schemas for strict validation of API keys, base URLs, and other required fields.
+  - Model creation functions accept provider-specific config objects and options, ensuring robust and flexible instantiation.
+
+- **OpenAI-Compatible Provider**:
+  - Integrated the `@ai-sdk/openai-compatible` package using the recommended `createOpenAICompatible` pattern.
+  - Added `setupOpenAICompatibleProvider` and `createOpenAICompatibleClientConfig` utilities.
+  - Ensured the required `name` property is always set when creating a provider instance.
+  - Updated all usages to pass `apiKey` and `baseURL` as required, with fallback defaults to avoid type errors.
+
+- **Agent and Tool Integration**:
+  - All agent configs can now specify any supported provider in their `modelConfig`.
+  - Tools and workflows can leverage any provider, including OpenAI-Compatible endpoints, for maximum flexibility.
+
+### Changed
+
+- **Barrel Exports**:
+  - Updated `index.ts` to re-export all provider/model setup and config functions/types for OpenAI, OpenAI-Compatible, Anthropic, and Ollama.
+  - Ensured all exports are available for downstream usage in agent configs, tool registration, and workflow orchestration.
+
+- **TypeScript Improvements**:
+  - Fixed all TypeScript errors related to missing exports, call signatures, and required properties for provider setup.
+  - Used nullish coalescing (`??`) and runtime checks to ensure all required provider settings are present and type-safe.
+
+- **Documentation**:
+  - Improved inline documentation and JSDoc comments for all provider and model utility functions.
+  - Updated `config.types.ts` to document all supported providers and their default model configurations.
+
+### Fixed
+
+- **Type Errors**:
+  - Resolved all TypeScript errors related to missing exports, call signatures, and required properties for provider setup.
+  - Ensured all provider and model utility functions are robust against missing or undefined configuration values.
+
+- **Provider Instance Creation**:
+  - Corrected the usage of `@ai-sdk/openai-compatible` to use `createOpenAICompatible` with the required `name` property.
+  - Fixed issues where `apiKey` or `baseURL` could be `undefined`, causing type errors.
+
+### Migration Notes
+
+- **Provider Usage**:
+  - To use a provider, import the relevant setup and client config functions/types from the config barrel (`index.ts`).
+  - When creating a model instance, ensure the `provider` and `providerOptions` in your agent config match the expected types and include all required fields (e.g., `apiKey`, `baseURL`).
+
+- **OpenAI-Compatible Endpoints**:
+  - For third-party OpenAI-compatible endpoints, use the `"openai-compatible"` provider and supply the correct `apiKey` and `baseURL` in `providerOptions`.
+  - Example:
+    ```typescript
+    modelConfig: {
+      provider: "openai-compatible",
+      modelId: "gpt-4o",
+      providerOptions: {
+        apiKey: process.env.MY_COMPATIBLE_API_KEY,
+        baseUrl: "https://api.my-compatible-endpoint.com/v1"
+      }
+    }
+    ```
+
+- **Agent Configs**:
+  - All agent configs can now specify any supported provider in their `modelConfig`.
+  - Tools and workflows can leverage any provider, including OpenAI-Compatible endpoints, for maximum flexibility.
+
+---
+
 ## [v0.2.6] - 2025-04-27
 
 ### Security, Stability & Observability Improvements

@@ -12,8 +12,10 @@ import { vertex } from "@ai-sdk/google-vertex";
 import { openai } from "@ai-sdk/openai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { ollama } from "ollama-ai-provider";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { OpenAIProviderConfig, AnthropicProviderConfig, OllamaProviderConfig, getProviderConfig } from "./provider.utils";
 import { ModelConfig } from "./config.types";
+import type { OpenAICompatibleProviderConfig } from "./provider.utils";
 
 /**
  * Model creation options
@@ -80,6 +82,15 @@ export function createModelFromConfig(
       case "ollama": {
         const { modelName } = (providerOptions as OllamaProviderConfig) || getProviderConfig("ollama", providerOptions);
         return ollama(modelName || modelId);
+      }
+      case "openai-compatible": {
+        const settings: Record<string, unknown> = { ...options };
+        const provider = createOpenAICompatible({
+          name: "openai-compatible",
+          apiKey: typeof providerOptions?.apiKey === "string" ? providerOptions.apiKey : "",
+          baseURL: typeof providerOptions?.baseUrl === "string" ? providerOptions.baseUrl : "",
+        });
+        return provider(modelId as any, settings);
       }
       default:
         throw new Error(`Unsupported model provider: ${provider}`);
@@ -197,6 +208,27 @@ export function createOllamaModel(
 ): any {
   // Only pass modelName; baseUrl is set via env var
   return ollama((config?.modelName || modelId));
+}
+
+/**
+ * Creates an OpenAI-Compatible model instance with default settings
+ *
+ * @param modelId - Model ID to use
+ * @param config - OpenAI-Compatible provider config (apiKey, baseUrl)
+ * @param options - Additional model options
+ * @returns An OpenAI-Compatible model instance
+ */
+export function createOpenAICompatibleModel(
+  modelId: string,
+  config?: OpenAICompatibleProviderConfig,
+  options?: Record<string, unknown>
+): any {
+  const provider = createOpenAICompatible({
+    name: "openai-compatible",
+    apiKey: config?.apiKey ?? "",
+    baseURL: config?.baseUrl ?? "",
+  });
+  return provider(modelId as any, options);
 }
 
 /**

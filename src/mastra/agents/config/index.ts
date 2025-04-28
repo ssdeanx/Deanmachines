@@ -14,6 +14,14 @@ export {
   createGoogleClientConfig,
   setupVertexProvider,
   createVertexClientConfig,
+  setupOpenAIProvider,
+  createOpenAIClientConfig,
+  setupAnthropicProvider,
+  createAnthropicClientConfig,
+  setupOllamaProvider,
+  createOllamaClientConfig,
+  setupOpenAICompatibleProvider,
+  createOpenAICompatibleClientConfig,
   getProviderConfig
 } from "./provider.utils";
 export type {
@@ -22,6 +30,10 @@ export type {
   ProviderSetupOptions,
   GoogleProviderConfig,
   VertexProviderConfig,
+  OpenAIProviderConfig,
+  AnthropicProviderConfig,
+  OllamaProviderConfig,
+  OpenAICompatibleProviderConfig,
   ProviderConfig
 } from "./provider.utils";
 

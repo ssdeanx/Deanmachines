@@ -14,9 +14,10 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { env } from "process";
 import { z } from "zod";
 import { ollama } from "ollama-ai-provider";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 
 /** Supported model providers */
-export type ModelProvider = "google" | "vertex" | "openai" | "anthropic" | "ollama";
+export type ModelProvider = "google" | "vertex" | "openai" | "anthropic" | "ollama" | "openai-compatible";
 
 /** Options for configuring the Google AI provider setup */
 export type GoogleOptions = Partial<Pick<GoogleProviderConfig, 'apiKey'>>;
@@ -63,9 +64,20 @@ export type AnthropicProviderConfig = z.infer<typeof AnthropicProviderConfigSche
 export type OllamaProviderConfig = z.infer<typeof OllamaProviderConfigSchema>;
 
 /**
+ * Configuration for OpenAI-Compatible provider
+ */
+export type OpenAICompatibleProviderConfig = z.infer<typeof OpenAICompatibleProviderConfigSchema>;
+
+/**
  * Generic provider configuration type
  */
-export type ProviderConfig = GoogleProviderConfig | VertexProviderConfig | OpenAIProviderConfig | AnthropicProviderConfig | OllamaProviderConfig;
+export type ProviderConfig =
+  | GoogleProviderConfig
+  | VertexProviderConfig
+  | OpenAIProviderConfig
+  | AnthropicProviderConfig
+  | OllamaProviderConfig
+  | OpenAICompatibleProviderConfig;
 
 // --- Zod Schemas for Provider Configs ---
 export const GoogleProviderConfigSchema = z.object({
@@ -91,6 +103,11 @@ export const AnthropicProviderConfigSchema = z.object({
 export const OllamaProviderConfigSchema = z.object({
   baseUrl: z.string().url().optional(),
   modelName: z.string().min(1, "Ollama model name is required"),
+});
+
+export const OpenAICompatibleProviderConfigSchema = z.object({
+  apiKey: z.string().min(1, "OpenAI-Compatible API key is required"),
+  baseUrl: z.string().url().min(1, "OpenAI-Compatible baseUrl is required"),
 });
 
 /**
@@ -277,6 +294,39 @@ export function createOllamaClientConfig(config: OllamaProviderConfig) {
 }
 
 /**
+ * Sets up the OpenAI-Compatible provider configuration
+ *
+ * @param options - OpenAI-Compatible specific options
+ * @returns OpenAI-Compatible provider configuration
+ * @throws {Error} If required environment variables are not available
+ */
+export function setupOpenAICompatibleProvider(
+  options?: Partial<OpenAICompatibleProviderConfig>
+): OpenAICompatibleProviderConfig {
+  const apiKey = options?.apiKey || env.OPENAI_COMPATIBLE_API_KEY;
+  const baseUrl = options?.baseUrl || env.OPENAI_COMPATIBLE_API_BASE;
+  const parsed = OpenAICompatibleProviderConfigSchema.safeParse({ apiKey, baseUrl });
+  if (!parsed.success) throw new Error(parsed.error.message);
+  return parsed.data;
+}
+
+/**
+ * Creates an OpenAI-Compatible client configuration
+ *
+ * @param config - OpenAI-Compatible provider configuration
+ * @returns OpenAI-Compatible client configuration
+ */
+export function createOpenAICompatibleClientConfig(config: OpenAICompatibleProviderConfig) {
+  const provider = createOpenAICompatible({
+    name: "openai-compatible",
+    apiKey: config.apiKey ?? "",
+    baseURL: config.baseUrl ?? "",
+  });
+  return (modelId: string, settings?: any) =>
+    provider(modelId as any, settings);
+}
+
+/**
  * Gets the appropriate provider configuration based on provider type
  *
  * @param provider - The model provider to configure
@@ -299,6 +349,8 @@ export function getProviderConfig(
       return setupAnthropicProvider(options as Partial<AnthropicProviderConfig>);
     case "ollama":
       return setupOllamaProvider(options as Partial<OllamaProviderConfig>);
+    case "openai-compatible":
+      return setupOpenAICompatibleProvider(options as Partial<OpenAICompatibleProviderConfig>);
     default:
       throw new Error(`Unsupported model provider: ${provider}`);
   }
