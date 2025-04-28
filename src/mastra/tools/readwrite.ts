@@ -12,7 +12,6 @@ import { z } from "zod";
 import * as fsPromises from "fs/promises";
 
 import { resolve, dirname, extname, join } from "path";
-import { langfuse } from "../services/langfuse";
 import {
   ReadFileInputSchema,
   WriteFileInputSchema,
@@ -140,8 +139,6 @@ export const readFileTool = createTool({
   execute: async (
     { context }: { context: z.infer<typeof ReadFileInputSchema> }
   ) => {
-    const trace = langfuse.createTrace("read-file", { tags: ["file", "read"] });
-
     try {
       // Resolve the absolute path
       const absolutePath = resolve(context.path);
@@ -155,13 +152,6 @@ export const readFileTool = createTool({
       try {
         await fsPromises.access(absolutePath);
       } catch (error) {
-        langfuse.createScore({
-          traceId: trace.id,
-          score: 0,
-          comment: `File does not exist: ${absolutePath}`,
-          name: "file_read_failure",
-        });
-
         return {
           content: "",
           metadata: {
@@ -182,13 +172,6 @@ export const readFileTool = createTool({
 
       // Check file size
       if (stats.size > 10485760) {
-        langfuse.createScore({
-          traceId: trace.id,
-          score: 0,
-          comment: `File too large: ${stats.size} bytes (max: 10MB)`,
-          name: "file_read_failure",
-        });
-
         return {
           content: "",
           metadata: {
@@ -217,13 +200,6 @@ export const readFileTool = createTool({
             : allLines.length - 1;
 
         if (startLine > endLine) {
-          langfuse.createScore({
-            traceId: trace.id,
-            score: 0.5,
-            comment: `Invalid line range: start (${startLine}) > end (${endLine})`,
-            name: "file_read_warning",
-          });
-
           return {
             content: "",
             metadata: {
@@ -244,20 +220,6 @@ export const readFileTool = createTool({
         readLines = endLine - startLine + 1;
       }
 
-      // Track success in LangFuse
-      langfuse.createScore({
-        traceId: trace.id,
-        score: 1,
-        comment: `Successfully read file: ${absolutePath} (${stats.size} bytes)`,
-        name: "file_read_success",
-        metadata: {
-          path: absolutePath,
-          size: stats.size,
-          lineCount: allLines.length,
-          readLines,
-        },
-      });
-
       return {
         content: processedContent,
         metadata: {
@@ -272,14 +234,6 @@ export const readFileTool = createTool({
       };
     } catch (error) {
       console.error("Error reading file:", error);
-
-      // Track failure in LangFuse
-      langfuse.createScore({
-        traceId: trace.id,
-        score: 0,
-        comment: error instanceof Error ? error.message : "Unknown error",
-        name: "file_read_failure",
-      });
 
       return {
         content: "",
@@ -325,7 +279,6 @@ export const writeToFileTool = createTool({
   }),
   execute: async (executionContext: { context: z.infer<typeof WriteFileInputSchema> }) => {
     const { context } = executionContext;
-    const trace = langfuse.createTrace("write-file", { tags: ["file", "write"] });
 
     try {
       // Resolve the absolute path
@@ -356,13 +309,6 @@ export const writeToFileTool = createTool({
       // Check content size
       const contentSize = Buffer.byteLength(context.content, context.encoding as BufferEncoding);
       if (contentSize > maxSizeBytes) {
-        langfuse.createScore({
-          traceId: trace.id,
-          score: 0,
-          comment: `Content too large: ${contentSize} bytes (max: ${maxSizeBytes} bytes)`,
-          name: "file_write_failure",
-        });
-
         return {
           metadata: {
             path: absolutePath,
@@ -392,13 +338,6 @@ export const writeToFileTool = createTool({
 
       // Handle write mode
       if (fileExists && context.mode === FileWriteMode.CREATE_NEW) {
-        langfuse.createScore({
-          traceId: trace.id,
-          score: 0,
-          comment: `File already exists and mode is ${FileWriteMode.CREATE_NEW}`,
-          name: "file_write_failure",
-        });
-
         return {
           metadata: {
             path: absolutePath,
@@ -419,15 +358,6 @@ export const writeToFileTool = createTool({
         await fsPromises.writeFile(absolutePath, context.content, { encoding: context.encoding });
       }
 
-      // Track success in LangFuse
-      langfuse.createScore({
-        traceId: trace.id,
-        score: 1,
-        comment: `Successfully wrote to file: ${absolutePath} (${contentSize} bytes)`,
-        name: "file_write_success",
-        metadata: { path: absolutePath, size: contentSize, mode: context.mode },
-      });
-
       return {
         metadata: {
           path: absolutePath,
@@ -440,14 +370,6 @@ export const writeToFileTool = createTool({
       };
     } catch (error) {
       console.error("Error writing to file:", error);
-
-      // Track failure in LangFuse
-      langfuse.createScore({
-        traceId: trace.id,
-        score: 0,
-        comment: error instanceof Error ? error.message : "Unknown error",
-        name: "file_write_failure",
-      });
 
       return {
         metadata: {
@@ -472,8 +394,6 @@ export const readKnowledgeFileTool = createTool({
   execute: async (
     executionContext: ToolExecutionContext<typeof ReadKnowledgeFileInputSchema>
   ) => {
-    const trace = langfuse.createTrace("read-knowledge-file", { tags: ["knowledge", "read"] });
-
     try {
       const knowledgePath = resolveKnowledgePath(executionContext.context.path);
 
@@ -504,14 +424,6 @@ export const readKnowledgeFileTool = createTool({
       });
     } catch (error) {
       console.error("Error reading knowledge file:", error);
-
-      // Track failure in LangFuse
-      langfuse.createScore({
-        traceId: trace.id,
-        score: 0,
-        comment: error instanceof Error ? error.message : "Unknown error",
-        name: "knowledge_read_failure",
-      });
 
       return {
         content: "",
@@ -556,8 +468,6 @@ export const writeKnowledgeFileTool = createTool({
   execute: async (
     executionContext: ToolExecutionContext<typeof WriteKnowledgeFileInputSchema>
   ) => {
-    const trace = langfuse.createTrace("write-knowledge-file", { tags: ["knowledge", "write"] });
-
     try {
       const knowledgePath = resolveKnowledgePath(executionContext.context.path);
 
@@ -587,14 +497,6 @@ export const writeKnowledgeFileTool = createTool({
       });
     } catch (error) {
       console.error("Error writing to knowledge file:", error);
-
-      // Track failure in LangFuse
-      langfuse.createScore({
-        traceId: trace.id,
-        score: 0,
-        comment: error instanceof Error ? error.message : "Unknown error",
-        name: "knowledge_write_failure",
-      });
 
       return {
         metadata: {
