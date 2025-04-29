@@ -37,25 +37,21 @@ export enum FileWriteMode {
 
 // ===== Read File =====
 export const ReadFileInputSchema = z.object({
-  path: z.string().describe("Absolute or relative path of the file to read"),
-  encoding: z.string().optional().default("utf8").describe("Encoding to use when reading the file"),
-  startLine: z.number().optional().describe("Line to start reading from (0-indexed)"),
+  path: z.string().describe("Path to the file to read (absolute or relative)"),
+  encoding: z.enum([
+    FileEncoding.UTF8,
+    FileEncoding.ASCII,
+    FileEncoding.UTF16LE,
+    FileEncoding.LATIN1,
+    FileEncoding.BASE64,
+    FileEncoding.HEX,
+  ]).default(FileEncoding.UTF8).describe("Encoding to use when reading the file"),
+  maxSizeBytes: z.number().optional().default(10485760).describe("Maximum file size in bytes (default: 10MB)"),
+  startLine: z.number().optional().default(0).describe("Line to start reading from (0-indexed)"),
   endLine: z.number().optional().describe("Line to end reading at (0-indexed, inclusive)"),
   threadId: z.string().optional().describe("The thread ID for tracing."),
 });
-export const ReadFileOutputSchema = z.object({
-  content: z.string().describe("Content of the file"),
-  metadata: z.object({
-    path: z.string().describe("Absolute path to the file"),
-    size: z.number().describe("Size of the file in bytes"),
-    extension: z.string().describe("File extension"),
-    encoding: z.string().describe("Encoding used to read the file"),
-    lineCount: z.number().describe("Total number of lines in the file"),
-    readLines: z.number().describe("Number of lines read"),
-  }),
-  success: z.boolean().describe("Whether the operation was successful"),
-  error: z.string().optional().describe("Error message if the operation failed"),
-});
+
 
 // ===== Write File =====
 export const WriteFileInputSchema = z.object({
@@ -67,16 +63,6 @@ export const WriteFileInputSchema = z.object({
   mode: z.enum([FileWriteMode.OVERWRITE, FileWriteMode.APPEND, FileWriteMode.CREATE_NEW]).default(FileWriteMode.OVERWRITE).describe("Write mode"),
   threadId: z.string().optional().describe("The thread ID for tracing."),
 });
-export const WriteFileOutputSchema = z.object({
-  metadata: z.object({
-    path: z.string(),
-    size: z.number(),
-    extension: z.string(),
-    encoding: z.string(),
-  }),
-  success: z.boolean(),
-  error: z.string().optional(),
-});
 
 // ===== Edit File (Search/Replace) =====
 export const EditFileInputSchema = z.object({
@@ -87,28 +73,16 @@ export const EditFileInputSchema = z.object({
   isRegex: z.boolean().optional().default(false),
   threadId: z.string().optional().describe("The thread ID for tracing."),
 });
-export const EditFileOutputSchema = z.object({
-  metadata: z.object({
-    path: z.string(),
-    size: z.number(),
-    extension: z.string(),
-    encoding: z.string(),
-    edits: z.number(),
-  }),
-  success: z.boolean(),
-  error: z.string().optional(),
-});
 
 // ===== Delete File =====
 export const DeleteFileInputSchema = z.object({
   path: z.string().describe("Path of the file to delete"),
   threadId: z.string().optional().describe("The thread ID for tracing."),
 });
-export const DeleteFileOutputSchema = z.object({
-  path: z.string(),
-  success: z.boolean(),
-  error: z.string().optional(),
-});
+
+
+
+
 
 // ===== List Files =====
 export const ListFilesInputSchema = z.object({
@@ -117,35 +91,13 @@ export const ListFilesInputSchema = z.object({
   filterExtension: z.string().optional(),
   threadId: z.string().optional().describe("The thread ID for tracing."),
 });
-export const ListFilesOutputSchema = z.object({
-  files: z.array(
-    z.object({
-      name: z.string(),
-      path: z.string(),
-      isDirectory: z.boolean(),
-      extension: z.string(),
-    })
-  ),
-  success: z.boolean(),
-  error: z.string().optional(),
-});
+
 
 // ===== Read Knowledge File =====
 export const ReadKnowledgeFileInputSchema = z.object({
   path: z.string().describe("Knowledge file path"),
   encoding: z.string().optional().default("utf8"),
   threadId: z.string().optional().describe("The thread ID for tracing."),
-});
-export const ReadKnowledgeFileOutputSchema = z.object({
-  content: z.string(),
-  metadata: z.object({
-    path: z.string(),
-    size: z.number(),
-    extension: z.string(),
-    encoding: z.string(),
-  }),
-  success: z.boolean(),
-  error: z.string().optional(),
 });
 
 // ===== Write Knowledge File =====
@@ -158,14 +110,7 @@ export const WriteKnowledgeFileInputSchema = z.object({
   mode: z.enum([FileWriteMode.OVERWRITE, FileWriteMode.APPEND, FileWriteMode.CREATE_NEW]).default(FileWriteMode.OVERWRITE).describe("Write mode"),
   threadId: z.string().optional().describe("The thread ID for tracing."),
 });
-export const WriteKnowledgeFileOutputSchema = z.object({
-  path: z.string(),
-  size: z.number(),
-  extension: z.string(),
-  encoding: z.string(),
-  success: z.boolean(),
-  error: z.string().optional(),
-});
+
 
 // ===== Create File =====
 export const CreateFileInputSchema = z.object({
@@ -174,16 +119,6 @@ export const CreateFileInputSchema = z.object({
   encoding: z.string().optional().default("utf8"),
   createDirectory: z.boolean().optional().default(false),
   threadId: z.string().optional().describe("The thread ID for tracing."),
-});
-export const CreateFileOutputSchema = z.object({
-  metadata: z.object({
-    path: z.string(),
-    size: z.number(),
-    extension: z.string(),
-    encoding: z.string(),
-  }),
-  success: z.boolean(),
-  error: z.string().optional(),
 });
 
 // ===== Tool Execution Context =====

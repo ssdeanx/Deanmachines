@@ -1,4 +1,4 @@
-import { UpstashTransport } from "@mastra/loggers/upstash";
+import { UpstashTransport } from "@mastra/upstash";
 
 export interface UpstashLoggerOptions {
   name: string;

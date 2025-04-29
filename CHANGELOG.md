@@ -1,5 +1,16 @@
 # Changelog
 
+## [Unreleased]
+
+### Major Changes to Mastra Tools (readwrite.ts)
+- **Removed all output schema definitions and validation** from Mastra tools in `src/mastra/tools/readwrite.ts`. All tool implementations are now strictly input-schema driven—no output schemas are used or referenced anywhere.
+- **Eliminated all outputSchema usage in tool definitions** and removed all output validation logic from tool execution functions.
+- **Context field handling is now fully explicit and type-safe**: fields like `startLine`, `endLine`, and `threadId` are only accessed if present and are passed through with type guards or defaults as required by the input schema.
+- **No assumptions are made about context shape or field presence**—all context access is guarded and schema-driven.
+
+> **NOTE:** When working with Mastra tools, always check the input schema and context explicitly. Do NOT assume any field is present unless defined in the schema. Pay close attention to contract details and update tool logic accordingly to avoid type errors and runtime bugs.
+
+
 <!-- markdownlint-disable MD024 MD031 -->
 All notable changes to the DeanMachines Mastra Backend will be documented in this file.
 

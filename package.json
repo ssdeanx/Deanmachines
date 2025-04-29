@@ -60,6 +60,7 @@
     "@langchain/community": "^0.3.41",
     "@langchain/core": "^0.3.49",
     "@langchain/google-genai": "^0.2.5",
+    "@langchain/langgraph": "^0.2.67",
     "@langchain/openai": "^0.5.7",
     "@langchain/pinecone": "^0.2.0",
     "@lezer/highlight": "^1.2.1",

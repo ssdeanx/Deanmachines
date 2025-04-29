@@ -10,15 +10,10 @@ import { createEmbeddings, createVectorStore } from "../database/vector-store";
 import { Document } from "langchain/document";
 import { z, ZodTypeAny, any as zodAny, type ZodType } from 'zod';
 import { createLogger } from "@mastra/core/logger";
-import { fileLogger as fallbackLogger } from "../database/fileLogger";
 import { getTracer } from "../services/tracing";
-import type { LogLevel } from "@mastra/core/logger";
-const level = (process.env.LOG_LEVEL as LogLevel) || "info";
-const logger = typeof createLogger === "function"
-  ? createLogger({ name: "graphRagLoaders", level })
-  : fallbackLogger;
+const logger = createLogger({ name: "graphRagLoaders", level: "info" });
 const tracer = getTracer();
-import { langfuse } from "../services/langfuse";
+// LAZY LANGFUSE: see below for dynamic import in each function that uses langfuse
 import { createTracedSpan } from "../services/tracing";
 
 /**
@@ -98,6 +93,8 @@ async function createGraphRelationships(
     if (!doc || typeof doc !== 'object' || typeof doc.pageContent !== 'string' || typeof doc.metadata !== 'object') {
       throw new Error(`Invalid Document at index ${idx}`);
     }
+    // Enforce type safety: ensure metadata is a valid GraphNode
+    assertGraphNode(doc.metadata, `Document at index ${idx} has invalid GraphNode metadata`);
   });
   // Map input documents to GraphDocuments ensuring metadata conforms to GraphNode.
   const docsWithIds: GraphDocument[] = documents.map((doc, index) => {
@@ -248,7 +245,7 @@ export const createGraphRagTool = createTool({
       }
       const graphId = `graph-${Date.now()}`;
 
-      langfuse.logGeneration("graph-rag-create", {
+      (await import("../services/langfuse")).langfuse.logGeneration("graph-rag-create", {
         input: { nodeCount: graphDocs.length, edgeCount },
         output: { graphId },
         traceId: span.spanContext().traceId,
@@ -264,7 +261,7 @@ export const createGraphRagTool = createTool({
       if (!span) throw new Error("Tracing span is undefined");
       span.recordException(error as Error);
       span.setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
-      langfuse.logWithTraceContext("Error creating graph RAG", { error });
+      (await import("../services/langfuse")).langfuse.logWithTraceContext("Error creating graph RAG", { error });
       if (!span) throw new Error("Tracing span is undefined");
       span.end();
       return {
@@ -304,7 +301,106 @@ export const graphRagQueryTool = createTool({
       .describe("Minimum similarity for initial document retrieval"),
   }),
   execute: async ({ context }) => {
-    // ...existing implementation...
+    // Start tracing for observability
+    const span = createTracedSpan("graph-rag-query", { context });
+    if (!span) throw new Error("Tracing span is undefined");
+    try {
+      // Create embeddings model and vector store using project factories
+      const embeddings = createEmbeddings();
+      const vectorStore = await createVectorStore(embeddings);
+
+      // Initial document retrieval using the unified vector store
+      let initialResults;
+      if (typeof (vectorStore as any).query === "function") {
+        initialResults = await (vectorStore as any).query(context.query, {
+          topK: context.initialDocumentCount,
+          minScore: context.minSimilarity,
+          namespace: context.namespace || "default"
+        });
+      } else {
+        throw new Error("Vector store does not support querying");
+      }
+
+      // Build in-memory graph for traversal
+      const ns = context.namespace || "default";
+      const graph = graphStore[ns];
+      if (!graph) {
+        span.setStatus({ code: 2, message: "Graph not found for namespace" });
+        (await import("../services/langfuse")).langfuse.logWithTraceContext("Graph not found for namespace", { ns });
+        span.end();
+        return { documents: [], count: 0 };
+      }
+
+      // Traverse graph from initial results, up to maxHopCount
+      const retrievedNodes: Record<string, any> = {};
+      const exploreQueue: Array<[string, number]> = [];
+      for (const doc of initialResults) {
+        if (!doc.metadata?.id) continue;
+        retrievedNodes[doc.metadata.id] = {
+          document: doc,
+          score: doc.score || 1,
+          hopDistance: 0,
+        };
+        exploreQueue.push([doc.metadata.id, 0]);
+      }
+      while (exploreQueue.length > 0) {
+        const [nodeId, hopDistance] = exploreQueue.shift()!;
+        if (hopDistance >= (context.maxHopCount ?? 2)) continue;
+        const node = graph.nodes[nodeId];
+        if (!node) continue;
+        for (const connectedId of node.connections) {
+          if (retrievedNodes[connectedId]) continue;
+          try {
+            const connectedDoc = initialResults.find((d: any) => d.metadata?.id === connectedId) || {
+              pageContent: node.content || "",
+              metadata: node.metadata || {},
+            };
+            const connectionWeight = node.connectionWeights[connectedId] || 0.5;
+            retrievedNodes[connectedId] = {
+              document: connectedDoc,
+              score: (retrievedNodes[nodeId].score || 1) * connectionWeight,
+              hopDistance: hopDistance + 1,
+            };
+            exploreQueue.push([connectedId, hopDistance + 1]);
+          } catch (error) {
+            // Log but do not throw
+            (await import("../services/langfuse")).langfuse.logWithTraceContext("Error retrieving connected node", { connectedId, error });
+          }
+        }
+      }
+
+      // Format and sort results
+      const results = Object.values(retrievedNodes)
+        .sort((a, b) => b.score - a.score)
+        .map((node) => ({
+          content: node.document.pageContent,
+          metadata: {
+            ...node.document.metadata,
+            connections: undefined,
+            connectionWeights: undefined,
+          },
+          score: node.score,
+          hopDistance: node.hopDistance,
+        }));
+
+      // Log generation event using Langfuse
+      await (await import("../services/langfuse")).langfuse.logGeneration("graph-rag-query-generation", {
+        input: context.query,
+        output: { documentCount: results.length },
+        traceId: span.spanContext().traceId,
+      });
+      span.end();
+      return {
+        documents: results,
+        count: results.length,
+      };
+    } catch (error) {
+      span.recordException(error as Error);
+      span.setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+      (await import("../services/langfuse")).langfuse.logWithTraceContext("Error querying graph RAG", { error });
+      span.end();
+      return { documents: [], count: 0 };
+    }
   },
 });
 
@@ -376,21 +472,16 @@ export const graphRagEditTool = createTool({
           logger.warn("Attempted to add node with missing or invalid id", { context });
           return { success: false, message: "Missing or invalid node id" };
         }
-        const nodeId = context.node.id;
-        if (graph.nodes[nodeId]) {
-          logger.warn("Node already exists", { nodeId });
-          return { success: false, message: `Node ${nodeId} already exists` };
+        // Enforce type safety: validate node before adding
+        assertGraphNode(context.node, "Attempted to add invalid node to graph");
+        if (graph.nodes[context.node.id]) {
+          logger.warn("Node already exists", { nodeId: context.node.id });
+          return { success: false, message: `Node ${context.node.id} already exists` };
         }
-        // Build node object field-by-field for type safety
-        graph.nodes[nodeId] = {
-          id: nodeId,
-          content: typeof context.node.content === 'string' ? context.node.content : undefined,
-          metadata: typeof context.node.metadata === 'object' ? context.node.metadata : undefined,
-          connections: [],
-          connectionWeights: {}
-        };
-        msg = `Node ${nodeId} added.`;
-        logger.info(msg, { nodeId });
+        // Add node with type safety
+        graph.nodes[context.node.id] = context.node;
+        msg = `Node ${context.node.id} added.`;
+        logger.info(msg, { nodeId: context.node.id });
         break;
       }
       case "removeNode": {
@@ -774,7 +865,7 @@ export const graphRagObservabilityTool = createTool({
         }));
 
       // Log generation event using Langfuse.
-      langfuse.logGeneration("graph-rag-query-generation", {
+      (await import("../services/langfuse")).langfuse.logGeneration("graph-rag-query-generation", {
         input: context.query,
         output: { documentCount: results.length },
         traceId: span.spanContext().traceId,
@@ -789,7 +880,7 @@ export const graphRagObservabilityTool = createTool({
       if (!span) throw new Error("Tracing span is undefined");
       span.recordException(error as Error);
       span.setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
-      langfuse.logWithTraceContext("Error querying graph RAG", { error });
+      (await import("../services/langfuse")).langfuse.logWithTraceContext("Error querying graph RAG", { error });
       if (!span) throw new Error("Tracing span is undefined");
       span.end();
       return { documents: [], count: 0 };

@@ -6,15 +6,16 @@ const __dirname = path.dirname(__filename);
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
 import { createLogger } from "@mastra/core/logger";
-import { fileLogger as fallbackLogger } from "../../database/fileLogger";
-import { langfuse } from "../../services/langfuse";
+// LAZY LANGFUSE: see below for dynamic import in each function that uses langfuse
 import { getTracer } from "../../services/tracing";
-import type { LogLevel } from "@mastra/core/logger";
-const level = (process.env.LOG_LEVEL as LogLevel) || "info";
-const logger = typeof createLogger === "function"
-  ? createLogger({ name: "graphRagLoaders", level })
-  : fallbackLogger;
+
+
+// === Configure Logger ===
+const logger = createLogger({ name: "graphRagLoaders", level: "info" });
 const tracer = getTracer();
+
+
+
 
 // Allowed directory and extensions
 const ALLOWED_DIR = path.resolve(__dirname); // Explicitly set to the loaders directory
@@ -191,7 +192,7 @@ export const graphRagCsvExporter = createTool({
     const absPath = validateGraphRagFile(context.filePath, ".csv");
     if (!tracer) {
       logger.error("Tracer is not initialized for CSV exporter", { filePath: absPath });
-      langfuse.logWithTraceContext("Tracer is not initialized for CSV exporter", { filePath: absPath });
+      (await import("../../services/langfuse")).langfuse.logWithTraceContext("Tracer is not initialized for CSV exporter", { filePath: absPath });
       throw new Error("Tracer is not initialized (observability critical error)");
     }
     const span = tracer.startSpan("graphRagCsvExporter.write", {
@@ -201,12 +202,12 @@ export const graphRagCsvExporter = createTool({
       const csvContent = context.edges.map(e => `${e.source},${e.target}`).join("\n");
       await fs.writeFile(absPath, csvContent, "utf8");
       logger.info("Successfully wrote CSV graph file", { filePath: absPath });
-      langfuse.logWithTraceContext("CSV graph file written", { filePath: absPath });
+      (await import("../../services/langfuse")).langfuse.logWithTraceContext("CSV graph file written", { filePath: absPath });
       span.setStatus({ code: 1 });
       return { success: true, filePath: absPath, traceId: span.spanContext().traceId, spanId: span.spanContext().spanId };
     } catch (err) {
       logger.error("Failed to write CSV graph file", { filePath: absPath, error: err });
-      langfuse.logWithTraceContext("CSV graph file write failed", { filePath: absPath, error: String(err) });
+      (await import("../../services/langfuse")).langfuse.logWithTraceContext("CSV graph file write failed", { filePath: absPath, error: String(err) });
       span.setStatus({ code: 2, message: String(err) });
       throw err;
     } finally {
@@ -227,7 +228,7 @@ export const graphRagDotExporter = createTool({
     const absPath = validateGraphRagFile(context.filePath, ".dot");
     if (!tracer) {
       logger.error("Tracer is not initialized for DOT exporter", { filePath: absPath });
-      langfuse.logWithTraceContext("Tracer is not initialized for DOT exporter", { filePath: absPath });
+      (await import("../../services/langfuse")).langfuse.logWithTraceContext("Tracer is not initialized for DOT exporter", { filePath: absPath });
       throw new Error("Tracer is not initialized (observability critical error)");
     }
     const span = tracer.startSpan("graphRagDotExporter.write", {
@@ -241,12 +242,12 @@ export const graphRagDotExporter = createTool({
       ].join("\n");
       await fs.writeFile(absPath, dotContent, "utf8");
       logger.info("Successfully wrote DOT graph file", { filePath: absPath });
-      langfuse.logWithTraceContext("DOT graph file written", { filePath: absPath });
+      (await import("../../services/langfuse")).langfuse.logWithTraceContext("DOT graph file written", { filePath: absPath });
       span.setStatus({ code: 1 });
       return { success: true, filePath: absPath, traceId: span.spanContext().traceId, spanId: span.spanContext().spanId };
     } catch (err) {
       logger.error("Failed to write DOT graph file", { filePath: absPath, error: err });
-      langfuse.logWithTraceContext("DOT graph file write failed", { filePath: absPath, error: String(err) });
+      (await import("../../services/langfuse")).langfuse.logWithTraceContext("DOT graph file write failed", { filePath: absPath, error: String(err) });
       span.setStatus({ code: 2, message: String(err) });
       throw err;
     } finally {
@@ -268,7 +269,7 @@ export const graphRagGexfExporter = createTool({
     const absPath = validateGraphRagFile(context.filePath, ".gexf");
     if (!tracer) {
       logger.error("Tracer is not initialized for GEXF exporter", { filePath: absPath });
-      langfuse.logWithTraceContext("Tracer is not initialized for GEXF exporter", { filePath: absPath });
+      (await import("../../services/langfuse")).langfuse.logWithTraceContext("Tracer is not initialized for GEXF exporter", { filePath: absPath });
       throw new Error("Tracer is not initialized (observability critical error)");
     }
     const span = tracer.startSpan("graphRagGexfExporter.write", {
@@ -278,12 +279,12 @@ export const graphRagGexfExporter = createTool({
       const gexfContent = `<?xml version="1.0" encoding="UTF-8"?>\n<gexf version="1.2">\n  <graph mode="static" defaultedgetype="directed">\n    <nodes>\n${context.nodes.map(n => `      <node id=\"${n.id}\"/>`).join("\n")}\n    </nodes>\n    <edges>\n${context.edges.map((e, i) => `      <edge id=\"${i}\" source=\"${e.source}\" target=\"${e.target}\"/>`).join("\n")}\n    </edges>\n  </graph>\n</gexf>`;
       await fs.writeFile(absPath, gexfContent, "utf8");
       logger.info("Successfully wrote GEXF graph file", { filePath: absPath });
-      langfuse.logWithTraceContext("GEXF graph file written", { filePath: absPath });
+      (await import("../../services/langfuse")).langfuse.logWithTraceContext("GEXF graph file written", { filePath: absPath });
       span.setStatus({ code: 1 });
       return { success: true, filePath: absPath, traceId: span.spanContext().traceId, spanId: span.spanContext().spanId };
     } catch (err) {
       logger.error("Failed to write GEXF graph file", { filePath: absPath, error: err });
-      langfuse.logWithTraceContext("GEXF graph file write failed", { filePath: absPath, error: String(err) });
+      (await import("../../services/langfuse")).langfuse.logWithTraceContext("GEXF graph file write failed", { filePath: absPath, error: String(err) });
       span.setStatus({ code: 2, message: String(err) });
       throw err;
     } finally {
@@ -305,7 +306,7 @@ export const graphRagGraphmlExporter = createTool({
     const absPath = validateGraphRagFile(context.filePath, ".graphml");
     if (!tracer) {
       logger.error("Tracer is not initialized for GraphML exporter", { filePath: absPath });
-      langfuse.logWithTraceContext("Tracer is not initialized for GraphML exporter", { filePath: absPath });
+      (await import("../../services/langfuse")).langfuse.logWithTraceContext("Tracer is not initialized for GraphML exporter", { filePath: absPath });
       throw new Error("Tracer is not initialized (observability critical error)");
     }
     const span = tracer.startSpan("graphRagGraphmlExporter.write", {
@@ -315,12 +316,12 @@ export const graphRagGraphmlExporter = createTool({
       const graphmlContent = `<?xml version="1.0" encoding="UTF-8"?>\n<graphml xmlns=\"http://graphml.graphdrawing.org/xmlns\">\n  <graph id=\"G\" edgedefault=\"directed\">\n${context.nodes.map(n => `    <node id=\"${n.id}\"/>`).join("\n")}\n${context.edges.map(e => `    <edge source=\"${e.source}\" target=\"${e.target}\"/>`).join("\n")}\n  </graph>\n</graphml>`;
       await fs.writeFile(absPath, graphmlContent, "utf8");
       logger.info("Successfully wrote GraphML graph file", { filePath: absPath });
-      langfuse.logWithTraceContext("GraphML graph file written", { filePath: absPath });
+      (await import("../../services/langfuse")).langfuse.logWithTraceContext("GraphML graph file written", { filePath: absPath });
       span.setStatus({ code: 1 });
       return { success: true, filePath: absPath, traceId: span.spanContext().traceId, spanId: span.spanContext().spanId };
     } catch (err) {
       logger.error("Failed to write GraphML graph file", { filePath: absPath, error: err });
-      langfuse.logWithTraceContext("GraphML graph file write failed", { filePath: absPath, error: String(err) });
+      (await import("../../services/langfuse")).langfuse.logWithTraceContext("GraphML graph file write failed", { filePath: absPath, error: String(err) });
       span.setStatus({ code: 2, message: String(err) });
       throw err;
     } finally {
@@ -342,7 +343,7 @@ export const graphRagJsonExporter = createTool({
     const absPath = validateGraphRagFile(context.filePath, ".json");
     if (!tracer) {
       logger.error("Tracer is not initialized for JSON exporter", { filePath: absPath });
-      langfuse.logWithTraceContext("Tracer is not initialized for JSON exporter", { filePath: absPath });
+      (await import("../../services/langfuse")).langfuse.logWithTraceContext("Tracer is not initialized for JSON exporter", { filePath: absPath });
       throw new Error("Tracer is not initialized (observability critical error)");
     }
     const span = tracer.startSpan("graphRagJsonExporter.write", {
@@ -352,12 +353,12 @@ export const graphRagJsonExporter = createTool({
       const jsonContent = JSON.stringify({ nodes: context.nodes, edges: context.edges }, null, 2);
       await fs.writeFile(absPath, jsonContent, "utf8");
       logger.info("Successfully wrote JSON graph file", { filePath: absPath });
-      langfuse.logWithTraceContext("JSON graph file written", { filePath: absPath });
+      (await import("../../services/langfuse")).langfuse.logWithTraceContext("JSON graph file written", { filePath: absPath });
       span.setStatus({ code: 1 });
       return { success: true, filePath: absPath, traceId: span.spanContext().traceId, spanId: span.spanContext().spanId };
     } catch (err) {
       logger.error("Failed to write JSON graph file", { filePath: absPath, error: err });
-      langfuse.logWithTraceContext("JSON graph file write failed", { filePath: absPath, error: String(err) });
+      (await import("../../services/langfuse")).langfuse.logWithTraceContext("JSON graph file write failed", { filePath: absPath, error: String(err) });
       span.setStatus({ code: 2, message: String(err) });
       throw err;
     } finally {

@@ -94,7 +94,7 @@ import { createMastraNotionTools, createAISDKNotionTools, createGenkitNotionTool
 import { puppeteerTool } from "./puppeteerTool";
 import { hyperAgentTool } from "./hyper-functionCalls";
 import { getTracer } from "../services/tracing";
-import fileLogger from "../database/fileLogger";
+
 import { langfuse } from "../services/langfuse";
 
 // === Export all tool modules (Consider if all are needed) ===
@@ -131,7 +131,6 @@ export * from "./hyper-functionCalls";
 
 // === Configure Logger ===
 const logger = createLogger({ name: "tool-initialization", level: "info" });
-const fallbackLogger = fileLogger;
 const tracer = getTracer();
 
 
