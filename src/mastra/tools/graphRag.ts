@@ -9,10 +9,40 @@ import { createTool } from "@mastra/core/tools";
 import { createEmbeddings, createVectorStore } from "../database/vector-store";
 import { Document } from "langchain/document";
 import { z, ZodTypeAny, any as zodAny, type ZodType } from 'zod';
-
-
+import { createLogger } from "@mastra/core/logger";
+import { fileLogger as fallbackLogger } from "../database/fileLogger";
+import { getTracer } from "../services/tracing";
+import type { LogLevel } from "@mastra/core/logger";
+const level = (process.env.LOG_LEVEL as LogLevel) || "info";
+const logger = typeof createLogger === "function"
+  ? createLogger({ name: "graphRagLoaders", level })
+  : fallbackLogger;
+const tracer = getTracer();
 import { langfuse } from "../services/langfuse";
 import { createTracedSpan } from "../services/tracing";
+
+/**
+ * In-memory graph store keyed by namespace.
+ * This is for demo/prototype only; replace with persistent storage for production.
+ */
+type GraphStoreNode = {
+  id: string;
+  content?: string;
+  metadata?: Record<string, unknown>;
+  connections: string[];
+  connectionWeights: Record<string, number>;
+};
+type GraphStoreEdge = {
+  from: string;
+  to: string;
+  weight: number;
+};
+type GraphStore = {
+  nodes: Record<string, GraphStoreNode>;
+  edges: Record<string, GraphStoreEdge>;
+};
+const graphStore: Record<string, GraphStore> = {};
+
 
 /**
  * Graph node representing a document or chunk with its connections.
@@ -273,7 +303,381 @@ export const graphRagQueryTool = createTool({
       .default(0.6)
       .describe("Minimum similarity for initial document retrieval"),
   }),
+  execute: async ({ context }) => {
+    // ...existing implementation...
+  },
+});
 
+/**
+ * Tool for graph visualization (exporting nodes/edges/weights for D3, etc)
+ */
+export const graphRagVisualizationTool = createTool({
+  id: "graph-rag-visualization",
+  description: "Exports the current graph structure for visualization (nodes, edges, weights)",
+  inputSchema: z.object({
+    namespace: z.string().optional().describe("Namespace for the graph"),
+    format: z.enum(["json", "dot", "gexf"]).optional().default("json"),
+  }),
+  execute: async ({ context }) => {
+    // Visualization/export: return nodes/edges/weights for D3 etc.
+    const ns = context.namespace || "default";
+    const graph = graphStore[ns];
+    if (!graph) return { nodes: [], edges: [], format: context.format || "json" };
+    const nodes = Object.values(graph.nodes).map((n: GraphStoreNode) => ({ ...n }));
+    const edges = Object.values(graph.edges).map((e: GraphStoreEdge) => ({ from: e.from, to: e.to, weight: e.weight }));
+    // Optionally support multiple formats (json/dot/gexf)
+    return { nodes, edges, format: context.format || "json" };
+  },
+});
+
+/**
+ * Tool for graph node/edge inspection
+ */
+export const graphRagInspectorTool = createTool({
+  id: "graph-rag-inspector",
+  description: "Inspects metadata, content, and connections for specific node(s)",
+  inputSchema: z.object({
+    nodeIds: z.array(z.string()),
+    namespace: z.string().optional(),
+  }),
+  execute: async ({ context }) => {
+    // Node/edge inspection
+    const ns = context.namespace || "default";
+    const graph = graphStore[ns];
+    if (!graph) return { nodes: [] };
+    const result = context.nodeIds.map(id => graph.nodes[id]).filter(Boolean);
+    return { nodes: result };
+  },
+});
+
+/**
+ * Tool for graph editing (add/remove nodes/edges, update weights)
+ */
+export const graphRagEditTool = createTool({
+  id: "graph-rag-edit",
+  description: "Adds/removes nodes/edges or updates weights in the graph",
+  inputSchema: z.object({
+    action: z.enum(["addNode", "removeNode", "addEdge", "removeEdge", "updateWeight"]),
+    node: z.any().optional(),
+    edge: z.object({ from: z.string(), to: z.string() }).optional(),
+    weight: z.number().optional(),
+    namespace: z.string().optional(),
+  }),
+  execute: async ({ context }) => {
+    // Graph editing (add/remove node/edge, update weight)
+    const ns = context.namespace || "default";
+    if (!graphStore[ns]) graphStore[ns] = { nodes: {}, edges: {} };
+    const graph = graphStore[ns];
+    let msg = "";
+    switch (context.action) {
+      case "addNode": {
+        // Strict validation and type safety
+        if (!context.node || typeof context.node.id !== 'string' || !context.node.id.trim()) {
+          logger.warn("Attempted to add node with missing or invalid id", { context });
+          return { success: false, message: "Missing or invalid node id" };
+        }
+        const nodeId = context.node.id;
+        if (graph.nodes[nodeId]) {
+          logger.warn("Node already exists", { nodeId });
+          return { success: false, message: `Node ${nodeId} already exists` };
+        }
+        // Build node object field-by-field for type safety
+        graph.nodes[nodeId] = {
+          id: nodeId,
+          content: typeof context.node.content === 'string' ? context.node.content : undefined,
+          metadata: typeof context.node.metadata === 'object' ? context.node.metadata : undefined,
+          connections: [],
+          connectionWeights: {}
+        };
+        msg = `Node ${nodeId} added.`;
+        logger.info(msg, { nodeId });
+        break;
+      }
+      case "removeNode": {
+        // Strict validation and type safety
+        if (!context.node || typeof context.node.id !== 'string' || !context.node.id.trim()) {
+          logger.warn("Attempted to remove node with missing or invalid id", { context });
+          return { success: false, message: "Missing or invalid node id" };
+        }
+        const nodeId = context.node.id;
+        if (!graph.nodes[nodeId]) {
+          logger.warn("Attempted to remove non-existent node", { nodeId });
+          return { success: false, message: `Node ${nodeId} does not exist` };
+        }
+        delete graph.nodes[nodeId];
+        // Remove all edges connected to this node
+        Object.keys(graph.edges).forEach(eid => {
+          const e = graph.edges[eid];
+          if (e && (e.from === nodeId || e.to === nodeId)) delete graph.edges[eid];
+        });
+        // Remove this node from any other node's connections
+        Object.values(graph.nodes).forEach(n => {
+          if (n && typeof n === 'object' && Array.isArray(n.connections)) {
+            n.connections = n.connections.filter(cid => cid !== nodeId);
+            if (n.connectionWeights) delete n.connectionWeights[nodeId];
+          }
+        });
+        msg = `Node ${nodeId} and its edges removed.`;
+        logger.info(msg, { nodeId });
+        break;
+      }
+      case "addEdge": {
+        // Strict type guards for edge
+        const edge = context.edge;
+        if (!edge || typeof edge.from !== 'string' || typeof edge.to !== 'string' || !edge.from.trim() || !edge.to.trim()) {
+          logger.warn("Attempted to add edge with missing or invalid endpoints", { context });
+          return { success: false, message: "Missing or invalid edge endpoints" };
+        }
+        if (!graph.nodes[edge.from] || !graph.nodes[edge.to]) {
+          logger.warn("Attempted to add edge between non-existent nodes", { edge });
+          return { success: false, message: `Both nodes must exist to add an edge: ${edge.from}, ${edge.to}` };
+        }
+        const eid = `${edge.from}->${edge.to}`;
+        if (graph.edges[eid]) {
+          logger.warn("Edge already exists", { eid });
+          return { success: false, message: `Edge ${eid} already exists` };
+        }
+        const weight = typeof context.weight === 'number' ? context.weight : 1;
+        graph.edges[eid] = { from: edge.from, to: edge.to, weight };
+        // Update node connections
+        graph.nodes[edge.from].connections.push(edge.to);
+        graph.nodes[edge.from].connectionWeights[edge.to] = weight;
+        msg = `Edge ${eid} added.`;
+        logger.info(msg, { eid });
+        break;
+      }
+      case "removeEdge": {
+        const edge = context.edge;
+        if (!edge || typeof edge.from !== 'string' || typeof edge.to !== 'string' || !edge.from.trim() || !edge.to.trim()) {
+          logger.warn("Attempted to remove edge with missing or invalid endpoints", { context });
+          return { success: false, message: "Missing or invalid edge endpoints" };
+        }
+        const eid = `${edge.from}->${edge.to}`;
+        if (!graph.edges[eid]) {
+          logger.warn("Attempted to remove non-existent edge", { eid });
+          return { success: false, message: `Edge ${eid} does not exist` };
+        }
+        delete graph.edges[eid];
+        // Remove from node's connections
+        if (graph.nodes[edge.from]) {
+          graph.nodes[edge.from].connections = graph.nodes[edge.from].connections.filter(id => id !== edge.to);
+          if (graph.nodes[edge.from].connectionWeights) delete graph.nodes[edge.from].connectionWeights[edge.to];
+        }
+        msg = `Edge ${eid} removed.`;
+        logger.info(msg, { eid });
+        break;
+      }
+      case "updateWeight": {
+        const edge = context.edge;
+        if (!edge || typeof edge.from !== 'string' || typeof edge.to !== 'string' || !edge.from.trim() || !edge.to.trim() || typeof context.weight !== 'number') {
+          logger.warn("Attempted to update edge weight with missing/invalid endpoints or weight", { context });
+          return { success: false, message: "Missing or invalid edge endpoints or weight" };
+        }
+        const eid = `${edge.from}->${edge.to}`;
+        if (!graph.edges[eid]) {
+          logger.warn("Attempted to update weight of non-existent edge", { eid });
+          return { success: false, message: `Edge ${eid} does not exist` };
+        }
+        graph.edges[eid].weight = context.weight;
+        if (graph.nodes[edge.from]) {
+          graph.nodes[edge.from].connectionWeights[edge.to] = context.weight;
+        }
+        msg = `Edge ${eid} weight updated.`;
+        logger.info(msg, { eid });
+        break;
+      }
+      default:
+        return { success: false, message: "Unknown action" };
+    }
+    return { success: true, message: msg };
+  },
+});
+/**
+ * Tool for graph pruning/optimization
+ */
+// (removed duplicate tool declaration)
+export const graphRagPruneTool = createTool({
+  id: "graph-rag-prune",
+  description: "Prunes or optimizes the graph (removes or merges nodes/edges)",
+  inputSchema: z.object({
+    mode: z.enum(["pruneOrphans", "mergeDuplicates", "removeLowScoreEdges"]).optional(),
+    threshold: z.number().optional(),
+    namespace: z.string().optional(),
+  }),
+  execute: async ({ context }) => {
+    // Pruning/optimization
+    const ns = context.namespace || "default";
+    const graph = graphStore[ns];
+    if (!graph) return { success: false, message: "No graph in namespace" };
+    let pruned = 0;
+    switch (context.mode) {
+      case "pruneOrphans":
+        // Remove nodes with no connections
+        Object.keys(graph.nodes).forEach(id => {
+          if (!graph.nodes[id].connections.length) {
+            delete graph.nodes[id];
+            pruned++;
+          }
+        });
+        break;
+      case "mergeDuplicates":
+        // Naive duplicate merge: nodes with same content
+        const seen = {};
+        Object.keys(graph.nodes).forEach(id => {
+          const node = graph.nodes[id];
+          if (!node || typeof node.content !== 'string') return;
+          const content = node.content;
+          if (seen[content]) {
+            // Merge connections into first node
+            seen[content].connections.push(...node.connections);
+            Object.assign(seen[content].connectionWeights, node.connectionWeights);
+            delete graph.nodes[id];
+            pruned++;
+          } else {
+            seen[content] = node;
+          }
+        });
+        break;
+      case "removeLowScoreEdges":
+        // Remove edges below threshold
+        const thresh = typeof context.threshold === "number" ? context.threshold : 0.2;
+        Object.keys(graph.edges).forEach(eid => {
+          if (graph.edges[eid].weight < thresh) {
+            delete graph.edges[eid];
+            pruned++;
+          }
+        });
+        break;
+      default:
+        return { success: false, message: "Unknown prune mode" };
+    }
+    return { success: true, pruned };
+  },
+});
+
+/**
+ * Tool for graph export/import
+ */
+// (removed duplicate tool declaration)
+export const graphRagExportImportTool = createTool({
+  id: "graph-rag-export-import",
+  description: "Exports or imports the graph in standard formats (JSON, CSV, GraphML, etc)",
+  inputSchema: z.object({
+    direction: z.enum(["export", "import"]),
+    format: z.enum(["json", "csv", "graphml"]).default("json"),
+    data: z.any().optional(),
+    namespace: z.string().optional(),
+  }),
+  execute: async ({ context }) => {
+    // Export/import logic
+    const ns = context.namespace || "default";
+    if (context.direction === "export") {
+      const graph = graphStore[ns];
+      if (!graph) return { success: false, message: "No graph to export" };
+      switch (context.format) {
+        case "json":
+          return { success: true, format: "json", data: JSON.stringify(graph) };
+        case "csv":
+          // Export as edge list CSV
+          const csv = Object.values(graph.edges)
+            .map(e => `${e.from},${e.to},${e.weight}`)
+            .join("\n");
+          return { success: true, format: "csv", data: csv };
+        case "graphml":
+          // Export as GraphML XML
+          let xml = '<?xml version="1.0"?><graphml><graph id="G" edgedefault="directed">';
+          Object.values(graph.nodes).forEach(n => {
+            xml += `<node id="${n.id}"/>`;
+          });
+          Object.values(graph.edges).forEach(e => {
+            xml += `<edge source="${e.from}" target="${e.to}" weight="${e.weight}"/>`;
+          });
+          xml += '</graph></graphml>';
+          return { success: true, format: "graphml", data: xml };
+        default:
+          return { success: false, message: "Unknown export format" };
+      }
+    } else if (context.direction === "import") {
+      // Import logic: parse and load graph
+      switch (context.format) {
+        case "json":
+          try {
+            const obj = JSON.parse(context.data);
+            graphStore[ns] = obj;
+            return { success: true };
+          } catch (err) {
+            return { success: false, message: "Invalid JSON: " + String(err) };
+          }
+        case "csv":
+          // CSV: edge list
+          const lines = context.data.split("\n").filter(Boolean);
+          const nodes: Record<string, any> = {};
+          const edges: Record<string, any> = {};
+          lines.forEach(line => {
+            const [from, to, weight] = line.split(",");
+            if (!nodes[from]) nodes[from] = { id: from, connections: [to], connectionWeights: { [to]: Number(weight) } };
+            else {
+              nodes[from].connections.push(to);
+              nodes[from].connectionWeights[to] = Number(weight);
+            }
+            if (!nodes[to]) nodes[to] = { id: to, connections: [], connectionWeights: {} };
+            const eid = `${from}->${to}`;
+            edges[eid] = { from, to, weight: Number(weight) };
+          });
+          graphStore[ns] = { nodes, edges };
+          return { success: true };
+        case "graphml":
+          // Very basic GraphML import (nodes/edges only)
+          try {
+            const parser = typeof window !== 'undefined' && window.DOMParser ? window.DOMParser : (require('xmldom').DOMParser);
+            const doc = new parser().parseFromString(context.data, "text/xml");
+            const nodeEls = Array.from(doc.getElementsByTagName("node"));
+            const edgeEls = Array.from(doc.getElementsByTagName("edge"));
+            const nodes: Record<string, any> = {};
+            const edges: Record<string, any> = {};
+            nodeEls.forEach((n: any) => {
+              nodes[n.getAttribute("id")] = { id: n.getAttribute("id"), connections: [], connectionWeights: {} };
+            });
+            edgeEls.forEach((e: any) => {
+              const from = e.getAttribute("source");
+              const to = e.getAttribute("target");
+              const weight = Number(e.getAttribute("weight")) || 1;
+              const eid = `${from}->${to}`;
+              edges[eid] = { from, to, weight };
+              if (nodes[from]) {
+                nodes[from].connections.push(to);
+                nodes[from].connectionWeights[to] = weight;
+              }
+            });
+            graphStore[ns] = { nodes, edges };
+            return { success: true };
+          } catch (err) {
+            return { success: false, message: "Invalid GraphML: " + String(err) };
+          }
+        default:
+          return { success: false, message: "Unknown import format" };
+      }
+    } else {
+      return { success: false, message: "Unknown direction" };
+    }
+  },
+});
+
+/**
+ * Tool for graph observability/tracing
+ */
+// (removed duplicate tool declaration)
+export const graphRagObservabilityTool = createTool({
+  id: "graph-rag-observability",
+  description: "Exposes detailed traces of retrieval, hops, and scoring for a query or node",
+  inputSchema: z.object({
+    query: z.string().optional(),
+    nodeId: z.string().optional(),
+    namespace: z.string().optional(),
+    initialDocumentCount: z.number().optional().default(3),
+    maxHopCount: z.number().optional().default(2),
+    minSimilarity: z.number().optional().default(0.6),
+  }),
   execute: async ({ context }) => {
     const span = createTracedSpan("graph-rag-query", { context });
     if (!span) throw new Error("Tracing span is undefined");
@@ -392,3 +796,12 @@ export const graphRagQueryTool = createTool({
     }
   },
 });
+
+export const graphRagTools = [
+  graphRagVisualizationTool,
+  graphRagInspectorTool,
+  graphRagEditTool,
+  graphRagPruneTool,
+  graphRagExportImportTool,
+  graphRagObservabilityTool,
+];

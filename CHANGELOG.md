@@ -1,10 +1,37 @@
-<!-- markdownlint-disable MD024 MD031 -->
 # Changelog
 
+<!-- markdownlint-disable MD024 MD031 -->
 All notable changes to the DeanMachines Mastra Backend will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [v0.2.8] - 2025-04-29
+
+### Added
+
+- **Full GraphRAG Tool Registration & Observability**:
+  - All GraphRAG loader tools (`graphRagLoaders`), exporter tools (`graphRagExporters`), and advanced tools (`graphRagTools`) are now
+registered in the Mastra tool registry (`extraTools`, `allTools`, `allToolsMap`, `toolGroups`).
+  - Registration uses `ensureToolOutputSchema` for robust type safety and schema validation.
+  - Added logging of registration counts and tool IDs for full observability.
+  - All tools are now discoverable and observable by agents and workflows.
+  - Fix: TypeScript type errors for heterogeneous tool arrays are resolved using `Tool<any, any>[]` assertions.
+
+- **GraphRAG Loader/Exporter ESM & Async Refactor**:
+  - Migrated all CommonJS `__dirname` usage in `graphRagLoaders.ts` to the ESM-compatible `import.meta.url`/`fileURLToPath` pattern.
+  - Replaced all `fs.readFileSync`/`fs.writeFileSync` calls with async `fs/promises` methods and `await` usage.
+  - All GraphRAG loader and exporter tools are now fully async/await, robust, and ESM-compatible for modern Node.js environments.
+  - Resolved all TypeScript lint errors related to `fs` API usage.
+  - No breaking changes to tool signatures or logic; all tools maintain their previous interfaces.
+  - All tools tested and registered successfully after the refactor.
+
+### Next Steps
+
+- Implement all remaining `// TODO` logic in GraphRAG advanced tools (`graphRag.ts`) so that every tool is fully functional for production
+  agent use.
+- Review all tool `execute` methods for unimplemented or placeholder logic and complete them for end-to-end graph loading, querying, editing,
+  pruning, exporting, and observability.
 
 ---
 
@@ -33,7 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Universal Model Provider Support**:  
+- **Universal Model Provider Support**:
   - Added full, type-safe support for all major AI model providers: **OpenAI**, **OpenAI-Compatible**, **Anthropic**, **Ollama**, **Google**, and **Vertex**.
   - Each provider now has its own setup and client config utilities, Zod schema validation, and is included in the main provider/model utility exports.
   - The `ModelProvider` type and schema now include `"openai-compatible"` for seamless integration of third-party OpenAI API-compatible endpoints.

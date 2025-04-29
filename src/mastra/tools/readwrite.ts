@@ -475,6 +475,23 @@ export const writeKnowledgeFileTool = createTool({
         throw new Error("Access denied: Can only write to knowledge folder");
       }
 
+      // Always ensure the parent directory exists before writing
+      try {
+        await ensureDir(dirname(knowledgePath));
+      } catch (dirErr) {
+        return {
+          metadata: {
+            path: knowledgePath,
+            size: 0,
+            extension: extname(knowledgePath),
+            encoding: executionContext.context.encoding,
+            mode: executionContext.context.mode,
+          },
+          success: false,
+          error: `Failed to create parent directory: ${dirErr instanceof Error ? dirErr.message : String(dirErr)}`,
+        };
+      }
+
       // Ensure the execute method exists before calling it
       if (!writeToFileTool.execute) {
         throw new Error("writeToFileTool.execute is not defined");

@@ -64,7 +64,8 @@ import { createMastraArxivTools } from "./arxiv"; // Import Mastra helper
 import { createMastraWikipediaTools } from "./wikibase"; // Import Mastra helper
 import { createMastraAISDKTools } from "./ai-sdk"; // Import Mastra helper
 import { createMastraE2BTools } from "./e2b"; // Import Mastra helper
-import { createGraphRagTool, graphRagQueryTool } from "./graphRag"; // These are Mastra core tools
+import { createGraphRagTool, graphRagQueryTool, graphRagTools } from "./graphRag"; // Import advanced GraphRAG tools array
+import { graphRagLoaders, graphRagExporters } from "./Loaders/graphRagLoaders"; // Import loader/exporter arrays
 import { createMastraGitHubTools } from "./github"; // Import Mastra helper
 import { createMastraMcpTools } from "./mcptool";
 import { github } from "../integrations"; // Used for custom getMainBranchRef
@@ -92,6 +93,9 @@ import { createMastraRedditTools, SubredditPostSchema } from "./reddit"; // Impo
 import { createMastraNotionTools, createAISDKNotionTools, createGenkitNotionTools } from './notion-client'; // Import Notion tools
 import { puppeteerTool } from "./puppeteerTool";
 import { hyperAgentTool } from "./hyper-functionCalls";
+import { getTracer } from "../services/tracing";
+import fileLogger from "../database/fileLogger";
+import { langfuse } from "../services/langfuse";
 
 // === Export all tool modules (Consider if all are needed) ===
 export * from "./e2b";
@@ -102,6 +106,7 @@ export * from "./rlFeedback";
 export * from "./rlReward";
 export * from "./github";
 export * from "./graphRag";
+export * from "./Loaders/graphRagLoaders";
 export { CalculatorClient, createMastraCalculatorTools, createAISDKCalculatorTools, createGenkitCalculatorTools } from "./calculator";
 export { createMastraNotionTools, createAISDKNotionTools, createGenkitNotionTools } from './notion-client';
 export * from "./arxiv";
@@ -126,6 +131,10 @@ export * from "./hyper-functionCalls";
 
 // === Configure Logger ===
 const logger = createLogger({ name: "tool-initialization", level: "info" });
+const fallbackLogger = fileLogger;
+const tracer = getTracer();
+
+
 
 
 
@@ -426,28 +435,52 @@ try {
   logger.error("Failed to initialize Wikipedia tools:", { error });
 }
 
-// --- GraphRag Tools (Mastra core tools, need schema check) ---
+// --- GraphRag Tools (all loaders, exporters, and advanced tools) ---
 try {
-  // Add the main GraphRag tools if they are valid Tool objects
-  if (createGraphRagTool && typeof createGraphRagTool === 'object' && 'id' in createGraphRagTool) {
-    extraTools.push(ensureToolOutputSchema(createGraphRagTool as Tool<any, any>)); // Schema check
-  } else { logger.warn("createGraphRagTool is not a valid Tool object."); }
+  // Helper to prevent duplicate IDs
+  const existingGraphRagIds = new Set(extraTools.map(t => t.id));
+  let registeredCount = 0;
 
-  if (graphRagQueryTool && typeof graphRagQueryTool === 'object' && 'id' in graphRagQueryTool) {
-    extraTools.push(ensureToolOutputSchema(graphRagQueryTool as Tool<any, any>)); // Schema check
-  } else { logger.warn("graphRagQueryTool is not a valid Tool object."); }
-
-  // Create and add the 'graph-rag' alias
-  if (createGraphRagTool && typeof createGraphRagTool === 'object' && 'id' in createGraphRagTool) {
-    const baseTool = createGraphRagTool as Tool<any, any>;
-    const graphRagAliasTool: Tool<any, any> = { ...baseTool, id: "graph-rag" };
-    extraTools.push(ensureToolOutputSchema(graphRagAliasTool)); // Schema check
-    logger.info("Added GraphRag tools and 'graph-rag' alias.");
-  } else {
-    logger.warn("Could not create 'graph-rag' alias: createGraphRagTool is not valid.");
+  // Register all loader tools
+  for (const tool of graphRagLoaders as Tool<any, any>[]) {
+    if (!existingGraphRagIds.has(tool.id)) {
+      extraTools.push(ensureToolOutputSchema(tool));
+      existingGraphRagIds.add(tool.id);
+      registeredCount++;
+    }
   }
+
+  // Register all exporter tools
+  for (const tool of graphRagExporters as Tool<any, any>[]) {
+    if (!existingGraphRagIds.has(tool.id)) {
+      extraTools.push(ensureToolOutputSchema(tool));
+      existingGraphRagIds.add(tool.id);
+      registeredCount++;
+    }
+  }
+
+  // Register all advanced GraphRAG tools
+  for (const tool of graphRagTools as Tool<any, any>[]) {
+    if (!existingGraphRagIds.has(tool.id)) {
+      extraTools.push(ensureToolOutputSchema(tool));
+      existingGraphRagIds.add(tool.id);
+      registeredCount++;
+    }
+  }
+
+  // Also ensure createGraphRagTool, graphRagQueryTool, and 'graph-rag' alias are registered
+  for (const tool of [createGraphRagTool, graphRagQueryTool, { ...createGraphRagTool, id: "graph-rag" }]) {
+    if (tool && typeof tool === 'object' && 'id' in tool && !existingGraphRagIds.has(tool.id)) {
+      extraTools.push(ensureToolOutputSchema(tool as Tool<any, any>));
+      existingGraphRagIds.add(tool.id);
+      registeredCount++;
+    }
+  }
+
+  logger.info(`Registered ${registeredCount} GraphRAG loader, exporter, and advanced tools.`);
+  logger.info(`GraphRAG tool IDs: ${Array.from(existingGraphRagIds).filter(id => id.startsWith('graph-rag') || id.startsWith('graphRag')).join(', ')}`);
 } catch (error) {
-  logger.error("Failed to initialize GraphRag tools:", { error });
+  logger.error("Failed to initialize GraphRAG tools:", { error });
 }
 
 // --- Polygon Tools (using Mastra helper) ---
