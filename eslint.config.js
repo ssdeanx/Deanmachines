@@ -11,4 +11,5 @@ export const plugins = [
 export const extendRules = [];export const rules = {};
 export const ignorePatterns = [
   '.mastra/',
+  'node_modules/',
 ];

@@ -19,21 +19,44 @@ import * as MastraTypes from '../types';
 import { AgentConfigError } from '../types';
 import { threadManager } from '../utils/thread-manager';
 import { createVoice } from '../voice';
+import { initThreadManager } from '../database';
 import {
   BaseAgentConfig,
   createModelInstance,
 } from './config';
-
+import { z, ZodTypeAny, any as zodAny, type ZodType } from 'zod';
+// Type guard for tools (global scope)
+function isExecutableTool(tool: any): tool is { id: string; execute: (...args: any[]) => any } {
+  return tool && typeof tool.execute === 'function' && typeof tool.id === 'string';
+}
 
 const logger = createLogger({ name: "agent-initialization", level: "debug" });// Configure logger for agent initialization
 
+
+import {
+  createCounter,
+  createHistogram,
+  createTracedSpan,
+  flushTracing,
+} from '../services/tracing';
+
+// Metrics (module scope, but only incremented at runtime)
+const agentRunCounter = createCounter('agent.run.count', 'Agent runs');
+const agentErrorCounter = createCounter('agent.error.count', 'Agent errors');
+const toolExecCounter = createCounter('tool.execute.count', 'Tool executions');
+const memoryOpCounter = createCounter('memory.op.count', 'Memory operations');
+const agentLatencyHistogram = createHistogram('agent.run.latency', 'Agent run latency (ms)');
+
+process.on('SIGTERM', async () => {
+  await flushTracing();
+  process.exit(0);
+});
 
 // Configure LangSmith tracing once at startup
 const langsmithClient = configureLangSmithTracing();
 if (langsmithClient) {
   logger.info("LangSmith tracing enabled for Mastra agents");
 }
-
 
 
 // Extend Agent with evaluation methods
@@ -67,16 +90,17 @@ export function createAgentFromConfig({
   // Trace agent creation start, robust and context-enriched
   try {
     // Attach OpenTelemetry traceId if available
-    let traceId: string | undefined;
+    let traceId: string = '';
     try {
       const currentSpan = (globalThis as any).trace?.getSpan?.((globalThis as any).context?.active?.());
-      traceId = currentSpan?.spanContext().traceId;
+      const detected = currentSpan?.spanContext().traceId;
+      traceId = detected ?? '';
     } catch { }
     langfuse.createTrace('agent.create', {
       metadata: {
         agentId: config.id,
         toolCount: config.toolIds.length,
-        ...(traceId && { traceId }),
+        traceId,
         ...(config.usage_details && { usage_details: config.usage_details }),
         ...(config.cost_details && { cost_details: config.cost_details })
       }
@@ -125,11 +149,11 @@ export function createAgentFromConfig({
     logger.info(` -> Including voice configuration: ${config.voiceConfig.provider}`);
   }
 
+  let agent: any;
   try {
     // Optionally record an agent‐creation run
     // import createLangSmithRun above if you want to track runs
     // await createLangSmithRun(`agent-create:${config.id}`, ["agent-init"]);
-
     // Create model instance
     const model = createModelInstance(config.modelConfig);
 
@@ -152,7 +176,7 @@ export function createAgentFromConfig({
     // --- End Voice Instance Creation ---
 
     // Create the Agent instance
-    const agent: any = new Agent({
+    agent = new Agent({
       model,
       memory,
       name: config.name,
@@ -164,36 +188,6 @@ export function createAgentFromConfig({
       ...(responseHook ? { onResponse: responseHook } : {}),
       ...(onError ? { onError } : {}),
     });
-
-    // Attach evaluation methods
-    const evalToolList = Object.values(evalTools) as any[];
-    agent.evals = async (inputs: EvalInputs = {}) => {
-      const results: EvalOutputs = {};
-      for (const tool of evalToolList) {
-        const fn = tool.execute;
-        if (typeof fn !== "function") continue;
-        try {
-          const out = await fn({ context: inputs } as any);
-          results[tool.id] = out;
-        } catch (err: any) {
-          results[tool.id] = { success: false, error: err instanceof Error ? err.message : String(err) };
-        }
-      }
-      return results;
-    };
-    agent.liveEvals = async function* (inputs: EvalInputs = {}) {
-      for (const tool of evalToolList) {
-        const fn = tool.execute;
-        if (typeof fn !== "function") continue;
-        try {
-          const out = await fn({ context: inputs } as any);
-          yield { toolId: tool.id, ...(out as object) };
-        } catch (err: any) {
-          yield { toolId: tool.id, success: false, error: err instanceof Error ? err.message : String(err) };
-        }
-      }
-    };
-    return agent as ExtendedAgent;
   } catch (error) {
     // Catch errors during Agent instantiation as well
     const errorMsg = `Failed to create agent ${config.id}: ${error instanceof Error ? error.message : String(error)}`;
@@ -202,6 +196,68 @@ export function createAgentFromConfig({
     if (error instanceof AgentConfigError) throw error;
     throw new AgentConfigError(errorMsg);
   }
+
+  // --- Agent.run override (wrap generate) ---
+  // Use run if implemented, otherwise fallback to generate
+  const originalRun = typeof agent.run === 'function'
+    ? agent.run.bind(agent)
+    : agent.generate.bind(agent);
+
+  agent.run = async (input: any, options: Record<string, any> = {}) => {
+    await initThreadManager; // ensure memory/threadManager is ready
+    const agentId = agent.id ?? config.id;
+    // Metrics
+    agentRunCounter.add(1, { agentId });
+    const start = Date.now();
+    // Start traced span
+    const span = createTracedSpan('agent.run', { attributes: { agentId } });
+    try {
+      const result = await originalRun(input, options);
+      agentLatencyHistogram.record(Date.now() - start, { agentId });
+      langfuse.logWithTraceContext('agent.run.success', { output: result });
+      return result;
+    } catch (err) {
+      agentErrorCounter.add(1, { agentId });
+      langfuse.logWithTraceContext('agent.run.error', { error: String(err) });
+      throw err;
+    } finally {
+      if (span) span.end();
+    }
+  };
+
+  // Extend agent with evals and liveEvals methods
+  agent.evals = async (inputs: EvalInputs = {}) => {
+    // TODO: Zod guard: validate inputs with EvalInputsSchema.parse(inputs);
+    const evalToolList = Object.values(agent.tools).filter(isExecutableTool).filter(tool => tool.id.endsWith('-eval'));
+    const results: Record<string, any> = {};
+    for (const tool of evalToolList) {
+      const fn = tool.execute;
+      if (typeof fn !== "function") continue;
+      try {
+        const out = await fn({ context: inputs } as any);
+        results[tool.id] = out;
+      } catch (err: any) {
+        results[tool.id] = { success: false, error: err instanceof Error ? err.message : String(err) };
+      }
+    }
+    return results;
+  };
+  agent.liveEvals = async function* (inputs: EvalInputs = {}) {
+    // TODO: Zod guard: validate inputs with EvalInputsSchema.parse(inputs);
+    const evalToolList = Object.values(agent.tools).filter(isExecutableTool).filter(tool => tool.id.endsWith('-eval'));
+    for (const tool of evalToolList) {
+      const fn = tool.execute;
+      if (typeof fn !== "function") continue;
+      try {
+        const out = await fn({ context: inputs } as any);
+        yield { toolId: tool.id, ...(out as object) };
+      } catch (err: any) {
+        yield { toolId: tool.id, success: false, error: err instanceof Error ? err.message : String(err) };
+      }
+    }
+  };
+
+  return agent as ExtendedAgent;
 }
 
 /**
@@ -219,15 +275,16 @@ export async function getOrCreateAgentThread(
 ): Promise<MastraTypes.ThreadInfo> {
   // Trace agent thread retrieval/creation, robust and context-enriched
   try {
-    let traceId: string | undefined;
+    let traceId: string = '';
     try {
       const currentSpan = (globalThis as any).trace?.getSpan?.((globalThis as any).context?.active?.());
-      traceId = currentSpan?.spanContext().traceId;
+      const detected = currentSpan?.spanContext().traceId;
+      traceId = detected ?? '';
     } catch { }
     langfuse.createTrace('agent.getOrCreateThread', {
       metadata: {
         resourceId,
-        ...(traceId ? { traceId } : {}),
+        traceId,
         ...(metadata?.usage_details ? { usage_details: metadata.usage_details } : {}),
         ...(metadata?.cost_details ? { cost_details: metadata.cost_details } : {})
       }

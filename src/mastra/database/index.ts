@@ -11,8 +11,9 @@ import type { MastraStorage, MastraVector } from '@mastra/core';
 import { configureLangSmithTracing } from '../services/langsmith';
 import { createLogger } from '@mastra/core/logger';
 import { ThreadManager, threadManager } from '../utils/thread-manager';
+import type { ThreadInfo } from '../types';
 import { langfuse } from '../services/langfuse'; // Langfuse integration
-
+import { createTracedSpan, createCounter, createHistogram } from '../services/tracing';
 // Define the memory configuration type
 export interface MemoryConfig {
   lastMessages: number;

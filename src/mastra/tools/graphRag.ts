@@ -6,38 +6,39 @@
  */
 
 import { createTool } from "@mastra/core/tools";
-import { z } from "zod";
-import { Pinecone } from "@pinecone-database/pinecone";
-import { PineconeStore } from "@langchain/pinecone";
-import { GoogleGenerativeAIEmbeddings } from "@langchain/google-genai";
+import { createEmbeddings, createVectorStore } from "../database/vector-store";
 import { Document } from "langchain/document";
-import { createEmbeddings } from "../database/vector-store";
-import { createLangSmithRun, trackFeedback } from "../services/langsmith";
-import { createLangChainModel } from "../services/langchain";
-import { env } from "process";
-// Import Langfuse service for observability.
+import { z, ZodTypeAny, any as zodAny, type ZodType } from 'zod';
+
+
 import { langfuse } from "../services/langfuse";
+import { createTracedSpan } from "../services/tracing";
 
 /**
  * Graph node representing a document or chunk with its connections.
  */
-export interface GraphNode {
-  /** Unique identifier for the node */
-  id: string;
-  /** Document content */
-  content: string;
-  /** Metadata about the document */
-  metadata: Record<string, unknown>;
-  /** IDs of connected nodes */
-  connections: string[];
-  /** Connection weights/strengths (0-1) */
-  connectionWeights: Record<string, number>;
+export const GraphNodeSchema = z.object({
+  id: z.string(),
+  content: z.string(),
+  metadata: z.record(z.unknown()),
+  connections: z.array(z.string()),
+  connectionWeights: z.record(z.number().min(0).max(1)),
+});
+export type GraphNode = z.infer<typeof GraphNodeSchema>;
+
+export function isGraphNode(obj: unknown): obj is GraphNode {
+  return GraphNodeSchema.safeParse(obj).success;
 }
 
-/**
- * GraphDocument augments a LangChain Document with GraphNode metadata.
- */
-export type GraphDocument = Document & { metadata: GraphNode };
+export const GraphDocumentSchema = z.object({
+  pageContent: z.string(),
+  metadata: GraphNodeSchema,
+});
+export type GraphDocument = z.infer<typeof GraphDocumentSchema>;
+
+export function isGraphDocument(obj: unknown): obj is GraphDocument {
+  return GraphDocumentSchema.safeParse(obj).success;
+}
 
 /**
  * Creates graph relationships between documents based on semantic similarity.
@@ -48,31 +49,50 @@ export type GraphDocument = Document & { metadata: GraphNode };
  * @returns Documents enriched with graph relationship metadata.
  * @throws {Error} If vector dimensions mismatch.
  */
+
+function assertGraphNode(obj: unknown, msg?: string): asserts obj is GraphNode {
+  if (!isGraphNode(obj)) throw new Error(msg || "Invalid GraphNode");
+}
+
+function assertGraphDocument(obj: unknown, msg?: string): asserts obj is GraphDocument {
+  if (!isGraphDocument(obj)) throw new Error(msg || "Invalid GraphDocument");
+}
+
 async function createGraphRelationships(
   documents: Document[],
-  embeddings: GoogleGenerativeAIEmbeddings,
+  embeddingsModel: any, // MastraEmbeddingAdapter or compatible
   threshold: number = 0.7
 ): Promise<GraphDocument[]> {
+  // Validate all input documents as Document (with at least pageContent and metadata)
+  documents.forEach((doc, idx) => {
+    if (!doc || typeof doc !== 'object' || typeof doc.pageContent !== 'string' || typeof doc.metadata !== 'object') {
+      throw new Error(`Invalid Document at index ${idx}`);
+    }
+  });
   // Map input documents to GraphDocuments ensuring metadata conforms to GraphNode.
   const docsWithIds: GraphDocument[] = documents.map((doc, index) => {
     const id =
       (doc.metadata && typeof doc.metadata === "object" && "id" in doc.metadata
         ? String((doc.metadata as Record<string, unknown>).id)
         : `node-${Date.now()}-${index}`) || `node-${index}`;
-    return {
+    const candidate = {
       ...doc,
+      pageContent: doc.pageContent,
       metadata: {
         ...(doc.metadata as Record<string, unknown>),
         id,
+        content: doc.pageContent,
         connections: [] as string[],
         connectionWeights: {} as Record<string, number>,
       },
-    } as GraphDocument;
+    };
+    assertGraphDocument(candidate, `Invalid GraphDocument at index ${index}`);
+    return candidate;
   });
 
-  // Create embeddings for all documents.
+  // Create embeddings for all documents using the provided embedding model.
   const contents = docsWithIds.map((doc) => doc.pageContent);
-  const embeddingVectors = await embeddings.embedDocuments(contents);
+  const embeddingVectors = await embeddingsModel.embedDocuments(contents);
 
   // Calculate similarity between all pairs of documents.
   for (let i = 0; i < docsWithIds.length; i++) {
@@ -99,6 +119,7 @@ async function createGraphRelationships(
     }
   }
 
+  docsWithIds.forEach((doc, idx) => assertGraphDocument(doc, `Output GraphDocument at index ${idx} is invalid`));
   return docsWithIds;
 }
 
@@ -156,18 +177,14 @@ export const createGraphRagTool = createTool({
       .default(0.7)
       .describe("Threshold for creating connections (0-1)"),
   }),
-  outputSchema: z.object({
-    success: z.boolean(),
-    graphId: z.string().optional(),
-    nodeCount: z.number(),
-    edgeCount: z.number(),
-    error: z.string().optional(),
-  }),
+
   execute: async ({ context }) => {
-    const runId = await createLangSmithRun("create-graph-rag", ["graph", "rag"]);
+    const span = createTracedSpan("graph-rag-create", { context });
+    if (!span) throw new Error("Tracing span is undefined");
     try {
-      // Create embeddings model.
+      // Create embeddings model and vector store using project factories.
       const embeddings = createEmbeddings();
+      const vectorStore = await createVectorStore(embeddings);
 
       // Convert input to GraphDocuments.
       const documents = context.documents.map((doc: unknown) => {
@@ -177,8 +194,8 @@ export const createGraphRagTool = createTool({
         });
       });
 
-      // Create graph relationships.
-      const graphDocuments = await createGraphRelationships(
+      // Create graph relationships using the embedding model
+      const graphDocs = await createGraphRelationships(
         documents,
         embeddings,
         context.similarityThreshold
@@ -186,45 +203,40 @@ export const createGraphRagTool = createTool({
 
       // Count total connections (edges).
       let edgeCount = 0;
-      graphDocuments.forEach((doc) => {
+      graphDocs.forEach((doc) => {
         edgeCount += doc.metadata.connections?.length || 0;
       });
       edgeCount = Math.floor(edgeCount / 2);
 
-      // Store graph in vector database.
-      const pineconeClient = new Pinecone({ apiKey: env.PINECONE_API_KEY! });
-      const indexName = env.PINECONE_INDEX || "Default";
-      const namespace = context.namespace || "graph-rag";
-      const pineconeIndex = pineconeClient.Index(indexName);
-      const vectorStore = await PineconeStore.fromExistingIndex(embeddings, {
-        pineconeIndex,
-        namespace,
-      });
-      await vectorStore.addDocuments(graphDocuments);
+      // Store graph in vector store
+      if (typeof (vectorStore as any).upsert === "function") {
+        await (vectorStore as any).upsert(graphDocs);
+      } else if (typeof (vectorStore as any).addDocuments === "function") {
+        await (vectorStore as any).addDocuments(graphDocs);
+      } else {
+        throw new Error("No compatible vector store method for adding documents");
+      }
       const graphId = `graph-${Date.now()}`;
 
-      // Track success in LangSmith.
-      await trackFeedback(runId, {
-        score: 1,
-        comment: `Created graph with ${graphDocuments.length} nodes and ${edgeCount} edges`,
-        key: "graph_creation_success",
-        value: { nodeCount: graphDocuments.length, edgeCount },
+      langfuse.logGeneration("graph-rag-create", {
+        input: { nodeCount: graphDocs.length, edgeCount },
+        output: { graphId },
+        traceId: span.spanContext().traceId,
       });
-
+      span.end();
       return {
         success: true,
         graphId,
-        nodeCount: graphDocuments.length,
+        nodeCount: graphDocs.length,
         edgeCount,
       };
     } catch (error: unknown) {
-      console.error("Error creating graph RAG:", error);
-      await trackFeedback(runId, {
-        score: 0,
-        comment:
-          error instanceof Error ? error.message : "Unknown error during graph creation",
-        key: "graph_creation_failure",
-      });
+      if (!span) throw new Error("Tracing span is undefined");
+      span.recordException(error as Error);
+      span.setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+      langfuse.logWithTraceContext("Error creating graph RAG", { error });
+      if (!span) throw new Error("Tracing span is undefined");
+      span.end();
       return {
         success: false,
         nodeCount: 0,
@@ -237,9 +249,6 @@ export const createGraphRagTool = createTool({
 
 /**
  * Tool for graph-based document retrieval with relationship exploration.
- *
- * Now uses createLangChainModel to ensure the LangChain model is instantiated and functional,
- * and logs a generation event via Langfuse.
  */
 export const graphRagQueryTool = createTool({
   id: "graph-rag-query",
@@ -264,53 +273,38 @@ export const graphRagQueryTool = createTool({
       .default(0.6)
       .describe("Minimum similarity for initial document retrieval"),
   }),
-  outputSchema: z.object({
-    documents: z.array(
-      z.object({
-        content: z.string(),
-        metadata: z.record(z.string(), z.any()),
-        score: z.number().optional(),
-        hopDistance: z.number().optional(),
-      })
-    ),
-    count: z.number(),
-  }),
-  execute: async ({ context }) => {
-    const runId = await createLangSmithRun("graph-rag-query", [
-      "graph",
-      "rag",
-      "query",
-    ]);
-    try {
-      // Instantiate LangChain model to ensure createLangChainModel is read and functional.
-      const langChainModel = createLangChainModel();
-      // Log model instantiation via Langfuse.
-      langfuse.createTrace("graph-rag-query", { userId: "system" });
-      console.info("LangChain model instantiated:", { model: langChainModel });
 
+  execute: async ({ context }) => {
+    const span = createTracedSpan("graph-rag-query", { context });
+    if (!span) throw new Error("Tracing span is undefined");
+    try {
+      // Create embeddings model and vector store using project factories.
       const embeddings = createEmbeddings();
-      // Initialize Pinecone client.
-      const pineconeClient = new Pinecone({ apiKey: env.PINECONE_API_KEY! });
-      const indexName = env.PINECONE_INDEX || "Default";
-      const namespace = context.namespace || "graph-rag";
-      const pineconeIndex = pineconeClient.Index(indexName);
-      // Connect to vector store.
-      const vectorStore = await PineconeStore.fromExistingIndex(embeddings, {
-        pineconeIndex,
-        namespace,
-      });
-      // Initial document retrieval.
-      const initialResults = await vectorStore.similaritySearchWithScore(
-        context.query,
-        context.initialDocumentCount,
-        { minScore: context.minSimilarity }
-      );
+      const vectorStore = await createVectorStore(embeddings);
+
+      // Initial document retrieval using the unified vector store
+      let initialResults;
+      if (typeof (vectorStore as any).query === "function") {
+        initialResults = await (vectorStore as any).query(context.query, {
+          topK: context.initialDocumentCount,
+          minScore: context.minSimilarity,
+        });
+      } else if (typeof (vectorStore as any).similaritySearchWithScore === "function") {
+        initialResults = await (vectorStore as any).similaritySearchWithScore(
+          context.query,
+          context.initialDocumentCount,
+          { minScore: context.minSimilarity }
+        ).then((results: any[]) => results.map(([doc, score]) => ({ doc, score })));
+      } else {
+        throw new Error("No compatible vector store method for similarity search");
+      }
+
       // Process and normalize results.
       const retrievedNodes: Record<
         string,
         { document: Document; score: number; hopDistance: number }
       > = {};
-      initialResults.forEach(([doc, score]) => {
+      initialResults.forEach(({ doc, score }: { doc: Document; score: number }) => {
         const id = doc.metadata.id;
         if (id) {
           retrievedNodes[id] = {
@@ -320,6 +314,7 @@ export const graphRagQueryTool = createTool({
           };
         }
       });
+
       // Explore graph up to maxHopCount.
       const maxHops = context.maxHopCount || 2;
       const exploreQueue: [string, number][] = Object.keys(retrievedNodes).map(
@@ -335,9 +330,17 @@ export const graphRagQueryTool = createTool({
         for (const connectedId of connections) {
           if (retrievedNodes[connectedId]) continue;
           try {
-            const filterResults = await vectorStore.similaritySearch("", 1, { id: connectedId });
+            let filterResults;
+            if (typeof (vectorStore as any).query === "function") {
+              filterResults = await (vectorStore as any).query("", { filter: { id: connectedId }, topK: 1 });
+            } else if (typeof (vectorStore as any).similaritySearch === "function") {
+              filterResults = await (vectorStore as any).similaritySearch("", 1, { id: connectedId });
+              filterResults = filterResults.map((doc: any) => ({ doc }));
+            } else {
+              throw new Error("No compatible vector store method for id-based lookup");
+            }
             if (filterResults.length > 0) {
-              const connectedDoc = filterResults[0];
+              const connectedDoc = filterResults[0].doc;
               const connectionWeight = weights[connectedId] || 0.5;
               retrievedNodes[connectedId] = {
                 document: connectedDoc,
@@ -351,6 +354,7 @@ export const graphRagQueryTool = createTool({
           }
         }
       }
+
       // Format and sort results.
       const results = Object.values(retrievedNodes)
         .sort((a, b) => b.score - a.score)
@@ -367,28 +371,23 @@ export const graphRagQueryTool = createTool({
 
       // Log generation event using Langfuse.
       langfuse.logGeneration("graph-rag-query-generation", {
-        traceId: runId,
         input: context.query,
         output: { documentCount: results.length },
+        traceId: span.spanContext().traceId,
       });
-
-      await trackFeedback(runId, {
-        score: 1,
-        comment: `Retrieved ${results.length} documents via graph exploration`,
-        key: "graph_query_success",
-        value: { documentCount: results.length },
-      });
+      if (!span) throw new Error("Tracing span is undefined");
+      span.end();
       return {
         documents: results,
         count: results.length,
       };
     } catch (error) {
-      console.error("Error querying graph RAG:", error);
-      await trackFeedback(runId, {
-        score: 0,
-        comment: error instanceof Error ? error.message : "Unknown error",
-        key: "graph_query_failure",
-      });
+      if (!span) throw new Error("Tracing span is undefined");
+      span.recordException(error as Error);
+      span.setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+      langfuse.logWithTraceContext("Error querying graph RAG", { error });
+      if (!span) throw new Error("Tracing span is undefined");
+      span.end();
       return { documents: [], count: 0 };
     }
   },
