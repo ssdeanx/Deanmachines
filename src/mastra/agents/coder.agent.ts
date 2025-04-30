@@ -1,3 +1,4 @@
+import { coderAgentConfig } from './config/coder.config';
 /**
  * Coder Agent Implementation
  *
@@ -7,13 +8,13 @@
 import { Agent } from '@mastra/core/agent';
 import { createLogger } from '@mastra/core/logger';
 
-import { initThreadManager, sharedMemory } from '../database';
-import { createAgentFromConfig } from './base.agent';
-import { coderAgentConfig } from './config';
+import { initThreadManager, sharedMemory } from '../database/index.js';
+import { createAgentFromConfig } from './base.agent.js';
+import { coderAgentConfig } from './config/coder.config.js'; // Import directly
 
 
 // Configure logger for the coder agent
-const logger = createLogger({ name: "coder-agent", level: "debug" });
+const logger = createLogger({ name: "coder-agent", level: "info" });
 
 /**
  * Initialize the coder agent instance using its configuration

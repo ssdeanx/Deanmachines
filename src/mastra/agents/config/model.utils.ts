@@ -13,9 +13,9 @@ import { openai } from "@ai-sdk/openai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { ollama } from "ollama-ai-provider";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
-import { OpenAIProviderConfig, AnthropicProviderConfig, OllamaProviderConfig, getProviderConfig } from "./provider.utils";
-import { ModelConfig } from "./config.types";
-import type { OpenAICompatibleProviderConfig } from "./provider.utils";
+import { OpenAIProviderConfig, AnthropicProviderConfig, OllamaProviderConfig, getProviderConfig } from "./provider.utils.js";
+import { ModelConfig } from "./config.types.js";
+import type { OpenAICompatibleProviderConfig } from "./provider.utils.js";
 
 /**
  * Model creation options

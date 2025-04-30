@@ -5,12 +5,12 @@
  * storage, and retrieval of information across the system.
  */
 
-import { createAgentFromConfig } from "./base.agent";
-import { dataManagerAgentConfig } from "./config";
-import { sharedMemory, initThreadManager } from "../database/index";
+import { createAgentFromConfig } from "./base.agent.js";
+import { dataManagerAgentConfig } from "./config/dataManager.config.js"; // Import directly
+import { sharedMemory, initThreadManager } from "../database/index.js";
 import { createLogger } from "@mastra/core/logger";
 
-const logger = createLogger({ name: "data-manager-agent", level: "debug" });
+const logger = createLogger({ name: "data-manager-agent", level: "info" });
 
 /**
  * Data Manager Agent with file and storage management capabilities

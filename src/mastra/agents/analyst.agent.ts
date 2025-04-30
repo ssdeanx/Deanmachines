@@ -5,12 +5,12 @@
  * and extracting meaningful insights from information.
  */
 
-import { createAgentFromConfig } from "./base.agent";
-import { analystAgentConfig } from "./config";
-import { sharedMemory, initThreadManager } from "../database/index";
+import { createAgentFromConfig } from "./base.agent.js";
+import { analystAgentConfig } from "./config/index.js";
+import { sharedMemory } from "../database/index.js";
 import { createLogger } from "@mastra/core/logger";
 
-const logger = createLogger({ name: "analyst-agent", level: "debug" });
+const logger = createLogger({ name: "analyst-agent", level: "info" });
 
 /**
  * Analyst Agent with data analysis capabilities

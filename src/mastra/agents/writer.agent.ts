@@ -5,12 +5,12 @@
  * documentation from complex information.
  */
 
-import { createAgentFromConfig } from "./base.agent";
-import { writerAgentConfig as writerConfig } from "./config";
-import { sharedMemory, initThreadManager } from "../database/index";
+import { createAgentFromConfig } from "./base.agent.js";
+import { writerAgentConfig as writerConfig } from "./config/writer.config.js"; // Import directly
+import { sharedMemory, initThreadManager } from "../database/index.js";
 import { createLogger } from "@mastra/core/logger";
 
-const logger = createLogger({ name: "writer-agent", level: "debug" });
+const logger = createLogger({ name: "writer-agent", level: "info" });
 
 /**
  * Writer Agent with content formatting capabilities

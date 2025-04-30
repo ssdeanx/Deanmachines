@@ -6,12 +6,12 @@
  */
 
 import { createLogger } from "@mastra/core/logger";
-import { sharedMemory, initThreadManager } from "../database/index";
-import { createAgentFromConfig } from "./base.agent";
-import { agenticAssistantConfig } from "./config";
+import { sharedMemory } from "../database/index.js";
+import { createAgentFromConfig } from "./base.agent.js";
+import { agenticAssistantConfig } from "./config/index.js";
 
 // Initialize logger for this module
-const logger = createLogger({ name: "agentic-agent", level: "debug" });
+const logger = createLogger({ name: "agentic-agent", level: "info" });
 
 /**
  * Agentic-style Agent with data analysis capabilities

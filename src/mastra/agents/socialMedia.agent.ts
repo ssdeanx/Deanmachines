@@ -4,12 +4,12 @@
  * This module implements the Social Media Agent based on its configuration.
  */
 
-import { sharedMemory, initThreadManager } from "../database/index";
-import { createAgentFromConfig } from "./base.agent";
-import { socialMediaAgentConfig } from "./config";
+import { sharedMemory, initThreadManager } from "../database/index.js";
+import { createAgentFromConfig } from "./base.agent.js";
+import { socialMediaAgentConfig } from "./config/socialMedia.config.js"; // Import directly
 import { createLogger } from "@mastra/core/logger";
 
-const logger = createLogger({ name: "social-media-agent", level: "debug" });
+const logger = createLogger({ name: "social-media-agent", level: "info" });
 
 /**
  * Social Media Agent

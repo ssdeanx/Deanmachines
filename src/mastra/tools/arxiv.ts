@@ -11,7 +11,7 @@ import * as fs from "fs-extra";
 import * as path from "path";
 
 import { castArray, getProp } from "./utils";
-import { createMastraTools } from "./mastra";
+import { createMastraTools } from "./mastra.js";
 
 export namespace arxiv {
   export const API_BASE_URL = "https://export.arxiv.org/api";

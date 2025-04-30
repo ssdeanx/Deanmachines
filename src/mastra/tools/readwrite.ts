@@ -84,7 +84,7 @@ async function isKnowledgePath(candidatePath: string): Promise<boolean> {
     // Runtime assertion for security: fail if not within knowledge base
     if (!isValid) throw new Error('E_PATH_ESCAPE: Path escapes knowledge base');
     logger.debug(`[isKnowledgePath] candidatePath: ${candidatePath}, resolved: ${resolvedPath}, valid: ${isValid}`);
-    (await import("../services/langfuse")).langfuse?.createSpan?.('isKnowledgePath', {
+    (await import("../services/langfuse.js")).langfuse?.createSpan?.('isKnowledgePath', {
       traceId: span?.spanContext().traceId || 'unknown', // fallback if no span
       metadata: { candidatePath, absolutePath: resolvedPath, isValid, spanId: span?.spanContext().spanId },
       tags: ['debug'],
@@ -96,7 +96,7 @@ async function isKnowledgePath(candidatePath: string): Promise<boolean> {
     return isValid;
   } catch (err) {
     logger.error(`[isKnowledgePath] Error resolving path: ${candidatePath}: ${(err as Error)?.message || err}`);
-    (await import("../services/langfuse")).langfuse?.createSpan?.('isKnowledgePath.error', {
+    (await import("../services/langfuse.js")).langfuse?.createSpan?.('isKnowledgePath.error', {
       traceId: span?.spanContext().traceId || 'unknown',
       metadata: { candidatePath, error: err, spanId: span?.spanContext().spanId },
       tags: ['error'],
@@ -118,7 +118,7 @@ async function resolveKnowledgePath(candidatePath: string): Promise<string> {
     const joinedPath = path.join(KNOWLEDGE_BASE_PATH, candidatePath);
     const absolutePath = await fs.realpath(joinedPath);
     logger.debug(`[resolveKnowledgePath] candidatePath: ${candidatePath}, resolved: ${absolutePath}`);
-    (await import("../services/langfuse")).langfuse?.createSpan?.('resolveKnowledgePath', {
+    (await import("../services/langfuse.js")).langfuse?.createSpan?.('resolveKnowledgePath', {
       traceId: span?.spanContext().traceId || 'unknown',
       metadata: { candidatePath, absolutePath, spanId: span?.spanContext().spanId },
       tags: ['debug'],
@@ -129,7 +129,7 @@ async function resolveKnowledgePath(candidatePath: string): Promise<string> {
     return absolutePath;
   } catch (err) {
     logger.error(`[resolveKnowledgePath] Error resolving path: ${candidatePath}: ${(err as Error)?.message || err}`);
-    (await import("../services/langfuse")).langfuse?.createSpan?.('resolveKnowledgePath.error', {
+    (await import("../services/langfuse.js")).langfuse?.createSpan?.('resolveKnowledgePath.error', {
       traceId: span?.spanContext().traceId || 'unknown',
       metadata: { candidatePath, error: err, spanId: span?.spanContext().spanId },
       tags: ['error'],
@@ -151,7 +151,7 @@ async function isInMastraDir(candidatePath: string): Promise<boolean> {
     // Runtime assertion for security: fail if not within .mastra dir
     if (!isValid) throw new Error('E_PATH_ESCAPE: Path escapes .mastra dir');
     logger.debug(`[isInMastraDir] candidatePath: ${candidatePath}, resolved: ${resolvedPath}, valid: ${isValid}`);
-    (await import("../services/langfuse")).langfuse?.createSpan?.('isInMastraDir', {
+    (await import("../services/langfuse.js")).langfuse?.createSpan?.('isInMastraDir', {
       traceId: span?.spanContext().traceId || 'unknown',
       metadata: { candidatePath, absolutePath: resolvedPath, isValid, spanId: span?.spanContext().spanId },
       tags: ['debug'],
@@ -163,7 +163,7 @@ async function isInMastraDir(candidatePath: string): Promise<boolean> {
     return isValid;
   } catch (err) {
     logger.error(`[isInMastraDir] Error resolving path: ${candidatePath}: ${(err as Error)?.message || err}`);
-    (await import("../services/langfuse")).langfuse?.createSpan?.('isInMastraDir.error', {
+    (await import("../services/langfuse.js")).langfuse?.createSpan?.('isInMastraDir.error', {
       traceId: span?.spanContext().traceId || 'unknown',
       metadata: { candidatePath, error: err, spanId: span?.spanContext().spanId },
       tags: ['error'],
@@ -183,7 +183,7 @@ async function ensureDir(candidatePath: string) {
   try {
     await fs.mkdir(candidatePath, { recursive: true });
     logger.debug(`[ensureDir] Directory created: ${candidatePath}`);
-    (await import("../services/langfuse")).langfuse?.createSpan?.('ensureDir', {
+    (await import("../services/langfuse.js")).langfuse?.createSpan?.('ensureDir', {
       traceId: span?.spanContext().traceId || 'unknown',
       metadata: { candidatePath, spanId: span?.spanContext().spanId },
       tags: ['debug'],

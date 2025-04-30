@@ -4,12 +4,12 @@
  * This module implements the SEO Agent based on its configuration.
  */
 
-import { sharedMemory, initThreadManager } from "../database/index";
-import { createAgentFromConfig } from "./base.agent";
-import { seoAgentConfig } from "./config";
+import { sharedMemory, initThreadManager } from "../database/index.js";
+import { createAgentFromConfig } from "./base.agent.js";
+import { seoAgentConfig } from "./config/seoAgent.config.js"; // Import directly
 import { createLogger } from "@mastra/core/logger";
 
-const logger = createLogger({ name: "seo-agent", level: "debug" });
+const logger = createLogger({ name: "seo-agent", level: "info" });
 
 /**
  * SEO Agent

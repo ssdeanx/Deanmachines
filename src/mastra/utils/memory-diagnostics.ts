@@ -3,8 +3,8 @@
  */
 
 import { randomUUID } from "crypto";
-import { sharedMemory } from "../database";
-import { createAISpan, recordMetrics } from "../services/signoz";
+import { sharedMemory } from "../database/index.js";
+import { createAISpan, recordMetrics } from "../services/signoz.js";
 
 /**
  * Runs basic diagnostics on the shared Memory component.

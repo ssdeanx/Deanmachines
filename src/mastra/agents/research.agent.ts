@@ -5,12 +5,12 @@
  * from various sources including web searches, document repositories, and files.
  */
 
-import { createAgentFromConfig } from "./base.agent";
-import { researchAgentConfig } from "./config";
-import { sharedMemory, initThreadManager } from "../database/index";
+import { createAgentFromConfig } from "./base.agent.js";
+import { researchAgentConfig } from "./config/research.config.js"; // Import directly
+import { sharedMemory, initThreadManager } from "../database/index.js";
 import { createLogger } from "@mastra/core/logger";
 
-const logger = createLogger({ name: "research-agent", level: "debug" });
+const logger = createLogger({ name: "research-agent", level: "info" });
 
 /**
  * Research Agent with web search capabilities

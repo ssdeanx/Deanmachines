@@ -4,12 +4,12 @@
  * This module implements the UI/UX Coder Agent based on its configuration.
  */
 
-import { sharedMemory, initThreadManager } from "../database/index";
-import { createAgentFromConfig } from "./base.agent";
-import { uiUxCoderConfig } from "./config";
+import { sharedMemory, initThreadManager } from "../database/index.js";
+import { createAgentFromConfig } from "./base.agent.js";
+import { uiUxCoderConfig } from "./config/uiUxCoder.config.js"; // Import directly
 import { createLogger } from "@mastra/core/logger";
 
-const logger = createLogger({ name: "ui-ux-coder-agent", level: "debug" });
+const logger = createLogger({ name: "ui-ux-coder-agent", level: "info" });
 
 /**
  * UI/UX Coder Agent

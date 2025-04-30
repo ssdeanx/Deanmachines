@@ -5,12 +5,12 @@
  * It is designed for flexible, exploratory, and debugging tasks in the Mastra environment.
  */
 
-import { createAgentFromConfig } from "./base.agent";
-import { masterAgentConfig } from "./config";
-import { sharedMemory } from "../database/index";
+import { createAgentFromConfig } from "./base.agent.js";
+import { masterAgentConfig } from "./config/master.config.js"; // Import directly
+import { sharedMemory } from "../database/index.js";
 import { createLogger } from "@mastra/core/logger";
 
-const logger = createLogger({ name: "master-agent", level: "debug" });
+const logger = createLogger({ name: "master-agent", level: "info" });
 
 /**
  * Master Agent with maximum flexibility for tool and workflow experimentation

@@ -7,8 +7,8 @@
  */
 
 // Export core configuration types and utilities
-export * from "./config.types";
-export * from "./model.utils";
+export * from "./config.types.js";
+export * from "./model.utils.js";
 export {
   setupGoogleProvider,
   createGoogleClientConfig,
@@ -23,7 +23,7 @@ export {
   setupOpenAICompatibleProvider,
   createOpenAICompatibleClientConfig,
   getProviderConfig
-} from "./provider.utils";
+} from "./provider.utils.js";
 export type {
   GoogleOptions,
   GoogleVertexOptions,
@@ -35,49 +35,49 @@ export type {
   OllamaProviderConfig,
   OpenAICompatibleProviderConfig,
   ProviderConfig
-} from "./provider.utils";
+} from "./provider.utils.js";
 
 // Base configurations removed as part of refactoring
 
 // Export specific agent configurations without the common utility functions
 // This prevents name conflicts from multiple exports of getToolsFromIds
-import { analystAgentConfig, analystResponseSchema } from "./analyst.config";
-import { architectConfig } from "./architect.config";
+import { analystAgentConfig, analystResponseSchema } from "./analyst.config.js";
+import { architectConfig } from "./architect.config.js";
 import {
   agenticAssistantConfig,
   agenticResponseSchema,
-} from "./agentic.config";
-import { coderAgentConfig, coderResponseSchema } from "./coder.config";
+} from "./agentic.config.js";
+import { coderAgentConfig, coderResponseSchema } from "./coder.config.js";
 import {
   codeDocumenterConfig
 
-} from "./codeDocumenter.config";
+} from "./codeDocumenter.config.js";
 import {
   copywriterAgentConfig,
   copywriterResponseSchema,
-} from "./copywriter.config";
+} from "./copywriter.config.js";
 import {
   dataManagerAgentConfig,
   dataManagerResponseSchema,
-} from "./dataManager.config";
-import { debuggerConfig, debuggerResponseSchema } from "./debugger.config";
+} from "./dataManager.config.js";
+import { debuggerConfig, debuggerResponseSchema } from "./debugger.config.js";
 import {
   marketResearchAgentConfig,
   marketResearchResponseSchema,
-} from "./marketResearch.config";
-import { researchAgentConfig, researchResponseSchema } from "./research.config";
+} from "./marketResearch.config.js";
+import { researchAgentConfig, researchResponseSchema } from "./research.config.js";
 import {
   rlTrainerAgentConfig,
   rlTrainerResponseSchema,
-} from "./rlTrainer.config";
-import { seoAgentConfig, seoResponseSchema } from "./seoAgent.config";
+} from "./rlTrainer.config.js";
+import { seoAgentConfig, seoResponseSchema } from "./seoAgent.config.js";
 import {
   socialMediaAgentConfig,
   socialMediaResponseSchema,
-} from "./socialMedia.config";
-import { uiUxCoderConfig, uiUxCoderResponseSchema } from "./uiUxCoder.config";
-import { writerAgentConfig, writerResponseSchema } from "./writer.config";
-import { masterAgentConfig } from "./master.config";
+} from "./socialMedia.config.js";
+import { uiUxCoderConfig, uiUxCoderResponseSchema } from "./uiUxCoder.config.js";
+import { writerAgentConfig, writerResponseSchema } from "./writer.config.js";
+import { masterAgentConfig } from "./master.config.js";
 // Re-export specific configurations
 export {
   // Agent configurations

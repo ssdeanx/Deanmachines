@@ -1,12 +1,14 @@
 {
   "compilerOptions": {
     "module": "ESNext",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
+    "lib": ["ESNext", "DOM"],
     "target": "ES2022",
     "jsx": "react", 
     "strictNullChecks": true,
     "strictFunctionTypes": false,
-    "sourceMap": true
+    "sourceMap": true,
+    "skipLibCheck": true
   },
   "exclude": ["node_modules", "**/node_modules/*"]
 }

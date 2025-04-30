@@ -10,25 +10,25 @@ import { createLogger } from '@mastra/core/logger';
 
 import { Tool } from '@mastra/core/tools';
 import { MastraVoice } from '@mastra/core/voice';
-import { sharedMemory } from '../database/index';
-import { createResponseHook } from '../hooks';
-import { langfuse } from "../services/langfuse"; // Use the singleton Langfuse instance for agent observability
-import { configureLangSmithTracing } from "../services/langsmith";
-import { allToolsMap } from '../tools';
-import * as evalTools from '../tools/evals';
-import * as MastraTypes from '../types';
-import { AgentConfigError } from '../types';
-import { threadManager } from '../utils/thread-manager';
-import { createVoice } from '../voice';
-import { initThreadManager } from '../database';
+import { sharedMemory } from '../database/index.js';
+import { createResponseHook } from '../hooks/index.js';
+import { langfuse } from "../services/langfuse.js"; // Use the singleton Langfuse instance for agent observability
+import { configureLangSmithTracing } from "../services/langsmith.js";
+import { allToolsMap } from '../tools/index.js';
+import * as evalTools from '../tools/evals.js'; // Import all eval tools
+import * as MastraTypes from '../types.js'; // Import all types
+import { AgentConfigError } from '../types.js'; // Import the custom error class
+import { threadManager } from '../utils/thread-manager.js'; // Import thread manager
+import { createVoice } from '../voice/index.js'; // Import voice factory function 
+import { initThreadManager } from '../database/index.js'; // Import thread manager initialization
 import {
   BaseAgentConfig,
   createModelInstance,
-} from './config';
+} from './config/config.types.js';
 import { z, ZodTypeAny, any as zodAny, type ZodType } from 'zod';
-import { getTracer } from "../services/tracing";
+import { getTracer } from "../services/tracing.js";
 import type { LogLevel } from "@mastra/core/logger";
-const level = (process.env.LOG_LEVEL as LogLevel) || "info";
+const level = (process.env.LOG_LEVEL as LogLevel) || "debug";
 const logger = typeof createLogger === "function"
   ? createLogger({ name: "agent-initialization", level })
   : console;

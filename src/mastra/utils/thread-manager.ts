@@ -7,12 +7,12 @@
 
 import { randomUUID } from "crypto";
 import { createLogger } from "@mastra/core/logger";
-import signoz, { createAISpan } from "../services/signoz";
-import { configureLangSmithTracing, createLangSmithRun, trackFeedback } from "../services/langsmith";
-import { langfuse } from "../services/langfuse";
-import type { ThreadInfo, CreateThreadOptions } from "../types";
-import { ThreadManagerError, CreateThreadOptionsSchema } from "../types";
-import { sharedMemory } from "../database/index";
+import signoz, { createAISpan } from "../services/signoz.js";
+import { configureLangSmithTracing, createLangSmithRun, trackFeedback } from "../services/langsmith.js";
+import { langfuse } from "../services/langfuse.js";
+import type { ThreadInfo, CreateThreadOptions } from "../types.js";
+import { ThreadManagerError, CreateThreadOptionsSchema } from "../types.js";
+import { sharedMemory } from "../database/index.js";
 
 const logger = createLogger({ name: "thread-manager", level: "info" });
 

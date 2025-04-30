@@ -25,11 +25,11 @@ import {
   vectorQueryTool,
   googleVectorQueryTool,
   filteredQueryTool,
-} from "./vectorquerytool";
-import { createBraveSearchTool } from "./brave-search";
-import { createGoogleSearchTool } from "./google-search";
-import { createTavilySearchTool } from "./tavily";
-import { createMastraExaSearchTools } from "./exasearch";
+} from "./vectorquerytool.js";
+import { createBraveSearchTool } from "./brave-search.js";
+import { createGoogleSearchTool } from "./google-search.js";
+import { createTavilySearchTool } from "./tavily.js";
+import { createMastraExaSearchTools } from "./exasearch.js";
 import {
   readFileTool,
   writeToFileTool,
@@ -42,28 +42,28 @@ import {
   listFilesWithWalkTool,
   mkdirTool,
   copyTool, moveTool
-} from "./readwrite";
+} from "./readwrite.js";
 import {
   collectFeedbackTool,
   analyzeFeedbackTool,
   applyRLInsightsTool,
-} from "./rlFeedback";
+} from "./rlFeedback.js";
 import {
   calculateRewardTool,
   defineRewardFunctionTool,
   optimizePolicyTool,
-} from "./rlReward";
+} from "./rlReward.js";
 
 // --- Additional Tools ---
-import { analyzeContentTool, formatContentTool } from "./contentTools";
-import { searchDocumentsTool, embedDocumentTool, docxReaderTool, csvReaderTool, jsonReaderTool, extractHtmlTextTool } from "./document-tools";
+import { analyzeContentTool, formatContentTool } from "./contentTools.js";
+import { searchDocumentsTool, embedDocumentTool, docxReaderTool, csvReaderTool, jsonReaderTool, extractHtmlTextTool } from "./document-tools.js";
 
 // --- Extra Tools (Import Helper Functions & Direct Tools) ---
 
-import { createMastraArxivTools } from "./arxiv"; // Import Mastra helper
-import { createMastraWikipediaTools } from "./wikibase"; // Import Mastra helper
-import { createMastraAISDKTools } from "./ai-sdk"; // Import Mastra helper
-import { createMastraE2BTools } from "./e2b"; // Import Mastra helper
+import { createMastraArxivTools } from "./arxiv.js"; // Import Mastra helper
+import { createMastraWikipediaTools } from "./wikibase.js"; // Import Mastra helper
+import { createMastraAISDKTools } from "./ai-sdk.js"; // Import Mastra helper
+import { createMastraE2BTools } from "./e2b.js"; // Import Mastra helper
 import { createGraphRagTool,
   graphRagQueryTool,
   graphRagTools,
@@ -73,7 +73,7 @@ import { createGraphRagTool,
   graphRagPruneTool,
   graphRagExportImportTool,
   graphRagObservabilityTool,
- } from "./graphRag"; // Import advanced GraphRAG tools array
+ } from "./graphRag.js"; // Import advanced GraphRAG tools array
 import { graphRagLoaders, graphRagExporters,
   graphRagCsvLoader,
   graphRagDotLoader,
@@ -85,12 +85,12 @@ import { graphRagLoaders, graphRagExporters,
   graphRagGexfExporter,
   graphRagGraphmlExporter,
   graphRagJsonExporter,
- } from "./Loaders/graphRagLoaders"; // Import loader/exporter arrays
-import { createMastraGitHubTools } from "./github"; // Import Mastra helper
-import { createMastraMcpTools } from "./mcptool";
+ } from "./Loaders/graphRagLoaders.js"; // Import loader/exporter arrays
+import { createMastraGitHubTools } from "./github.js"; // Import Mastra helper
+import { createMastraMcpTools } from "./mcptool.js";
 import { github } from "../integrations"; // Used for custom getMainBranchRef
-import ExaSearchOutputSchema from "./exasearch";
-import { GitHubUserSchema } from "./github"; // Assuming this is the correct export for GitHub user schema
+import ExaSearchOutputSchema from "./exasearch.js";
+import { GitHubUserSchema } from "./github.js"; // Assuming this is the correct export for GitHub user schema
 import {
   contextPrecisionEvalTool,
   contextPositionEvalTool,
@@ -106,52 +106,52 @@ import {
   hallucinationEvalTool,
   toxicityEvalTool,
   biasEvalTool
-} from "./evals";
+} from "./evals.js";
 import { tracingTools } from "./tracingTools";
-import { createMastraPolygonTools, TickerDetailsSchema } from "./polygon"; // Import Mastra helper for Polygon tools
-import { createMastraRedditTools, SubredditPostSchema } from "./reddit"; // Import Mastra helper for Reddit tools
-import { createMastraNotionTools } from './notion-client'; // Import Notion tools
-import { puppeteerTool } from "./puppeteerTool";
-import { hyperAgentTool } from "./hyper-functionCalls";
-import { getTracer } from "../services/tracing";
+import { createMastraPolygonTools, TickerDetailsSchema } from "./polygon.js"; // Import Mastra helper for Polygon tools
+import { createMastraRedditTools, SubredditPostSchema } from "./reddit.js"; // Import Mastra helper for Reddit tools
+import { createMastraNotionTools } from './notion-client.js'; // Import Notion tools
+import { puppeteerTool } from "./puppeteerTool.js";
+import { hyperAgentTool } from "./hyper-functionCalls.js";
+import { getTracer } from "../services/tracing.js";
 import { scrapeWebpageTool,
   extractDataTool,
   mapWebsiteTool,
-  crawlWebsiteTool } from "./firecrawlTool"; // Import Firecrawl tools
+  crawlWebsiteTool } from "./firecrawlTool.js"; // Added .js extension
 
 
 // === Export all tool modules (Consider if all are needed) ===
-export * from "./e2b";
-export * from "./exasearch";
-export * from "./readwrite";
-export * from "./vectorquerytool";
-export * from "./rlFeedback";
-export * from "./rlReward";
-export * from "./github";
-export * from "./graphRag";
-export * from "./Loaders/graphRagLoaders";
-export { CalculatorClient, createMastraCalculatorTools, createAISDKCalculatorTools, createGenkitCalculatorTools } from "./calculator";
-export { createMastraNotionTools, createAISDKNotionTools, createGenkitNotionTools } from './notion-client';
-export * from "./arxiv";
-export * from "./wikibase";
-export * from "./ai-sdk";
-export * from "./contentTools";
-export * from "./document-tools";
-export * from "./brave-search";
-export * from "./google-search";
-export * from "./tavily";
-export * from "./tracingTools";
+export * from "./e2b.js";
+export * from "./exasearch.js";
+export * from "./readwrite.js";
+export * from "./vectorquerytool.js";
+export * from "./rlFeedback.js";
+export * from "./rlReward.js";
+export * from "./github.js";
+export * from "./graphRag.js";
+export * from "./Loaders/graphRagLoaders.js";
+export { CalculatorClient, createMastraCalculatorTools, createAISDKCalculatorTools, createGenkitCalculatorTools } from "./calculator.js";
+export { createMastraNotionTools, createAISDKNotionTools, createGenkitNotionTools } from './notion-client.js';
+export * from "./arxiv.js";
+export * from "./wikibase.js";
+export * from "./ai-sdk.js";
+export * from "./contentTools.js";
+export * from "./document-tools.js";
+export * from "./brave-search.js";
+export * from "./google-search.js";
+export * from "./tavily.js";
+export * from "./tracingTools.js";
 export { ExaSearchOutputSchema };
 export { GitHubUserSchema };
 export { TickerDetailsSchema };
 export { SubredditPostSchema };
-export * from "../services/signoz";
-export * from "./polygon";
-export * from "./reddit";
-export * from "./mcptool";
-export * from "./puppeteerTool";
-export * from "./hyper-functionCalls";
-export * from "./firecrawlTool"; // Export Firecrawl tools
+export * from "../services/signoz.js";
+export * from "./polygon.js";
+export * from "./reddit.js";
+export * from "./mcptool.js";
+export * from "./puppeteerTool.js";
+export * from "./hyper-functionCalls.js";
+export * from "./firecrawlTool.js"; // Export Firecrawl tools
 // === Configure Logger ===
 const logger = createLogger({ name: "tool-initialization", level: "info" });
 const tracer = getTracer();

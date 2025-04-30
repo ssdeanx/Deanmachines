@@ -6,13 +6,13 @@
  */
 
 import { Agent } from "@mastra/core/agent";
-import { createAgentFromConfig } from "./base.agent";
-import { copywriterAgentConfig } from "./config";
+import { createAgentFromConfig } from "./base.agent.js";
+import { copywriterAgentConfig } from "./config/copywriter.config.js"; // Import directly
 import { createLogger } from "@mastra/core/logger";
-import { sharedMemory, initThreadManager } from "../database/index";
+import { sharedMemory, initThreadManager } from "../database/index.js";
 
 // Configure logger for the copywriter agent
-const logger = createLogger({ name: "copywriter-agent", level: "debug" });
+const logger = createLogger({ name: "copywriter-agent", level: "info" });
 
 /**
  * Initialize the copywriter agent instance using its configuration

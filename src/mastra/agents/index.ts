@@ -7,29 +7,29 @@
  */
 
 // Import agent instances from their modular files
-import { researchAgent } from "./research.agent";
-import { analystAgent } from "./analyst.agent";
-import { writerAgent } from "./writer.agent";
-import { rlTrainerAgent } from "./rlTrainer.agent";
-import { dataManagerAgent } from "./dataManager.agent";
-import { agenticAssistant } from "./agentic.agent";
-import { coderAgent } from "./coder.agent";
-import { copywriterAgent } from "./copywriter.agent";
+import { researchAgent } from "./research.agent.js";
+import { analystAgent } from "./analyst.agent.js";
+import { writerAgent } from "./writer.agent.js";
+import { rlTrainerAgent } from "./rlTrainer.agent.js";
+import { dataManagerAgent } from "./dataManager.agent.js";
+import { agenticAssistant } from "./agentic.agent.js";
+import { coderAgent } from "./coder.agent.js";
+import { copywriterAgent } from "./copywriter.agent.js";
 
 // Import coding team agents
-import { architectAgent } from "./architect.agent";
-import { debuggerAgent } from "./debugger.agent";
-import { uiUxCoderAgent } from "./uiUxCoder.agent";
-import { codeDocumenterAgent } from "./codeDocumenter.agent";
+import { architectAgent } from "./architect.agent.js";
+import { debuggerAgent } from "./debugger.agent.js";
+import { uiUxCoderAgent } from "./uiUxCoder.agent.js";
+import { codeDocumenterAgent } from "./codeDocumenter.agent.js";
 
 // Import marketing team agents
-import { marketResearchAgent } from "./marketResearch.agent";
-import { socialMediaAgent } from "./socialMedia.agent";
-import { seoAgent } from "./seoAgent.agent";
-import { masterAgent } from "./master.agent";
+import { marketResearchAgent } from "./marketResearch.agent.js";
+import { socialMediaAgent } from "./socialMedia.agent.js";
+import { seoAgent } from "./seoAgent.agent.js";
+import { masterAgent } from "./master.agent.js";
 import { createLogger } from '@mastra/core/logger';
 
-const logger = createLogger({ name: "agent-initialization", level: "debug" });// Configure logger for agent initialization
+const logger = createLogger({ name: "agent-initialization", level: "info" });// Configure logger for agent initialization
 
 // Export individual agents
 export {

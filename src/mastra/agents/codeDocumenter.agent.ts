@@ -4,12 +4,12 @@
  * This module implements the Code Documenter Agent based on its configuration.
  */
 
-import { sharedMemory } from "../database/index";
-import { createAgentFromConfig } from "./base.agent";
-import { codeDocumenterConfig } from "./config/"; // Import directly
+import { sharedMemory } from "../database/index.js";
+import { createAgentFromConfig } from "./base.agent.js";
+import { codeDocumenterConfig } from "./config/index.js"; // Import directly
 import { createLogger } from "@mastra/core/logger";
 
-const logger = createLogger({ name: "code-documenter-agent", level: "debug" });
+const logger = createLogger({ name: "code-documenter-agent", level: "info" });
 
 /**
  * Code Documenter Agent

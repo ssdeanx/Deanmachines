@@ -4,12 +4,12 @@
  * This module implements the Architecture Agent based on its configuration.
  */
 
-import { sharedMemory } from "../database/index";
-import { createAgentFromConfig } from "./base.agent";
-import { architectConfig } from "./config";
+import { sharedMemory } from "../database/index.js";
+import { createAgentFromConfig } from "./base.agent.js";
+import { architectConfig } from "./config/index.js"; // Import directly
 import { createLogger } from "@mastra/core/logger";
 
-const logger = createLogger({ name: "architect-agent", level: "debug" });
+const logger = createLogger({ name: "architect-agent", level: "info" });
 
 /**
  * Architecture Agent
