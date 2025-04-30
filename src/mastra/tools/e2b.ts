@@ -1,5 +1,5 @@
 import { aiFunction, AIFunctionsProvider, getEnv } from "@agentic/core";
-import { createMastraTools } from "./mastra";
+import { createMastraTools } from "./mastra.js";
 import { Sandbox } from "@e2b/code-interpreter";
 import { z } from "zod";
 

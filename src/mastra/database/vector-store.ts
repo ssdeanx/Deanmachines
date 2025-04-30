@@ -36,9 +36,9 @@ export class MastraEmbeddingAdapter
   }) {
     super({
       apiKey: options.apiKey || env.GOOGLE_GENERATIVE_AI_API_KEY!,
-      modelName: options.modelName || env.EMBEDDING_MODEL || "models/embedding-001",
+      modelName: options.modelName || env.EMBEDDING_MODEL || "models/gemini-embedding-exp-03-07",
     });
-    this.modelId = options.modelName || env.EMBEDDING_MODEL || "models/embedding-001";
+    this.modelId = options.modelName || env.EMBEDDING_MODEL || "models/gemini-embedding-exp-03-07";
     this.maxEmbeddingsPerCall = options.maxEmbeddingsPerCall ?? 16;
     this.dimensions = options.dimensions ?? Number(env.PINECONE_DIMENSION) ?? 2048;
   }
@@ -73,7 +73,7 @@ export function createEmbeddings(
       "No Google API key provided for embeddings. Runtime calls will fail."
     );
   }
-  const embeddingModel = modelName || env.EMBEDDING_MODEL || "models/embedding-001";
+  const embeddingModel = modelName || env.EMBEDDING_MODEL || "models/gemini-embedding-exp-03-07";
   console.info(`Initializing embeddings with model: ${embeddingModel}`);
   return new MastraEmbeddingAdapter({
     apiKey: apiKey || env.GOOGLE_GENERATIVE_AI_API_KEY || "",

@@ -1,27 +1,38 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
-import sigNoz from "../services/signoz";
-import { createGoogleModel } from "../agents/config/index";
 import { generateText } from "ai";
 import { createLogger } from "@mastra/core/logger";
-import { configureLangSmithTracing } from "../services/langsmith";
-import { langfuse } from "../services/langfuse"; // Langfuse singleton
+import { getTracer } from "../services/tracing.js";
+import { DEFAULT_MODELS } from "../agents/config/config.types.js";
+import { createModelFromConfig } from "../agents/config/model.utils.js";
+import { 
+  KeywordCoverageMetric, 
+  ContentSimilarityMetric
+} from "@mastra/evals/nlp";
+import { 
+  AnswerRelevancyMetric, 
+  HallucinationMetric, 
+  BiasMetric 
+} from "@mastra/evals/llm";
 
 const logger = createLogger({ name: "evals", level: "info" });
+const tracer = getTracer();
 
-// Initialize Langfuse for evaluation observability
-if (langfuse) {
-  logger.info("Langfuse tracing enabled for evaluation tools");
-}
-// enable LangSmith tracing for eval tools
-const langsmithClient = configureLangSmithTracing();
-if (langsmithClient) {
-  logger.info("LangSmith tracing enabled for evaluation tools");
+// Utility function to create a Google model
+function createGoogleModel(modelId = DEFAULT_MODELS.GOOGLE_STANDARD.modelId) {
+  const config = { ...DEFAULT_MODELS.GOOGLE_STANDARD, modelId };
+  return createModelFromConfig(config);
 }
 
-// Helper to get modelId from env/config or use default
-function getEvalModelId() {
-  return process.env.EVAL_MODEL_ID || "models/gemini-2.0-flashlite";
+// Lazy load Langfuse
+async function getLangfuse() {
+  try {
+    const { langfuse } = await import("../services/langfuse.js");
+    return langfuse;
+  } catch (error) {
+    logger.warn("Failed to load Langfuse", { error: error instanceof Error ? error.message : String(error) });
+    return null;
+  }
 }
 
 // Utility: Token count (simple whitespace split)
@@ -31,23 +42,24 @@ export const tokenCountEvalTool = createTool({
   inputSchema: z.object({
     response: z.string().describe("The agent's response to count tokens for."),
   }),
-  outputSchema: z.object({
-    tokenCount: z.number().int(),
-    success: z.boolean(),
-    error: z.string().optional(),
-  }),
   execute: async ({ context }) => {
-    langfuse.createTrace("eval.tokenCount", { metadata: { evalType: "token-count" } });
-    const span = sigNoz.createSpan("eval.tokenCount", { evalType: "token-count" });
+    const span = tracer?.startSpan?.("eval.tokenCount", { attributes: { evalType: "token-count" } });
     const startTime = performance.now();
     try {
+      const langfuse = await getLangfuse();
+      langfuse?.createTrace?.("eval.tokenCount", { metadata: { evalType: "token-count" } });
+      
       const tokenCount = context.response.trim().split(/\s+/).length;
-      sigNoz.recordMetrics(span, { latencyMs: performance.now() - startTime, status: "success" });
-      span.end();
+      
+      span?.setAttribute("tokenCount", tokenCount);
+      span?.setAttribute("latencyMs", performance.now() - startTime);
+      span?.end();
+      
       return { tokenCount, success: true };
     } catch (error) {
-      sigNoz.recordMetrics(span, { latencyMs: performance.now() - startTime, status: "error", errorMessage: error instanceof Error ? error.message : String(error) });
-      span.end();
+      span?.setAttribute("error", error instanceof Error ? error.message : String(error));
+      span?.end();
+      
       return { tokenCount: 0, success: false, error: error instanceof Error ? error.message : "Unknown error in token count eval" };
     }
   },
@@ -62,34 +74,34 @@ export const completenessEvalTool = createTool({
     reference: z.string().describe("The reference or expected answer."),
     context: z.record(z.any()).optional().describe("Additional context for evaluation."),
   }),
-  outputSchema: z.object({
-    score: z.number().min(0).max(1).describe("Completeness score (0-1)"),
-    explanation: z.string().optional().describe("Explanation of the score."),
-    success: z.boolean(),
-    error: z.string().optional(),
-  }),
   execute: async ({ context }) => {
-    langfuse.createTrace("eval.completeness", { metadata: { evalType: "completeness" } });
-    const span = sigNoz.createSpan("eval.completeness", { evalType: "completeness" });
+    const span = tracer?.startSpan?.("eval.completeness", { attributes: { evalType: "completeness" } });
     const startTime = performance.now();
     try {
+      const langfuse = await getLangfuse();
+      langfuse?.createTrace?.("eval.completeness", { metadata: { evalType: "completeness" } });
+      
       const refTokens = context.reference.split(/\s+/);
       const respTokens = context.response.split(/\s+/);
       const matched = refTokens.filter(token => respTokens.includes(token));
       const score = refTokens.length > 0 ? matched.length / refTokens.length : 0;
       const explanation = `Matched ${matched.length} of ${refTokens.length} reference tokens.`;
-      sigNoz.recordMetrics(span, { latencyMs: performance.now() - startTime, status: "success" });
-      span.end();
+      
+      span?.setAttribute("score", score);
+      span?.setAttribute("latencyMs", performance.now() - startTime);
+      span?.end();
+      
       return { score, explanation, success: true };
     } catch (error) {
-      sigNoz.recordMetrics(span, { latencyMs: performance.now() - startTime, status: "error", errorMessage: error instanceof Error ? error.message : String(error) });
-      span.end();
+      span?.setAttribute("error", error instanceof Error ? error.message : String(error));
+      span?.end();
+      
       return { score: 0, success: false, error: error instanceof Error ? error.message : "Unknown error in completeness eval" };
     }
   },
 });
 
-// Content Similarity Eval (case/whitespace insensitive string similarity)
+// Content Similarity Eval
 export const contentSimilarityEvalTool = createTool({
   id: "content-similarity-eval",
   description: "Evaluates string similarity between response and reference.",
@@ -99,33 +111,33 @@ export const contentSimilarityEvalTool = createTool({
     ignoreCase: z.boolean().optional().default(true),
     ignoreWhitespace: z.boolean().optional().default(true),
   }),
-  outputSchema: z.object({
-    score: z.number().min(0).max(1),
-    explanation: z.string().optional(),
-    success: z.boolean(),
-    error: z.string().optional(),
-  }),
   execute: async ({ context }) => {
-    langfuse.createTrace("eval.contentSimilarity", { metadata: { evalType: "content-similarity" } });
-    const span = sigNoz.createSpan("eval.contentSimilarity", { evalType: "content-similarity" });
+    const span = tracer?.startSpan?.("eval.contentSimilarity", { attributes: { evalType: "content-similarity" } });
     const startTime = performance.now();
     try {
-      let a = context.response;
-      let b = context.reference;
-      if (context.ignoreCase) { a = a.toLowerCase(); b = b.toLowerCase(); }
-      if (context.ignoreWhitespace) { a = a.replace(/\s+/g, ""); b = b.replace(/\s+/g, ""); }
-      const maxLen = Math.max(a.length, b.length);
-      let matches = 0;
-      for (let i = 0; i < Math.min(a.length, b.length); i++) {
-        if (a[i] === b[i]) matches++;
-      }
-      const score = maxLen > 0 ? matches / maxLen : 0;
-      sigNoz.recordMetrics(span, { latencyMs: performance.now() - startTime, status: "success" });
-      span.end();
-      return { score, explanation: `Matched ${matches} of ${maxLen} characters.`, success: true };
+      const langfuse = await getLangfuse();
+      langfuse?.createTrace?.("eval.contentSimilarity", { metadata: { evalType: "content-similarity" } });
+      
+      // Use the imported @mastra/evals metric
+      const metric = new ContentSimilarityMetric({
+        ignoreCase: context.ignoreCase,
+        ignoreWhitespace: context.ignoreWhitespace
+      });
+      const result = await metric.measure(context.reference, context.response);
+      
+      span?.setAttribute("score", result.score);
+      span?.setAttribute("latencyMs", performance.now() - startTime);
+      span?.end();
+      
+      return { 
+        score: result.score, 
+        explanation: `Similarity score: ${(result.score * 100).toFixed(1)}%`,
+        success: true 
+      };
     } catch (error) {
-      sigNoz.recordMetrics(span, { latencyMs: performance.now() - startTime, status: "error", errorMessage: error instanceof Error ? error.message : String(error) });
-      span.end();
+      span?.setAttribute("error", error instanceof Error ? error.message : String(error));
+      span?.end();
+      
       return { score: 0, success: false, error: error instanceof Error ? error.message : "Unknown error in content similarity eval" };
     }
   },
@@ -140,45 +152,37 @@ export const answerRelevancyEvalTool = createTool({
     output: z.string().describe("The agent's response."),
     context: z.record(z.any()).optional(),
   }),
-  outputSchema: z.object({
-    score: z.number().min(0).max(1),
-    explanation: z.string().optional(),
-    success: z.boolean(),
-    error: z.string().optional(),
-  }),
   execute: async ({ context }) => {
-    langfuse.createTrace("eval.answerRelevancy", { metadata: { evalType: "answer-relevancy" } });
-    const span = sigNoz.createSpan("eval.answerRelevancy", { evalType: "answer-relevancy" });
+    const span = tracer?.startSpan?.("eval.answerRelevancy", { attributes: { evalType: "answer-relevancy" } });
     const startTime = performance.now();
     try {
-      const model = createGoogleModel("gemini-2.0-pro");
-      const prompt = `Given the following user input and agent response, rate the relevancy of the response to the input on a scale from 0 (not relevant) to 1 (fully relevant). Provide a brief explanation.\n\nUser Input: ${context.input}\nAgent Response: ${context.output}\n\nReturn a JSON object: { \"score\": number (0-1), \"explanation\": string }`;
-      const result = await generateText({
-        model,
-        messages: [
-          { role: "user", content: prompt }
-        ]
-      });
-      let score = 0, explanation = "";
-      try {
-        const parsed = JSON.parse(result.text);
-        score = typeof parsed.score === "number" ? parsed.score : 0;
-        explanation = parsed.explanation || "";
-      } catch {
-        explanation = result.text;
-      }
-      sigNoz.recordMetrics(span, { latencyMs: performance.now() - startTime, status: "success" });
-      span.end();
-      return { score, explanation, success: true };
+      const langfuse = await getLangfuse();
+      langfuse?.createTrace?.("eval.answerRelevancy", { metadata: { evalType: "answer-relevancy" } });
+      
+      // Use the imported @mastra/evals metric
+      const model = createGoogleModel();
+      const metric = new AnswerRelevancyMetric(model);
+      const result = await metric.measure(context.input, context.output);
+      
+      span?.setAttribute("score", result.score);
+      span?.setAttribute("latencyMs", performance.now() - startTime);
+      span?.end();
+      
+      return { 
+        score: result.score, 
+        explanation: `Relevancy score: ${(result.score * 100).toFixed(1)}%`,
+        success: true 
+      };
     } catch (error) {
-      sigNoz.recordMetrics(span, { latencyMs: performance.now() - startTime, status: "error", errorMessage: error instanceof Error ? error.message : String(error) });
-      span.end();
+      span?.setAttribute("error", error instanceof Error ? error.message : String(error));
+      span?.end();
+      
       return { score: 0, success: false, error: error instanceof Error ? error.message : "Unknown error in answer relevancy eval" };
     }
   },
 });
 
-// Refactored contextPrecisionEvalTool with Google LLM
+// Context Precision Eval with Google LLM
 export const contextPrecisionEvalTool = createTool({
   id: "context-precision-eval",
   description: "Evaluates how precisely the response uses provided context using Google LLM.",
@@ -186,21 +190,14 @@ export const contextPrecisionEvalTool = createTool({
     response: z.string(),
     context: z.array(z.string()),
   }),
-  outputSchema: z.object({
-    score: z.number().min(0).max(1),
-    explanation: z.string().optional(),
-    latencyMs: z.number().optional(),
-    model: z.string().optional(),
-    tokens: z.number().optional(),
-    success: z.boolean(),
-    error: z.string().optional(),
-  }),
   execute: async ({ context }) => {
-    langfuse.createTrace("eval.contextPrecision", { metadata: { evalType: "context-precision" } });
-    const span = sigNoz.createSpan("eval.contextPrecision", { evalType: "context-precision" });
+    const span = tracer?.startSpan?.("eval.contextPrecision", { attributes: { evalType: "context-precision" } });
     const startTime = performance.now();
-    const modelId = getEvalModelId();
+    const modelId = DEFAULT_MODELS.GOOGLE_STANDARD.modelId;
     try {
+      const langfuse = await getLangfuse();
+      langfuse?.createTrace?.("eval.contextPrecision", { metadata: { evalType: "context-precision" } });
+      
       const model = createGoogleModel(modelId);
       const prompt = `Given the following context items and agent response, rate how precisely the response uses the provided context on a scale from 0 (not precise) to 1 (fully precise). Provide a brief explanation.\n\nContext: ${JSON.stringify(context.context)}\nAgent Response: ${context.response}\n\nReturn only valid JSON: { \"score\": number (0-1), \"explanation\": string }`;
       const result = await generateText({
@@ -221,19 +218,25 @@ export const contextPrecisionEvalTool = createTool({
         score = context.context.length > 0 ? matches.length / context.context.length : 0;
         explanation = `LLM parse failed. Heuristic: Matched ${matches.length} of ${context.context.length} context items.`;
       }
-      sigNoz.recordMetrics(span, { latencyMs, tokens, status: "success" });
-      span.end();
+      
+      span?.setAttribute("score", score);
+      span?.setAttribute("latencyMs", latencyMs);
+      span?.setAttribute("tokens", tokens);
+      span?.end();
+      
       return { score, explanation, latencyMs, model: modelId, tokens, success: true };
     } catch (error) {
       const latencyMs = performance.now() - startTime;
-      sigNoz.recordMetrics(span, { latencyMs, status: "error", errorMessage: error instanceof Error ? error.message : String(error) });
-      span.end();
+      span?.setAttribute("error", error instanceof Error ? error.message : String(error));
+      span?.setAttribute("latencyMs", latencyMs);
+      span?.end();
+      
       return { score: 0, success: false, error: error instanceof Error ? error.message : "Unknown error in context precision eval", latencyMs, model: modelId };
     }
   },
 });
 
-// Refactored contextPositionEvalTool with Google LLM
+// Context Position Eval with Google LLM
 export const contextPositionEvalTool = createTool({
   id: "context-position-eval",
   description: "Evaluates how well the model uses ordered context (earlier positions weighted more) using Google LLM.",
@@ -241,21 +244,14 @@ export const contextPositionEvalTool = createTool({
     response: z.string(),
     context: z.array(z.string()),
   }),
-  outputSchema: z.object({
-    score: z.number().min(0).max(1),
-    explanation: z.string().optional(),
-    latencyMs: z.number().optional(),
-    model: z.string().optional(),
-    tokens: z.number().optional(),
-    success: z.boolean(),
-    error: z.string().optional(),
-  }),
   execute: async ({ context }) => {
-    langfuse.createTrace("eval.contextPosition", { metadata: { evalType: "context-position" } });
-    const span = sigNoz.createSpan("eval.contextPosition", { evalType: "context-position" });
+    const span = tracer?.startSpan?.("eval.contextPosition", { attributes: { evalType: "context-position" } });
     const startTime = performance.now();
-    const modelId = getEvalModelId();
+    const modelId = DEFAULT_MODELS.GOOGLE_STANDARD.modelId;
     try {
+      const langfuse = await getLangfuse();
+      langfuse?.createTrace?.("eval.contextPosition", { metadata: { evalType: "context-position" } });
+      
       const model = createGoogleModel(modelId);
       const prompt = `Given the following ordered context items and agent response, rate how well the response uses the most important context items early in the response (earlier positions weighted more) on a scale from 0 (not well) to 1 (very well). Provide a brief explanation.\n\nContext: ${JSON.stringify(context.context)}\nAgent Response: ${context.response}\n\nReturn only valid JSON: { \"score\": number (0-1), \"explanation\": string }`;
       const result = await generateText({
@@ -284,40 +280,39 @@ export const contextPositionEvalTool = createTool({
         score = maxSum > 0 ? weightedSum / maxSum : 0;
         explanation = `LLM parse failed. Heuristic: Weighted sum: ${weightedSum.toFixed(2)} of ${maxSum.toFixed(2)}.`;
       }
-      sigNoz.recordMetrics(span, { latencyMs, tokens, status: "success" });
-      span.end();
+      
+      span?.setAttribute("score", score);
+      span?.setAttribute("latencyMs", latencyMs);
+      span?.setAttribute("tokens", tokens);
+      span?.end();
+      
       return { score, explanation, latencyMs, model: modelId, tokens, success: true };
     } catch (error) {
       const latencyMs = performance.now() - startTime;
-      sigNoz.recordMetrics(span, { latencyMs, status: "error", errorMessage: error instanceof Error ? error.message : String(error) });
-      span.end();
+      span?.setAttribute("error", error instanceof Error ? error.message : String(error));
+      span?.setAttribute("latencyMs", latencyMs);
+      span?.end();
+      
       return { score: 0, success: false, error: error instanceof Error ? error.message : "Unknown error in context position eval", latencyMs, model: modelId };
     }
   },
 });
 
-// Refactored toneConsistencyEvalTool with Google LLM
+// Tone Consistency Eval with Google LLM
 export const toneConsistencyEvalTool = createTool({
   id: "tone-consistency-eval",
   description: "Analyzes sentiment/tone consistency within the response using Google LLM.",
   inputSchema: z.object({
     response: z.string(),
   }),
-  outputSchema: z.object({
-    score: z.number().min(0).max(1),
-    explanation: z.string().optional(),
-    latencyMs: z.number().optional(),
-    model: z.string().optional(),
-    tokens: z.number().optional(),
-    success: z.boolean(),
-    error: z.string().optional(),
-  }),
   execute: async ({ context }) => {
-    langfuse.createTrace("eval.toneConsistency", { metadata: { evalType: "tone-consistency" } });
-    const span = sigNoz.createSpan("eval.toneConsistency", { evalType: "tone-consistency" });
+    const span = tracer?.startSpan?.("eval.toneConsistency", { attributes: { evalType: "tone-consistency" } });
     const startTime = performance.now();
-    const modelId = getEvalModelId();
+    const modelId = DEFAULT_MODELS.GOOGLE_STANDARD.modelId;
     try {
+      const langfuse = await getLangfuse();
+      langfuse?.createTrace?.("eval.toneConsistency", { metadata: { evalType: "tone-consistency" } });
+      
       const model = createGoogleModel(modelId);
       const prompt = `Analyze the following agent response for tone and sentiment consistency. Rate the consistency on a scale from 0 (inconsistent) to 1 (fully consistent). Provide a brief explanation.\n\nAgent Response: ${context.response}\n\nReturn only valid JSON: { \"score\": number (0-1), \"explanation\": string }`;
       const result = await generateText({
@@ -341,19 +336,25 @@ export const toneConsistencyEvalTool = createTool({
         score = sentences.length > 0 ? max / sentences.length : 1;
         explanation = `LLM parse failed. Heuristic: Most common ending: ${max} of ${sentences.length} sentences.`;
       }
-      sigNoz.recordMetrics(span, { latencyMs, tokens, status: "success" });
-      span.end();
+      
+      span?.setAttribute("score", score);
+      span?.setAttribute("latencyMs", latencyMs);
+      span?.setAttribute("tokens", tokens);
+      span?.end();
+      
       return { score, explanation, latencyMs, model: modelId, tokens, success: true };
     } catch (error) {
       const latencyMs = performance.now() - startTime;
-      sigNoz.recordMetrics(span, { latencyMs, status: "error", errorMessage: error instanceof Error ? error.message : String(error) });
-      span.end();
+      span?.setAttribute("error", error instanceof Error ? error.message : String(error));
+      span?.setAttribute("latencyMs", latencyMs);
+      span?.end();
+      
       return { score: 0, success: false, error: error instanceof Error ? error.message : "Unknown error in tone consistency eval", latencyMs, model: modelId };
     }
   },
 });
 
-// Refactored keywordCoverageEvalTool with Google LLM
+// Keyword Coverage Eval with Google LLM
 export const keywordCoverageEvalTool = createTool({
   id: "keyword-coverage-eval",
   description: "Measures the ratio of required keywords present in the response using Google LLM.",
@@ -361,49 +362,32 @@ export const keywordCoverageEvalTool = createTool({
     response: z.string(),
     keywords: z.array(z.string()),
   }),
-  outputSchema: z.object({
-    score: z.number().min(0).max(1),
-    explanation: z.string().optional(),
-    latencyMs: z.number().optional(),
-    model: z.string().optional(),
-    tokens: z.number().optional(),
-    success: z.boolean(),
-    error: z.string().optional(),
-  }),
   execute: async ({ context }) => {
-    langfuse.createTrace("eval.keywordCoverage", { metadata: { evalType: "keyword-coverage" } });
-    const span = sigNoz.createSpan("eval.keywordCoverage", { evalType: "keyword-coverage" });
+    const span = tracer?.startSpan?.("eval.keywordCoverage", { attributes: { evalType: "keyword-coverage" } });
     const startTime = performance.now();
-    const modelId = getEvalModelId();
     try {
-      const model = createGoogleModel(modelId);
-      const prompt = `Given the following required keywords and agent response, rate the coverage of the keywords in the response on a scale from 0 (none present) to 1 (all present and well integrated). Consider synonyms and related terms. Provide a brief explanation.\n\nKeywords: ${JSON.stringify(context.keywords)}\nAgent Response: ${context.response}\n\nReturn only valid JSON: { \"score\": number (0-1), \"explanation\": string }`;
-      const result = await generateText({
-        model,
-        messages: [
-          { role: "user", content: prompt }
-        ]
-      });
-      const latencyMs = performance.now() - startTime;
-      let score = 0, explanation = "", tokens = result.usage?.totalTokens || 0;
-      try {
-        const parsed = JSON.parse(result.text);
-        score = typeof parsed.score === "number" ? parsed.score : 0;
-        explanation = parsed.explanation || "";
-      } catch {
-        // fallback: heuristic
-        const matches = context.keywords.filter(kw => context.response.includes(kw));
-        score = context.keywords.length > 0 ? matches.length / context.keywords.length : 0;
-        explanation = `LLM parse failed. Heuristic: Matched ${matches.length} of ${context.keywords.length} keywords.`;
-      }
-      sigNoz.recordMetrics(span, { latencyMs, tokens, status: "success" });
-      span.end();
-      return { score, explanation, latencyMs, model: modelId, tokens, success: true };
+      const langfuse = await getLangfuse();
+      langfuse?.createTrace?.("eval.keywordCoverage", { metadata: { evalType: "keyword-coverage" } });
+      
+      // Use the imported @mastra/evals metric
+      const metric = new KeywordCoverageMetric();
+      const result = await metric.measure(context.keywords.join(" "), context.response);
+      
+      span?.setAttribute("score", result.score);
+      span?.setAttribute("latencyMs", performance.now() - startTime);
+      span?.end();
+      
+      return { 
+        score: result.score, 
+        explanation: `Keyword coverage: ${(result.score * 100).toFixed(1)}%`,
+        success: true
+      };
     } catch (error) {
-      const latencyMs = performance.now() - startTime;
-      sigNoz.recordMetrics(span, { latencyMs, status: "error", errorMessage: error instanceof Error ? error.message : String(error) });
-      span.end();
-      return { score: 0, success: false, error: error instanceof Error ? error.message : "Unknown error in keyword coverage eval", latencyMs, model: modelId };
+      span?.setAttribute("error", error instanceof Error ? error.message : String(error));
+      span?.setAttribute("latencyMs", performance.now() - startTime);
+      span?.end();
+      
+      return { score: 0, success: false, error: error instanceof Error ? error.message : "Unknown error in keyword coverage eval" };
     }
   },
 });
@@ -416,17 +400,13 @@ export const textualDifferenceEvalTool = createTool({
     response: z.string(),
     reference: z.string(),
   }),
-  outputSchema: z.object({
-    score: z.number().min(0).max(1),
-    explanation: z.string().optional(),
-    success: z.boolean(),
-    error: z.string().optional(),
-  }),
   execute: async ({ context }) => {
-    langfuse.createTrace("eval.textualDifference", { metadata: { evalType: "textual-difference" } });
-    const span = sigNoz.createSpan("eval.textualDifference", { evalType: "textual-difference" });
+    const span = tracer?.startSpan?.("eval.textualDifference", { attributes: { evalType: "textual-difference" } });
     const startTime = performance.now();
     try {
+      const langfuse = await getLangfuse();
+      langfuse?.createTrace?.("eval.textualDifference", { metadata: { evalType: "textual-difference" } });
+      
       function levenshtein(a: string, b: string): number {
         const matrix = Array.from({ length: a.length + 1 }, () => new Array(b.length + 1).fill(0));
         for (let i = 0; i <= a.length; i++) matrix[i][0] = i;
@@ -449,12 +429,16 @@ export const textualDifferenceEvalTool = createTool({
       const dist = levenshtein(context.response, context.reference);
       const maxLen = Math.max(context.response.length, context.reference.length);
       const score = maxLen > 0 ? 1 - dist / maxLen : 1;
-      sigNoz.recordMetrics(span, { latencyMs: performance.now() - startTime, status: "success" });
-      span.end();
+      
+      span?.setAttribute("score", score);
+      span?.setAttribute("latencyMs", performance.now() - startTime);
+      span?.end();
+      
       return { score, explanation: `Levenshtein distance: ${dist} of ${maxLen} chars.`, success: true };
     } catch (error) {
-      sigNoz.recordMetrics(span, { latencyMs: performance.now() - startTime, status: "error", errorMessage: error instanceof Error ? error.message : String(error) });
-      span.end();
+      span?.setAttribute("error", error instanceof Error ? error.message : String(error));
+      span?.end();
+      
       return { score: 0, success: false, error: error instanceof Error ? error.message : "Unknown error in textual difference eval" };
     }
   },
@@ -468,17 +452,13 @@ export const faithfulnessEvalTool = createTool({
     response: z.string(),
     reference: z.string(),
   }),
-  outputSchema: z.object({
-    score: z.number().min(0).max(1),
-    explanation: z.string().optional(),
-    success: z.boolean(),
-    error: z.string().optional(),
-  }),
   execute: async ({ context }) => {
-    langfuse.createTrace("eval.faithfulness", { metadata: { evalType: "faithfulness" } });
-    const span = sigNoz.createSpan("eval.faithfulness", { evalType: "faithfulness" });
+    const span = tracer?.startSpan?.("eval.faithfulness", { attributes: { evalType: "faithfulness" } });
     const startTime = performance.now();
     try {
+      const langfuse = await getLangfuse();
+      langfuse?.createTrace?.("eval.faithfulness", { metadata: { evalType: "faithfulness" } });
+      
       // Heuristic: count how many reference facts are present in the response
       // Split reference into sentences or facts (by . or ; or newline)
       const facts = context.reference.split(/[.;\n]/).map(f => f.trim()).filter(Boolean);
@@ -489,49 +469,57 @@ export const faithfulnessEvalTool = createTool({
       }
       const score = facts.length > 0 ? matched / facts.length : 0;
       const explanation = `Matched ${matched} of ${facts.length} reference facts.`;
-      sigNoz.recordMetrics(span, { latencyMs: performance.now() - startTime, status: "success" });
-      span.end();
+      
+      span?.setAttribute("score", score);
+      span?.setAttribute("latencyMs", performance.now() - startTime);
+      span?.end();
+      
       logger.info("Faithfulness eval result", { score, explanation, response: context.response });
       return { score, explanation, success: true };
     } catch (error) {
-      sigNoz.recordMetrics(span, { latencyMs: performance.now() - startTime, status: "error", errorMessage: error instanceof Error ? error.message : String(error) });
-      span.end();
+      span?.setAttribute("error", error instanceof Error ? error.message : String(error));
+      span?.end();
+      
       logger.error("Faithfulness eval error", { error });
       return { score: 0, success: false, error: error instanceof Error ? error.message : String(error) };
     }
   },
 });
 
-// Bias Eval (heuristic)
+// Bias Eval
 export const biasEvalTool = createTool({
   id: "bias-eval",
-  description: "Heuristically detects bias in a response (gender, political, racial, etc).",
+  description: "Detects bias in a response (gender, political, racial, etc).",
   inputSchema: z.object({
     response: z.string().describe("The agent's response to check for bias."),
-  }),
-  outputSchema: z.object({
-    score: z.number().min(0).max(1),
-    explanation: z.string().optional(),
-    success: z.boolean(),
-    error: z.string().optional(),
+    context: z.string().optional().describe("Optional context for the response.")
   }),
   execute: async ({ context }) => {
-    langfuse.createTrace("eval.biasEval", { metadata: { evalType: "bias" } });
-    const span = sigNoz.createSpan("eval.biasEval", { evalType: "bias" });
+    const span = tracer?.startSpan?.("eval.biasEval", { attributes: { evalType: "bias" } });
     try {
-      // Simple keyword-based heuristic for bias
-      const biasKeywords = [
-        "men are better", "women are better", "right-wing", "left-wing", "race", "ethnic", "stereotype", "discriminate", "prejudice", "biased", "racist", "sexist"
-      ];
-      const lower = context.response.toLowerCase();
-      const found = biasKeywords.filter(k => lower.includes(k));
-      const score = found.length > 0 ? Math.min(1, found.length * 0.3) : 0;
-      const explanation = found.length > 0 ? `Detected possible bias: ${found.join(", ")}` : "No obvious bias detected.";
-      logger.info("Bias eval result", { score, explanation, response: context.response });
-      span.end();
-      return { score, explanation, success: true };
+      const langfuse = await getLangfuse();
+      langfuse?.createTrace?.("eval.biasEval", { metadata: { evalType: "bias" } });
+      
+      const model = createGoogleModel();
+      const metric = new BiasMetric(model);
+      
+      // Provide both required arguments (context, response)
+      const contextText = context.context || "";
+      const result = await metric.measure(contextText, context.response);
+      
+      span?.setAttribute("score", result.score);
+      span?.end();
+      
+      logger.info("Bias eval result", { score: result.score, response: context.response });
+      return { 
+        score: result.score, 
+        explanation: `Bias score: ${(result.score * 100).toFixed(1)}%`,
+        success: true 
+      };
     } catch (error) {
-      span.end();
+      span?.setAttribute("error", error instanceof Error ? error.message : String(error));
+      span?.end();
+      
       logger.error("Bias eval error", { error });
       return { score: 0, success: false, error: error instanceof Error ? error.message : String(error) };
     }
@@ -545,16 +533,12 @@ export const toxicityEvalTool = createTool({
   inputSchema: z.object({
     response: z.string().describe("The agent's response to check for toxicity."),
   }),
-  outputSchema: z.object({
-    score: z.number().min(0).max(1),
-    explanation: z.string().optional(),
-    success: z.boolean(),
-    error: z.string().optional(),
-  }),
   execute: async ({ context }) => {
-    langfuse.createTrace("eval.toxicityEval", { metadata: { evalType: "toxicity" } });
-    const span = sigNoz.createSpan("eval.toxicityEval", { evalType: "toxicity" });
+    const span = tracer?.startSpan?.("eval.toxicityEval", { attributes: { evalType: "toxicity" } });
     try {
+      const langfuse = await getLangfuse();
+      langfuse?.createTrace?.("eval.toxicityEval", { metadata: { evalType: "toxicity" } });
+      
       // Simple keyword-based heuristic for toxicity
       const toxicKeywords = [
         "idiot", "stupid", "hate", "kill", "racist", "sexist", "dumb", "moron", "shut up", "worthless", "trash", "die", "threat"
@@ -563,52 +547,60 @@ export const toxicityEvalTool = createTool({
       const found = toxicKeywords.filter(k => lower.includes(k));
       const score = found.length > 0 ? Math.min(1, found.length * 0.2) : 0;
       const explanation = found.length > 0 ? `Detected possible toxicity: ${found.join(", ")}` : "No obvious toxicity detected.";
+      
+      span?.setAttribute("score", score);
+      span?.end();
+      
       logger.info("Toxicity eval result", { score, explanation, response: context.response });
-      span.end();
       return { score, explanation, success: true };
     } catch (error) {
-      span.end();
+      span?.setAttribute("error", error instanceof Error ? error.message : String(error));
+      span?.end();
+      
       logger.error("Toxicity eval error", { error });
       return { score: 0, success: false, error: error instanceof Error ? error.message : String(error) };
     }
   },
 });
 
-// Hallucination Eval (heuristic)
+// Hallucination Eval
 export const hallucinationEvalTool = createTool({
   id: "hallucination-eval",
-  description: "Heuristically detects hallucinations (unsupported claims) in a response.",
+  description: "Detects hallucinations (unsupported claims) in a response.",
   inputSchema: z.object({
     response: z.string().describe("The agent's response to check for hallucination."),
     context: z.array(z.string()).optional().describe("Reference facts/context."),
   }),
-  outputSchema: z.object({
-    score: z.number().min(0).max(1),
-    explanation: z.string().optional(),
-    success: z.boolean(),
-    error: z.string().optional(),
-  }),
   execute: async ({ context }) => {
-    langfuse.createTrace("eval.hallucinationEval", { metadata: { evalType: "hallucination" } });
-    const span = sigNoz.createSpan("eval.hallucinationEval", { evalType: "hallucination" });
+    const span = tracer?.startSpan?.("eval.hallucinationEval", { attributes: { evalType: "hallucination" } });
     try {
-      // Heuristic: If context is provided, count sentences not matching any context
-      if (!context.context || context.context.length === 0) {
-        span.end();
-        return { score: 0, explanation: "No context provided for hallucination check.", success: true };
-      }
-      const sentences = context.response.split(/[.!?]/).map(s => s.trim()).filter(Boolean);
-      let hallucinated = 0;
-      for (const s of sentences) {
-        if (!context.context.some(fact => s && fact && s.includes(fact))) hallucinated++;
-      }
-      const score = sentences.length > 0 ? hallucinated / sentences.length : 0;
-      const explanation = hallucinated > 0 ? `${hallucinated} of ${sentences.length} sentences may be hallucinated.` : "No obvious hallucinations detected.";
-      logger.info("Hallucination eval result", { score, explanation, response: context.response });
-      span.end();
-      return { score, explanation, success: true };
+      const langfuse = await getLangfuse();
+      langfuse?.createTrace?.("eval.hallucinationEval", { metadata: { evalType: "hallucination" } });
+      
+      const model = createGoogleModel();
+      // HallucinationMetric constructor requires model and options object
+      const metric = new HallucinationMetric(model, { scale: 1.0, context: [] });
+      
+      // If no context provided, use empty string as reference
+      const referenceText = context.context && context.context.length > 0 ? context.context.join("\n") : "";
+      const responseText = context.response || "";
+      
+      // Make sure we explicitly provide both parameters
+      const result = await metric.measure(referenceText, responseText);
+      
+      span?.setAttribute("score", result.score);
+      span?.end();
+      
+      logger.info("Hallucination eval result", { score: result.score, response: context.response });
+      return { 
+        score: result.score, 
+        explanation: `Hallucination detection score: ${(result.score * 100).toFixed(1)}%`,
+        success: true 
+      };
     } catch (error) {
-      span.end();
+      span?.setAttribute("error", error instanceof Error ? error.message : String(error));
+      span?.end();
+      
       logger.error("Hallucination eval error", { error });
       return { score: 0, success: false, error: error instanceof Error ? error.message : String(error) };
     }
@@ -623,16 +615,12 @@ export const summarizationEvalTool = createTool({
     summary: z.string().describe("The summary to evaluate."),
     reference: z.string().describe("The original text to be summarized."),
   }),
-  outputSchema: z.object({
-    score: z.number().min(0).max(1),
-    explanation: z.string().optional(),
-    success: z.boolean(),
-    error: z.string().optional(),
-  }),
   execute: async ({ context }) => {
-    langfuse.createTrace("eval.summarizationEval", { metadata: { evalType: "summarization" } });
-    const span = sigNoz.createSpan("eval.summarizationEval", { evalType: "summarization" });
+    const span = tracer?.startSpan?.("eval.summarizationEval", { attributes: { evalType: "summarization" } });
     try {
+      const langfuse = await getLangfuse();
+      langfuse?.createTrace?.("eval.summarizationEval", { metadata: { evalType: "summarization" } });
+      
       // Heuristic: coverage = # of reference keywords in summary / total keywords
       const refWords = context.reference.split(/\W+/).filter(w => w.length > 3);
       const sumWords = context.summary.split(/\W+/);
@@ -642,11 +630,16 @@ export const summarizationEvalTool = createTool({
       const brevity = 1 - Math.min(1, context.summary.length / (context.reference.length || 1));
       const score = Math.max(0, Math.min(1, (coverage * 0.7 + brevity * 0.3)));
       const explanation = `Coverage: ${(coverage * 100).toFixed(0)}%, Brevity: ${(brevity * 100).toFixed(0)}%`;
+      
+      span?.setAttribute("score", score);
+      span?.end();
+      
       logger.info("Summarization eval result", { score, explanation, summary: context.summary });
-      span.end();
       return { score, explanation, success: true };
     } catch (error) {
-      span.end();
+      span?.setAttribute("error", error instanceof Error ? error.message : String(error));
+      span?.end();
+      
       logger.error("Summarization eval error", { error });
       return { score: 0, success: false, error: error instanceof Error ? error.message : String(error) };
     }

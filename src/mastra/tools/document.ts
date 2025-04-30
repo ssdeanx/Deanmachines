@@ -12,8 +12,8 @@ import { Document } from "langchain/document";
 import { Pinecone } from "@pinecone-database/pinecone"; // Import the main Pinecone client
 import { PineconeStore } from "@langchain/pinecone"; // Import the LangChain Pinecone vector store
 import { createEmbeddings } from "../database/vector-store";
-import { createLangSmithRun, trackFeedback } from "../services/langsmith";
 import { env } from "process";
+
 
 /**
  * Options for chunking documents
@@ -69,17 +69,8 @@ export const embedDocumentTool = createTool({
       .default(200)
       .describe("Overlap between text chunks"),
   }),
-  outputSchema: z.object({
-    success: z.boolean(),
-    documentId: z.string().optional(),
-    chunkCount: z.number().optional(),
-    error: z.string().optional(),
-  }),
   execute: async ({ context }) => {
-    const runId = await createLangSmithRun("embed-document", [
-      "document",
-      "embedding",
-    ]);
+    try {
 
     try {
       // Create embeddings for vector store
@@ -122,12 +113,7 @@ export const embedDocumentTool = createTool({
 
       await vectorStore.addDocuments(enrichedChunks);
 
-      // Track successful embedding in LangSmith
-      await trackFeedback(runId, {
-        score: 1,
-        comment: `Successfully embedded document with ${chunks.length} chunks`,
-        key: "embedding_success",
-      });
+
 
       return {
         success: true,
@@ -137,12 +123,7 @@ export const embedDocumentTool = createTool({
     } catch (error) {
       console.error("Error embedding document:", error);
 
-      // Track failure in LangSmith
-      await trackFeedback(runId, {
-        score: 0,
-        comment: error instanceof Error ? error.message : "Unknown error",
-        key: "embedding_failure",
-      });
+
 
       return {
         success: false,
@@ -177,21 +158,7 @@ export const retrieveDocumentTool = createTool({
       .optional()
       .describe("Filter results by metadata fields"),
   }),
-  outputSchema: z.object({
-    documents: z.array(
-      z.object({
-        content: z.string(),
-        metadata: z.record(z.string(), z.any()),
-        score: z.number().optional(),
-      })
-    ),
-    count: z.number(),
-  }),
   execute: async ({ context }) => {
-    const runId = await createLangSmithRun("retrieve-document", [
-      "document",
-      "retrieval",
-    ]);
 
     try {
       const embeddings = createEmbeddings();
@@ -225,13 +192,7 @@ export const retrieveDocumentTool = createTool({
         score: (doc as any).score ?? (doc.metadata as any)?.score, // Attempt to get score if available
       }));
 
-      // Track successful retrieval in LangSmith
-      await trackFeedback(runId, {
-        score: 1,
-        comment: `Successfully retrieved ${documents.length} documents`,
-        key: "retrieval_success",
-        value: { documentCount: documents.length },
-      });
+
 
       return {
         documents,
@@ -240,12 +201,7 @@ export const retrieveDocumentTool = createTool({
     } catch (error) {
       console.error("Error retrieving documents:", error);
 
-      // Track failure in LangSmith
-      await trackFeedback(runId, {
-        score: 0,
-        comment: error instanceof Error ? error.message : "Unknown error",
-        key: "retrieval_failure",
-      });
+
 
       return {
         documents: [],

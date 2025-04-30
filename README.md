@@ -32,6 +32,10 @@ Welcome to the **DeanMachines Mastra AI Workspace**! This monorepo contains the 
   - [Final Notes](#final-notes)
   - [Getting Help](#getting-help)
   - [Mermaid Diagram](#mermaid-diagram)
+  - [Large Token Context Support](#large-token-context-support)
+    - [Memory Processors](#memory-processors)
+      - [How to Use](#how-to-use)
+      - [Custom Memory Processors](#custom-memory-processors)
 
 ---
 
@@ -775,3 +779,39 @@ graph TD
     %% Edges at this level (grouped by source)
     11324["User<br>External Actor"] -->|interacts with| 11325["Mastra Entry Point<br>TypeScript"]
 ```
+
+## Large Token Context Support
+
+This project is optimized to handle large token contexts (up to 1 million tokens) using custom memory processors.
+
+### Memory Processors
+
+The memory processing system helps manage conversations with large token limits by:
+
+1. **Token Limiting**: Automatically trims old messages when approaching the 1M token limit
+2. **Message Prioritization**: Keeps recent and important messages while removing less relevant ones
+3. **Tool Call Filtering**: Removes verbose tool calls that consume token space
+
+#### How to Use
+
+High token limit support is enabled by default. If you need to disable it for certain memory instances:
+
+```typescript
+// Create memory with high token limits disabled
+const memory = await createMemory({ 
+  ...defaultMemoryConfig,
+  highTokenLimits: false 
+});
+
+// Create memory with high token limits enabled (default)
+const memory = await createMemory(defaultMemoryConfig);
+```
+
+#### Custom Memory Processors
+
+The implementation is in `src/mastra/database/memory-processors.ts` and includes:
+
+- `HighVolumeContextProcessor`: Prioritizes messages for large contexts
+- `createLargeContextProcessors()`: Factory function that creates an optimized chain of processors
+
+This allows handling conversations with up to 1 million tokens efficiently while preserving the most important context.

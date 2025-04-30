@@ -1,9 +1,9 @@
 {
   "compilerOptions": {
     "module": "ESNext",
-    "moduleResolution": "Node",
+    "moduleResolution": "bundler",
     "target": "ES2022",
-    "jsx": "react",
+    "jsx": "react", 
     "strictNullChecks": true,
     "strictFunctionTypes": false,
     "sourceMap": true

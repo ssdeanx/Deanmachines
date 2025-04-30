@@ -16,7 +16,6 @@ import * as mammoth from "mammoth";
 import * as Papa from "papaparse";
 import * as cheerio from "cheerio";
 import { createLogger } from "@mastra/core/logger";
-import { createAISpan, recordMetrics } from "../services/signoz";
 
 const logger = createLogger({ name: "document-tools", level: process.env.LOG_LEVEL === "debug" ? "debug" : "info" });
 
@@ -293,7 +292,6 @@ export const extractHtmlTextTool = createTool({
     text: z.string().describe("Extracted visible text from the HTML body."),
   }),
   execute: async ({ context }) => {
-    const span = createAISpan("extractHtmlTextTool.execute");
     try {
       let html = context.html;
       if (!html && context.url) {
@@ -306,14 +304,10 @@ export const extractHtmlTextTool = createTool({
       logger.info("Extracting text from HTML using cheerio");
       const $ = cheerio.load(html);
       const text = $("body").text();
-      recordMetrics(span, { status: "success" });
       return { text };
     } catch (error) {
       logger.error(`extractHtmlTextTool error: ${error instanceof Error ? error.message : String(error)}`);
-      recordMetrics(span, { status: "error", errorMessage: error instanceof Error ? error.message : String(error) });
       throw error;
-    } finally {
-      span.end();
     }
   },
 });

@@ -7,6 +7,7 @@ export const parserOptions = {
 };
 export const plugins = [
   '@typescript-eslint',
+  'prettier',
 ];
 export const extendRules = [];export const rules = {};
 export const ignorePatterns = [

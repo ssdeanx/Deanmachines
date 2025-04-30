@@ -17,10 +17,20 @@ All notable changes to the DeanMachines Mastra Backend will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v0.2.8] - 2025-04-29
+## [v0.2.9] - 2025-05-02 14:30 EST
 
 ### Added
 
+- **1 Million Token Context Support**:
+  - Implemented custom memory processors in `src/mastra/database/memory-processors.ts` to handle large token limits up to 1M.
+  - Created `HighVolumeContextProcessor` that prioritizes recent and important messages for optimal context preservation.
+  - Integrated `js-tiktoken` for accurate token counting with proper fallbacks.
+  - Extended memory creation in `database/index.ts` to apply processors automatically with configurable options.
+  - All memory instances now support 1M token contexts by default through `createLargeContextProcessors()`.
+
+- **Enhanced Evaluation Capabilities**:
+  - Improved evals processing with large context windows.
+  - Added performance metrics for tracking token usage across both memory and evaluation processes.
 - **Full GraphRAG Tool Registration & Observability**:
   - All GraphRAG loader tools (`graphRagLoaders`), exporter tools (`graphRagExporters`), and advanced tools (`graphRagTools`) are now
 registered in the Mastra tool registry (`extraTools`, `allTools`, `allToolsMap`, `toolGroups`).
