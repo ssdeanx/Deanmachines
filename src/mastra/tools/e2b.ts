@@ -1,14 +1,30 @@
-import { createAIFunction, getEnv } from "@agentic/core";
-import { createMastraTools } from "@agentic/mastra";
+import { aiFunction, AIFunctionsProvider, getEnv } from "@agentic/core";
+import { createMastraTools } from "./mastra";
 import { Sandbox } from "@e2b/code-interpreter";
 import { z } from "zod";
+
+export const E2BOutputSchema = z.object({
+  results: z.array(z.any()),
+  stdout: z.string(),
+  stderr: z.string(),
+  exitCode: z.number(),
+  outputFiles: z.record(z.string(), z.string().nullable()),
+  error: z.boolean().optional(),
+});
 
 /**
  * E2B code interpreter sandbox for Python and TypeScript.
  * Supports pre-commands, package installation, file writing, env vars, output file retrieval, and returns full execution details.
  */
-export const e2b = createAIFunction(
-  {
+export class E2BClient extends AIFunctionsProvider {
+  private apiKey?: string;
+
+  constructor(config: { apiKey?: string } = {}) {
+    super();
+    this.apiKey = config.apiKey;
+  }
+
+  @aiFunction({
     name: "execute_code",
     description: `
 Execute code in a secure E2B sandbox. Supports Python and TypeScript.
@@ -32,10 +48,19 @@ Execute code in a secure E2B sandbox. Supports Python and TypeScript.
       env: z.record(z.string(), z.string()).optional().describe("Environment variables for the execution."),
       timeout: z.number().int().optional().describe("Timeout in milliseconds for code execution."),
     }),
-  },
-  async ({ code, language, install, files, preCommands, outputFiles, env, timeout }) => {
+  })
+  async executeCode({ code, language, install, files, preCommands, outputFiles, env, timeout }: {
+    code: string;
+    language: "python" | "typescript";
+    install?: string[];
+    files?: Record<string, string>;
+    preCommands?: string[];
+    outputFiles?: string[];
+    env?: Record<string, string>;
+    timeout?: number;
+  }) {
     const sandbox = await Sandbox.create({
-      apiKey: getEnv("E2B_API_KEY"),
+      apiKey: this.apiKey || getEnv("E2B_API_KEY"),
     });
 
     try {
@@ -100,9 +125,6 @@ Execute code in a secure E2B sandbox. Supports Python and TypeScript.
         }
       }
 
-      // TypeScript error: Property 'stdout' does not exist on type 'Execution'
-      // Solution: Use type assertion or check the actual structure returned by sandbox.runCode.
-      // If you are sure 'stdout' exists at runtime, use type assertion:
       return {
         results: exec.results ? exec.results.map((r: any) => r.toJSON?.() ?? r) : [],
         stdout: (exec as any).stdout ?? "",
@@ -125,32 +147,22 @@ Execute code in a secure E2B sandbox. Supports Python and TypeScript.
       await sandbox.kill();
     }
   }
-);
-
-export const E2BOutputSchema = z.object({
-  results: z.array(z.any()),
-  stdout: z.string(),
-  stderr: z.string(),
-  exitCode: z.number(),
-  outputFiles: z.record(z.string(), z.string().nullable()),
-  error: z.boolean().optional(),
-});
-
-export function createE2BSandboxTool(config: {
-  apiKey?: string;
-} = {}) {
-  return e2b;
 }
 
-export function createMastraE2BTools(config: {
-  apiKey?: string;
-} = {}) {
-  const e2bTool = createE2BSandboxTool(config);
-  const mastraTools = createMastraTools(e2bTool);
-  if (mastraTools.execute_code) {
-    (mastraTools.execute_code as any).outputSchema = E2BOutputSchema;
-  }
-  return mastraTools;
+/**
+ * Returns E2B functions.
+ * @param config E2B configuration (optional apiKey)
+ */
+export function createE2BSandboxTool(config: { apiKey?: string } = {}) {
+  const client = new E2BClient(config);
+  return client.functions;
 }
 
-export { createMastraTools };
+/**
+ * Returns Mastra-compatible E2B tools with config applied.
+ * @param config E2B configuration (optional apiKey)
+ */
+export function createMastraE2BTools(config: { apiKey?: string } = {}) {
+  const client = new E2BClient(config);
+  return createMastraTools(...client.functions);
+}

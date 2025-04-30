@@ -145,8 +145,7 @@ export function createMastraExaSearchTools(config?: { apiKey?: string }) {
   return mastraTools;
 }
 
-// Export adapter for convenience
-export { createMastraTools };
+
 
 // Default export for easier importing
 export default createExaSearchProvider;

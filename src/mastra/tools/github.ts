@@ -545,4 +545,4 @@ export function createMastraGitHubTools(
 }
 
 // Export adapter for convenience
-export { createMastraTools, GitHubUserSchema, GitHubRepoSchema, GitHubReposListSchema, GitHubIssueSchema, GitHubIssuesListSchema, GitHubPullSchema, GitHubPullsListSchema, GitHubBranchSchema, GitHubBranchesListSchema, GitHubCommitSchema, GitHubCommitsListSchema, GitHubReleaseSchema, GitHubReleasesListSchema, GitHubCodeSearchItemSchema, GitHubCodeSearchResultsSchema };
+export { GitHubUserSchema, GitHubRepoSchema, GitHubReposListSchema, GitHubIssueSchema, GitHubIssuesListSchema, GitHubPullSchema, GitHubPullsListSchema, GitHubBranchSchema, GitHubBranchesListSchema, GitHubCommitSchema, GitHubCommitsListSchema, GitHubReleaseSchema, GitHubReleasesListSchema, GitHubCodeSearchItemSchema, GitHubCodeSearchResultsSchema };

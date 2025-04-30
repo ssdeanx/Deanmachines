@@ -1,6 +1,6 @@
 import { PolygonClient } from '@agentic/polygon';
 import { aiFunction, AIFunctionsProvider, getEnv } from "@agentic/core";
-import { createMastraTools } from "@agentic/mastra";
+import { createMastraTools } from "./mastra";
 import { z } from "zod";
 
 /**
@@ -518,4 +518,3 @@ export function createMastraPolygonTools(config: { apiKey?: string } = {}) {
 
 // Re-export createMastraTools if needed elsewhere, though it's already imported.
 // Consider if this re-export is necessary or if direct import is preferred.
-export { createMastraTools };

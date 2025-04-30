@@ -94,7 +94,7 @@ import { createMastraNotionTools, createAISDKNotionTools, createGenkitNotionTool
 import { puppeteerTool } from "./puppeteerTool";
 import { hyperAgentTool } from "./hyper-functionCalls";
 import { getTracer } from "../services/tracing";
-
+import { createMastraFirecrawlTools, FirecrawlScrapeSchema, FirecrawlCrawlSchema } from "./firecrawlTool"; // Import Firecrawl tools
 import { langfuse } from "../services/langfuse";
 
 // === Export all tool modules (Consider if all are needed) ===
@@ -128,7 +128,7 @@ export * from "./reddit";
 export * from "./mcptool";
 export * from "./puppeteerTool";
 export * from "./hyper-functionCalls";
-
+export * from "./firecrawlTool"; // Export Firecrawl tools
 // === Configure Logger ===
 const logger = createLogger({ name: "tool-initialization", level: "info" });
 const tracer = getTracer();
@@ -158,6 +158,7 @@ const envSchema = z.object({
   GITHUB_API_KEY: z.string().min(1, "GitHub API key is required"),
   POLYGON_API_KEY: z.string().min(1, "Polygon API key is required"), // <-- Added for Polygon
   SMITHERY_API_KEY: z.string().min(1, "Smithery API key is required"),
+  FIRECRAWL_API_KEY: z.string().optional(), // Added for Firecrawl
 });
 
 /**

@@ -173,4 +173,4 @@ export function createMastraWikidataTools(config: {
 }
 
 // Export adapter and schemas for convenience
-export { createMastraTools, WikidataEntitySchema, WikidataEntityMapSchema };
+export { WikidataEntitySchema, WikidataEntityMapSchema };

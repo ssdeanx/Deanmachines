@@ -85,5 +85,3 @@ export function createMastraRedditTools() {
   }
   return mastraTools;
 }
-
-export { createMastraTools };

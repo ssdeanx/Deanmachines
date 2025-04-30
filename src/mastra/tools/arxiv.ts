@@ -356,5 +356,4 @@ export function createMastraArxivTools(config: {
   return mastraTools;
 }
 
-// Export adapter for convenience
-export { createMastraTools };
+

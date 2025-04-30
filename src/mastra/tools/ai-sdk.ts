@@ -47,5 +47,4 @@ export function createMastraAISDKTools(
   return createMastraTools(...aiFunctionLikeTools);
 }
 
-// Export adapter for convenience
-export { createMastraTools };
+

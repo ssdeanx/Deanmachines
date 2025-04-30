@@ -305,5 +305,3 @@ export function createMastraWikipediaTools(config: {
   return mastraTools;
 }
 
-// Export adapter for convenience
-export { createMastraTools };
