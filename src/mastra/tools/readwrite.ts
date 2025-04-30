@@ -1,3 +1,4 @@
+
 /**
  * File Reading and Writing Tools for Mastra AI, now thread-aware.
  * All tool input schemas accept an optional threadId for tracing and debugging.
@@ -8,15 +9,16 @@
  */
 import * as fs from "fs/promises";
 import * as path from "path";
-import { fileURLToPath } from "url";
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { fileURLToPath } from 'url';  // Add this import
 import { createTool, ToolExecutionContext } from "@mastra/core/tools";
-import { z, ZodTypeAny, any as zodAny, type ZodType } from 'zod';
+import { z } from 'zod';
 import { createLogger } from "@mastra/core/logger";
 // LAZY LANGFUSE: see below for dynamic import in each function that uses langfuse
 import { getTracer } from "../services/tracing";
 
+//ignore this file for linting  
+const __filename = fileURLToPath(import.meta.url);  // ES module equivalent
+const __dirname = path.dirname(__filename);
 
 // === Configure Logger ===
 const logger = createLogger({ name: "readwrite" });
@@ -405,14 +407,14 @@ export const writeToFileTool = createTool({
         throw new Error("Invalid file path");
       }
 
-      if (!isInMastraDir(absolutePath)) {
+      const isValidPath = await isInMastraDir(absolutePath);
+      if (!isValidPath) {
         return {
           metadata: {
             path: absolutePath,
             size: 0,
             extension: path.extname(absolutePath),
             encoding: context.encoding,
-
           },
           success: false,
           error: "Access denied: Can only write to .mastra directory",
@@ -431,7 +433,6 @@ export const writeToFileTool = createTool({
             size: contentSize,
             extension: path.extname(absolutePath),
             encoding: context.encoding,
-
           },
           success: false,
           error: `Content too large: ${contentSize} bytes (max: ${maxSizeBytes} bytes)`,
@@ -502,8 +503,8 @@ export const readKnowledgeFileTool = createTool({
       // Only pass fields that exist on ReadFileInputSchema
       const { encoding, threadId } = executionContext.context;
       // Use type-safe access for startLine and endLine if present
-      const startLine = (executionContext.context as any).startLine;
-      const endLine = (executionContext.context as any).endLine;
+      const startLine = 'startLine' in executionContext.context ? executionContext.context.startLine as number | undefined : undefined;
+      const endLine = 'endLine' in executionContext.context ? executionContext.context.endLine as number | undefined : undefined;
       type ReadFileContext = {
         path: string;
         encoding: FileEncoding;
@@ -691,7 +692,8 @@ export const createFileTool = createTool({
       throw new Error("Invalid file path");
     }
 
-    if (!isInMastraDir(absolutePath)) {
+    const isValidPath = await isInMastraDir(absolutePath);
+    if (!isValidPath) {
       return {
         metadata: {
           path: absolutePath,
@@ -778,7 +780,8 @@ export const editFileTool = createTool({
       throw new Error("Invalid file path");
     }
 
-    if (!isInMastraDir(absolutePath)) {
+    const isValidPath = await isInMastraDir(absolutePath);
+    if (!isValidPath) {
       return {
         metadata: {
           path: absolutePath,
@@ -794,12 +797,12 @@ export const editFileTool = createTool({
 
     try {
       // Read file content as string using the specified encoding
-      let content = await fs.readFile(absolutePath, { encoding: executionContext.context.encoding });
+      const content = await fs.readFile(absolutePath, { encoding: executionContext.context.encoding });
       let edits = 0;
       let newContent: string; // Declare newContent here
       if (executionContext.context.isRegex) {
         const regex = new RegExp(executionContext.context.search, "g");
-        newContent = content.replace(regex, (match: string): string => { // Use content (string)
+        newContent = content.replace(regex, (): string => { 
           edits++;
           return executionContext.context.replace;
         });

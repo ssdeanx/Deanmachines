@@ -46,7 +46,7 @@ export async function logModelUsage(
     topP?: number;
     evalScore?: number;
     evalComment?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   }
 ): Promise<void> {
   const span = tracer?.startSpan ? tracer.startSpan('logModelUsage') : null;
@@ -65,7 +65,7 @@ export async function logModelUsage(
     span?.setAttribute?.('price', price);
 
   // Log the generation event to Langfuse
-    const langfuse = (await import("../services/langfuse")).langfuse;
+    const langfuse = (await import("../services/langfuse.js")).langfuse;
     langfuse?.logGeneration?.("model-generation", {
     traceId,
     input: prompt,
@@ -126,9 +126,9 @@ export async function logModelUsage(
       traceId,
       model,
       provider,
-      score: options?.score,
-      latencyMs: options?.latencyMs,
-      cost: options?.cost,
+      score: options?.score as number | undefined,
+      latencyMs: options?.latencyMs as number | undefined,
+      cost: options?.cost as number | undefined,
       evalComment: options?.evalComment,
       promptTemplate: options?.promptTemplate,
       promptVersion: options?.promptVersion,
@@ -150,7 +150,7 @@ export async function logModelUsage(
     logger.error(`Error logging model usage: ${error instanceof Error ? error.message : String(error)}`);
     
     // Log error to Langfuse
-    (await import("../services/langfuse")).langfuse?.createSpan?.('logModelUsage.error', {
+    (await import("../services/langfuse.js")).langfuse?.createSpan?.('logModelUsage.error', {
       traceId: span?.spanContext()?.traceId || traceId,
       metadata: { 
         model, 
@@ -181,7 +181,7 @@ export async function evaluateGoogleOutput(
   prompt: string,
   actualOutput: string,
   expectedOutput?: string,
-  modelConfig = getModelConfig("GOOGLE_MAIN")
+  modelConfig = getModelConfig("GOOGLE_STANDARD")
 ): Promise<{
   keywordCoverage: number;
   contentSimilarity?: number;
@@ -206,12 +206,12 @@ export async function evaluateGoogleOutput(
     const keywordMetric = new KeywordCoverageMetric();
     
     // Track promises for parallel execution
-    const metricPromises: Promise<any>[] = [];
+    const metricPromises: Promise<unknown>[] = [];
     const metricResults: Record<string, number> = {};
     
     // Always run keyword coverage (doesn't need a model)
     metricPromises.push(
-      keywordMetric.measure(prompt, actualOutput).then(result => {
+      keywordMetric.measure(prompt, actualOutput).then((result: { score: number }) => {
         metricResults.keywordCoverage = result.score;
         span?.setAttribute?.('keywordCoverage', result.score);
       })
@@ -225,7 +225,7 @@ export async function evaluateGoogleOutput(
       });
       
       metricPromises.push(
-        similarityMetric.measure(expectedOutput, actualOutput).then(result => {
+        similarityMetric.measure(expectedOutput, actualOutput).then((result: { score: number }) => {
           metricResults.contentSimilarity = result.score;
           span?.setAttribute?.('contentSimilarity', result.score);
         })
@@ -238,10 +238,10 @@ export async function evaluateGoogleOutput(
     // Run answer relevancy evaluation
     const relevancyMetric = new AnswerRelevancyMetric(googleModel);
     metricPromises.push(
-      relevancyMetric.measure(prompt, actualOutput).then(result => {
+      relevancyMetric.measure(prompt, actualOutput).then((result: { score: number }) => {
         metricResults.answerRelevancy = result.score;
         span?.setAttribute?.('answerRelevancy', result.score);
-      }).catch(err => {
+      }).catch((err: Error) => {
         logger.error(`Error evaluating answer relevancy: ${err.message}`);
         span?.setAttribute?.('answerRelevancyError', err.message);
       })
@@ -250,7 +250,7 @@ export async function evaluateGoogleOutput(
     // Run bias evaluation
     const biasMetric = new BiasMetric(googleModel);
     metricPromises.push(
-      biasMetric.measure(prompt, actualOutput).then(result => {
+      biasMetric.measure(prompt, actualOutput).then((result: { score: number }) => {
         metricResults.bias = 1 - result.score; // Invert so higher is better
         span?.setAttribute?.('bias', metricResults.bias);
       }).catch(err => {
@@ -266,10 +266,10 @@ export async function evaluateGoogleOutput(
       });
       
       metricPromises.push(
-        hallucinationMetric.measure(prompt, actualOutput).then(result => {
+        hallucinationMetric.measure(prompt, actualOutput).then((result: { score: number }) => {
           metricResults.hallucination = 1 - result.score; // Invert so higher is better
           span?.setAttribute?.('hallucination', metricResults.hallucination);
-        }).catch(err => {
+        }).catch((err: Error) => {
           logger.error(`Error evaluating hallucination: ${err.message}`);
           span?.setAttribute?.('hallucinationError', err.message);
         })
@@ -306,7 +306,7 @@ export async function evaluateGoogleOutput(
     logger.info(`Evaluation completed in ${latencyMs}ms with overall score: ${overallScore.toFixed(2)}`);
     
     // Create evaluation span in Langfuse
-    (await import("../services/langfuse")).langfuse?.createSpan?.('evaluateGoogleOutput', {
+    (await import("../services/langfuse.js")).langfuse?.createSpan?.('evaluateGoogleOutput', {
       traceId: span?.spanContext()?.traceId || `eval-${Date.now()}`,
       metadata: { 
         prompt: prompt.substring(0, 100),
@@ -330,7 +330,7 @@ export async function evaluateGoogleOutput(
     logger.error(`Evaluation failed: ${error instanceof Error ? error.message : String(error)}`);
     
     // Log error to Langfuse
-    (await import("../services/langfuse")).langfuse?.createSpan?.('evaluateGoogleOutput.error', {
+    (await import("../services/langfuse.js")).langfuse?.createSpan?.('evaluateGoogleOutput.error', {
       traceId: span?.spanContext()?.traceId || `eval-${Date.now()}`,
       metadata: { 
         prompt: prompt.substring(0, 100),
@@ -376,7 +376,7 @@ export async function runGoogleModel(prompt: string): Promise<void> {
     const providerConfig = setupGoogleProvider();
     
   // Use the default Google model config and create the model instance
-  const modelConfig = getModelConfig("GOOGLE_MAIN");
+  const modelConfig = getModelConfig("GOOGLE_STANDARD");
     span?.setAttribute?.('model', modelConfig.modelId);
     
   const googleModel = createModelFromConfig(modelConfig);
@@ -428,7 +428,7 @@ export async function runGoogleModel(prompt: string): Promise<void> {
     );
     
     // Create generation span in Langfuse
-    (await import("../services/langfuse")).langfuse?.createSpan?.('googleModelGenerate', {
+    (await import("../services/langfuse.js")).langfuse?.createSpan?.('googleModelGenerate', {
       traceId,
       metadata: { 
         prompt: prompt.substring(0, 100),
@@ -451,7 +451,7 @@ export async function runGoogleModel(prompt: string): Promise<void> {
     logger.error(`Error running Google model: ${error instanceof Error ? error.message : String(error)}`);
     
     // Log error to Langfuse
-    (await import("../services/langfuse")).langfuse?.createSpan?.('runGoogleModel.error', {
+    (await import("../services/langfuse.js")).langfuse?.createSpan?.('runGoogleModel.error', {
       traceId: span?.spanContext()?.traceId || `google-${Date.now()}`,
       metadata: { 
         prompt: prompt.substring(0, 100),
@@ -476,12 +476,19 @@ export async function runGoogleModel(prompt: string): Promise<void> {
 export async function runGoogleEvalWithExpected(
   prompt: string,
   expectedOutput: string
-): Promise<any> {
+): Promise<{
+  keywordCoverage: number;
+  contentSimilarity?: number;
+  answerRelevancy?: number;
+  bias?: number;
+  hallucination?: number;
+  overallScore: number;
+}> {
   const span = tracer?.startSpan ? tracer.startSpan('runGoogleEvalWithExpected') : null;
   
   try {
     // Use the default Google model config and create the model instance
-    const modelConfig = getModelConfig("GOOGLE_MAIN");
+    const modelConfig = getModelConfig("GOOGLE_STANDARD");
     const googleModel = createModelFromConfig(modelConfig);
 
     span?.setAttribute?.('prompt_length', prompt.length);
@@ -533,7 +540,7 @@ export async function runGoogleEvalWithExpected(
     );
     
     // Create detailed score record in Langfuse
-    (await import("../services/langfuse")).langfuse?.createScore({
+    (await import("../services/langfuse.js")).langfuse?.createScore({
       name: "multi-metric-eval",
       value: evalResults.overallScore,
       traceId,
@@ -543,7 +550,7 @@ export async function runGoogleEvalWithExpected(
     });
     
     // Create evaluation span in Langfuse
-    (await import("../services/langfuse")).langfuse?.createSpan?.('runGoogleEvalWithExpected', {
+    (await import("../services/langfuse.js")).langfuse?.createSpan?.('runGoogleEvalWithExpected', {
       traceId,
       metadata: { 
         prompt: prompt.substring(0, 100),
@@ -564,7 +571,7 @@ export async function runGoogleEvalWithExpected(
     logger.error(`Error running evaluation with expected output: ${error instanceof Error ? error.message : String(error)}`);
     
     // Log error to Langfuse
-    (await import("../services/langfuse")).langfuse?.createSpan?.('runGoogleEvalWithExpected.error', {
+    (await import("../services/langfuse.js")).langfuse?.createSpan?.('runGoogleEvalWithExpected.error', {
       traceId: span?.spanContext()?.traceId || `eval-${Date.now()}`,
       metadata: { 
         prompt: prompt.substring(0, 100),
@@ -607,7 +614,7 @@ export async function runExampleGoogleEval(): Promise<void> {
     console.log(`Overall score: ${evalResult.overallScore.toFixed(4)}`);
     console.log("Individual metrics:");
     
-    for (const [metric, score] of Object.entries(evalResult)) {
+    for (const [metric, score] of Object.entries(evalResult as Record<string, number>)) {
       if (metric !== 'overallScore') {
         console.log(`- ${metric}: ${typeof score === 'number' ? score.toFixed(4) : 'N/A'}`);
       }

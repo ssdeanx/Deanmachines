@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 ### Major Changes to Mastra Tools (readwrite.ts)
+
 - **Removed all output schema definitions and validation** from Mastra tools in `src/mastra/tools/readwrite.ts`. All tool implementations are now strictly input-schema driven—no output schemas are used or referenced anywhere.
 - **Eliminated all outputSchema usage in tool definitions** and removed all output validation logic from tool execution functions.
 - **Context field handling is now fully explicit and type-safe**: fields like `startLine`, `endLine`, and `threadId` are only accessed if present and are passed through with type guards or defaults as required by the input schema.
@@ -10,6 +11,15 @@
 
 > **NOTE:** When working with Mastra tools, always check the input schema and context explicitly. Do NOT assume any field is present unless defined in the schema. Pay close attention to contract details and update tool logic accordingly to avoid type errors and runtime bugs.
 
+### Fixed
+
+- Resolved issues with tools in `src/mastra/tools/readwrite.ts` by ensuring proper registration and schema patching for tools like `list-files`, `edit-file`, and `create-file`.
+- Fixed instructions in agent configurations (e.g., `src/mastra/agents/base.agent.ts`) to enforce synchronous behavior and correct type assertions for methods like `getInstructions()`.
+- Updated LLM calls in agents (e.g., `src/mastra/agents/config/config.types.ts` and related files) to use method-based access (`getLLM()`) instead of deprecated properties, improving compatibility and type safety.
+
+### Upcoming Work
+
+- **Memory Handling Enhancements**: Next, we will focus on memory implementation in `src/mastra/database/index.js`, including adding robust thread management for persistent context, integrating with `threadManager` for automatic memory compaction, and ensuring all agents can access and update memory states synchronously to support long-running workflows without data loss.
 
 <!-- markdownlint-disable MD024 MD031 -->
 All notable changes to the DeanMachines Mastra Backend will be documented in this file.
@@ -17,7 +27,7 @@ All notable changes to the DeanMachines Mastra Backend will be documented in thi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [v0.2.9] - 2025-05-02 14:30 EST
+## [v0.2.9] - 2025-04-30 14:30 EST
 
 ### Added
 
@@ -263,7 +273,7 @@ registered in the Mastra tool registry (`extraTools`, `allTools`, `allToolsMap`,
 
 ### Known Issues
 
-- **Storage Init Mismatch**: Mastra core’s `ensureInit` method invokes `storage.init()`, assuming storage implementations provide this hook. However, `LibSQLStore` from `@mastra/libsql` does not implement an `init` method, causing `TypeError: storage.init is not a function`. We have applied a stub as a temporary workaround, but the permanent solution requires updating the `@mastra/libsql` package or adjusting Mastra core’s storage interface.
+- **Storage Init Mismatch**: Mastra core's `ensureInit` method invokes `storage.init()`, assuming storage implementations provide this hook. However, `LibSQLStore` from `@mastra/libsql` does not implement an `init` method, causing `TypeError: storage.init is not a function`. We have applied a stub as a temporary workaround, but the permanent solution requires updating the `@mastra/libsql` package or adjusting Mastra core's storage interface.
 
 - **SigNoz Tracing Order**: Spans created in modules like `thread-manager.ts` happen at import time, before `initSigNoz()` is called in `src/mastra/index.ts`. This leads to `Error: SigNoz tracing has not been initialized successfully. Call initSigNoz first.` when creating spans. To resolve, observability (SigNoz/OpenTelemetry) must be initialized *before* any modules that call `createAISpan()` or use `getTracer()`.
 
@@ -370,7 +380,7 @@ scheduleToolCacheCleanup(myTool, 3600000, 3600000);
 - **MCP Tool Schema Patching & Execution Wrapping**
   - mcptool.ts: merged default servers with any user‑provided `config.servers`.
   - Fetched raw tools via `mcp.getTools()`, validated `inputSchema` (must be `z.ZodType`), and patched missing/invalid `outputSchema` to `z.unknown()`.
-  - Wrapped each tool’s `execute()` to log inputs (`logger.info`) and errors (`logger.error`), then re‑throw.
+  - Wrapped each tool's `execute()` to log inputs (`logger.info`) and errors (`logger.error`), then re‑throw.
   - Logged the total number of MCP tools added:
 
     ```bash
@@ -671,7 +681,7 @@ const { text } = await copywriterAgent.generate(writingResult);
 
 ### Fixed
 
-- Avoid “File path does not exist” by auto‑creating directories/files in `fileLogger.ts`.  
+- Avoid "File path does not exist" by auto‑creating directories/files in `fileLogger.ts`.  
 - Prevent `ERR_INVALID_URL` in Upstash by prefixing missing `https://`.
 
 ### Notes

@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "target": "ESNext",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "target": "esnext",
     "jsx": "react", 
     "strictNullChecks": true,
     "strictFunctionTypes": false,

@@ -114,11 +114,11 @@ import { createMastraNotionTools } from './notion-client.js'; // Import Notion t
 import { puppeteerTool } from "./puppeteerTool.js";
 import { hyperAgentTool } from "./hyper-functionCalls.js";
 import { getTracer } from "../services/tracing.js";
-import { scrapeWebpageTool,
+import {
+  scrapeWebpageTool,
   extractDataTool,
   mapWebsiteTool,
   crawlWebsiteTool } from "./firecrawlTool.js"; // Added .js extension
-
 
 // === Export all tool modules (Consider if all are needed) ===
 export * from "./e2b.js";
@@ -155,12 +155,6 @@ export * from "./firecrawlTool.js"; // Export Firecrawl tools
 // === Configure Logger ===
 const logger = createLogger({ name: "tool-initialization", level: "info" });
 const tracer = getTracer();
-
-
-
-
-
-
 
 // === Environment Configuration ===
 
@@ -738,7 +732,7 @@ export type toolIds = keyof typeof allTools; // Type for tool IDs
 /**
  * Thread manager for conversation/session management and tracing.
  */
-export { threadManager } from "../utils/thread-manager";
+export { threadManager } from "../utils/thread-manager.js";
 
 /**
  * If your tool needs to be thread-aware (e.g., maintains state or needs tracing),

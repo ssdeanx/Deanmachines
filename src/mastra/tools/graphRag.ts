@@ -8,7 +8,7 @@
 import { createTool } from "@mastra/core/tools";
 import { createEmbeddings, createVectorStore } from "../database/vector-store";
 import { Document } from "langchain/document";
-import { z, ZodTypeAny, any as zodAny, type ZodType } from 'zod';
+import { z } from 'zod';
 import { createLogger } from "@mastra/core/logger";
 import { getTracer } from "../services/tracing";
 const logger = createLogger({ name: "graphRagLoaders", level: "info" });
