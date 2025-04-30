@@ -1,14 +1,12 @@
 {
   "compilerOptions": {
     "module": "ESNext",
-    "moduleResolution": "node",
-    "lib": ["ESNext", "DOM"],
-    "target": "ES2022",
+    "moduleResolution": "bundler",
+    "target": "ESNext",
     "jsx": "react", 
     "strictNullChecks": true,
     "strictFunctionTypes": false,
     "sourceMap": true,
-    "skipLibCheck": true
   },
-  "exclude": ["node_modules", "**/node_modules/*"]
+  "exclude": ["node_modules", "**/node_modules/*", ".mastra"]
 }

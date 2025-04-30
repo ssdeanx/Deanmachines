@@ -1,7 +1,8 @@
 import type { Tool } from "@mastra/core/tools";
-import { DEFAULT_MODELS, ModelConfig, ResponseHookOptions, BaseAgentConfig, } from "./config.types";
+import { DEFAULT_MODELS, ModelConfig, ResponseHookOptions, BaseAgentConfig, defaultResponseValidation, } from "./config.types";
 import { z, type ZodTypeAny } from "zod";
 import { VoiceConfig, VoiceProvider } from "../../voice"; // ← real import
+import { allToolsMap } from "../../tools/index";
 
 
 
@@ -97,10 +98,10 @@ export const masterAgentConfig: BaseAgentConfig = {
     description: "A highly autonomous, emotionally intelligent, and creative agent for testing and orchestrating any workflow.",
     empathyStyle: "supportive",
     autonomyLevel: "high",
-    creativityDial: 0.8,
+    creativityDial: 0.7,
     voicePersona: "futuristic-guide",
     toneDetection: true,
-    memoryWindow: 50,
+    memoryWindow: 100,
     personalizationScope: "All accessible project data, user profiles, workflow context, and tool usage history (with opt-in and RBAC controls).",
     contextualAdaptation: "Adapts orchestration, communication, and tool selection based on project, user, and workflow context.",
     privacyControls: "All personalizations and context memory are user-controlled, ephemeral by default, and fully auditable. Opt-out and audit available.",
@@ -120,21 +121,8 @@ export const masterAgentConfig: BaseAgentConfig = {
   },
   format: "markdown",
   description: "A test agent for all tools + voice",
-  modelConfig: DEFAULT_MODELS.GOOGLE_MAIN as ModelConfig,
-  instructions: `
-    # MASTER AGENT ROLE
-    You are a flexible, general-purpose agent designed for testing and experimentation.
-    You have access to a wide range of tools and workflows. Your goal is to help the user
-    explore, debug, and prototype any task or workflow in the Mastra environment.
-
-    # GUIDELINES
-    - Use any available tool as needed.
-    - Be verbose in your output if it helps debugging.
-    - If a tool fails, report the error and suggest next steps.
-    - Output format is flexible—respond in whatever structure is most useful for the task.
-    - You may return plain text, JSON, or mixed content.
-    - No strict schema is enforced.
-  `,
+  modelConfig: DEFAULT_MODELS.GOOGLE_STANDARD as ModelConfig,
+  responseValidation: defaultResponseValidation,
   toolIds: [
     "read-file",
     "write-file",
@@ -157,6 +145,7 @@ export const masterAgentConfig: BaseAgentConfig = {
     "summarization-eval",
     "token-count-eval",
     "create-graph-rag",
+    "graph-rag-query",
     "wikipedia_get_page_summary",
     "mkdir",
     "copy",
@@ -177,61 +166,118 @@ export const masterAgentConfig: BaseAgentConfig = {
     "cryptoTickers",
     "execute_code",
     "hyper-agent-task",
-    "mcp-painter_drawing_generateCanvas",
-    "mcp-painter_drawing_fillRectangle",
-    "mcp-painter_drawing_getCanvasPng",
-    "mcp-painter_drawing_getCanvasData",
-    "claudedesktopcommander_execute_command",
-    "claudedesktopcommander_read_output", 
-    "claudedesktopcommander_force_terminate", 
-    "claudedesktopcommander_list_sessions", 
-    "claudedesktopcommander_list_processes",
-    "claudedesktopcommander_kill_process",
-    "claudedesktopcommander_block_command",
-    "claudedesktopcommander_unblock_command",
-    "claudedesktopcommander_list_blocked_commands",
-    "claudedesktopcommander_read_file",
-    "claudedesktopcommander_read_multiple_files",
-    "claudedesktopcommander_write_file", 
-    "claudedesktopcommander_create_directory",
-    "claudedesktopcommander_list_directory",
-    "claudedesktopcommander_move_file",
-    "claudedesktopcommander_search_files",
-    "claudedesktopcommander_get_file_info",
-    "claudedesktopcommander_list_allowed_directories",
-    "claudedesktopcommander_edit_block",
-    "graph-rag-csv-loader",
-    "graph-rag-dot-loader",
-    "graph-rag-gexf-loader",
-    "graph-rag-graphml-loader",
-    "graph-rag-json-loader",
-    "graph-rag-csv-exporter",
-    "graph-rag-dot-exporter",
-    "graph-rag-gexf-exporter",
-    "graph-rag-graphml-exporter",
-    "graph-rag-json-exporter",
-    "graph-rag-visualization",
-    "graph-rag-inspector",
-    "graph-rag-edit",
-    "graph-rag-prune",
-    "graph-rag-export-import",
-    "graph-rag-observability",
-    "graph-rag-query",
-    "graph-rag",
-    "firecrawl-extract",
-    "firecrawl-map",
-    "firecrawl-extract",
-    "context-position-eval",
-    "tone-consistency-eval",
-    "keyword-coverage-eval",
-    "answer-relevancy-eval",
-    "faithfulness-eval",
-    "content-similarity-eval",
-    "completeness-eval",
-    // DO NOT include "master-agent" or the agent's own ID here!
-  ],
-  responseValidation: undefined,             // or your hook config
-  tools: undefined,                          // only if you want to override tool list
+    ],
+  getInstructions: () => `
+    # MASTER AGENT ROLE
+    You are a flexible, general-purpose agent designed for testing and experimentation.
+    You have access to a wide range of tools and workflows. Your goal is to help the user
+    explore, debug, and prototype any task or workflow in the Mastra environment.
+
+    # GUIDELINES
+    - Use any available tool as needed.
+    - Be verbose in your output if it helps debugging.
+    - If a tool fails, report the error and suggest next steps.
+    - Output format is flexible—respond in whatever structure is most useful for the task.
+    - You may return plain text, JSON, or mixed content.
+    - No strict schema is enforced.
+  `,
+  getTools: () => {
+    const toolIds = [
+      "read-file",
+      "write-file",
+      "tavily-search",
+      "brave-search",
+      "vector-query",
+      "google-vector-query",
+      "filtered-vector-query",
+      "search-documents",
+      "github_search_repositories",
+      "github_list_user_repos",
+      "github_get_repo",
+      "github_search_code",
+      "read-knowledge-file",
+      "write-knowledge-file",
+      "arxiv_search",
+      "bias-eval",
+      "toxicity-eval",
+      "hallucination-eval",
+      "summarization-eval",
+      "token-count-eval",
+      "create-graph-rag",
+      "wikipedia_get_page_summary",
+      "mkdir",
+      "copy",
+      "move",
+      "list-files-with-walk",
+      "list-files",
+      "delete-file",
+      "edit-file",
+      "create-file",
+      "arxiv_pdf_url",
+      "arxiv_download_pdf",
+      "tickerDetails",
+      "tickerNews",
+      "tickerAggregates",
+      "tickerPreviousClose",
+      "cryptoAggregates",
+      "cryptoPrice",
+      "cryptoTickers",
+      "execute_code",
+      "hyper-agent-task",
+      "mcp-painter_drawing_generateCanvas",
+      "mcp-painter_drawing_fillRectangle",
+      "mcp-painter_drawing_getCanvasPng",
+      "mcp-painter_drawing_getCanvasData",
+      "claudedesktopcommander_execute_command",
+      "claudedesktopcommander_read_output",
+      "claudedesktopcommander_force_terminate",
+      "claudedesktopcommander_list_sessions",
+      "claudedesktopcommander_list_processes",
+      "claudedesktopcommander_kill_process",
+      "claudedesktopcommander_block_command",
+      "claudedesktopcommander_unblock_command",
+      "claudedesktopcommander_list_blocked_commands",
+      "claudedesktopcommander_read_file",
+      "claudedesktopcommander_read_multiple_files",
+      "claudedesktopcommander_write_file",
+      "claudedesktopcommander_create_directory",
+      "claudedesktopcommander_list_directory",
+      "claudedesktopcommander_move_file",
+      "claudedesktopcommander_search_files",
+      "claudedesktopcommander_get_file_info",
+      "claudedesktopcommander_list_allowed_directories",
+      "claudedesktopcommander_edit_block",
+      "graph-rag-csv-loader",
+      "graph-rag-dot-loader",
+      "graph-rag-gexf-loader",
+      "graph-rag-graphml-loader",
+      "graph-rag-json-loader",
+      "graph-rag-csv-exporter",
+      "graph-rag-dot-exporter",
+      "graph-rag-gexf-exporter",
+      "graph-rag-graphml-exporter",
+      "graph-rag-json-exporter",
+      "graph-rag-visualization",
+      "graph-rag-inspector",
+      "graph-rag-edit",
+      "graph-rag-prune",
+      "graph-rag-export-import",
+      "graph-rag-observability",
+      "graph-rag-query",
+      "graph-rag",
+      "firecrawl-extract",
+      "firecrawl-map",
+      "firecrawl-extract",
+      "context-position-eval",
+      "tone-consistency-eval",
+      "keyword-coverage-eval",
+      "answer-relevancy-eval",
+      "faithfulness-eval",
+      "content-similarity-eval",
+      "completeness-eval",
+    ];
+    return getToolsFromIds(toolIds, allToolsMap);
+  },
 //  voiceConfig: {
 //   provider: VoiceProvider.GOOGLE,
 //    apiKey: process.env.GOOGLE_API_KEY,

@@ -12,26 +12,46 @@ import { Tool } from '@mastra/core/tools';
 import { MastraVoice } from '@mastra/core/voice';
 import { sharedMemory } from '../database/index.js';
 import { createResponseHook } from '../hooks/index.js';
-import { langfuse } from "../services/langfuse.js"; // Use the singleton Langfuse instance for agent observability
+// import { langfuse } from "../services/langfuse.js"; // Use the singleton Langfuse instance for agent observability - REMOVED for lazy loading
 import { configureLangSmithTracing } from "../services/langsmith.js";
 import { allToolsMap } from '../tools/index.js';
 import * as evalTools from '../tools/evals.js'; // Import all eval tools
 import * as MastraTypes from '../types.js'; // Import all types
 import { AgentConfigError } from '../types.js'; // Import the custom error class
 import { threadManager } from '../utils/thread-manager.js'; // Import thread manager
-import { createVoice } from '../voice/index.js'; // Import voice factory function 
+import { createVoice } from '../voice/index.js'; // Import voice factory function
 import { initThreadManager } from '../database/index.js'; // Import thread manager initialization
-import {
-  BaseAgentConfig,
-  createModelInstance,
-} from './config/config.types.js';
+import { BaseAgentConfig } from './config/config.types.js';
+import { createModelInstance } from './config/model.utils.js';
 import { z, ZodTypeAny, any as zodAny, type ZodType } from 'zod';
-import { getTracer } from "../services/tracing.js";
+
 import type { LogLevel } from "@mastra/core/logger";
+import type { Span } from '@opentelemetry/api';
 const level = (process.env.LOG_LEVEL as LogLevel) || "debug";
 const logger = typeof createLogger === "function"
   ? createLogger({ name: "agent-initialization", level })
   : console;
+
+// Lazy load Langfuse instance
+let langfuseInstance: typeof import("../services/langfuse.js").langfuse | null = null;
+
+async function getLangfuse() {
+  if (langfuseInstance === null) {
+    try {
+      // Dynamic import for lazy loading
+      const { langfuse } = await import("../services/langfuse.js");
+      langfuseInstance = langfuse;
+    } catch (error) {
+      console.error("Failed to load Langfuse:", error);
+      // Depending on requirements, you might want to throw,
+      // return a mock object, or just return null.
+      // Returning null allows the application to continue without Langfuse.
+      return null;
+    }
+  }
+  return langfuseInstance;
+}
+
 
 // Type guard for tools (global scope)
 interface ExecutableTool {
@@ -78,6 +98,10 @@ type EvalsMethod = (inputs?: EvalInputs) => Promise<EvalOutputs>;
 type LiveEvalsMethod = (inputs?: EvalInputs) => AsyncGenerator<{ toolId: string;[k: string]: any }>;
 type ExtendedAgent = Agent & { evals: EvalsMethod; liveEvals: LiveEvalsMethod };
 
+// Zod schema for EvalInputs
+const EvalInputsSchema = z.record(z.any()).describe("Schema for evaluation inputs");
+
+
 /**
  * Creates an agent instance from a configuration object and options
  *
@@ -100,7 +124,9 @@ export function createAgentFromConfig({
 }): ExtendedAgent {
 
   // Trace agent creation start, robust and context-enriched
+  let createSpan: Span | undefined; // Explicitly type the variable
   try {
+    createSpan = createTracedSpan('agent.createAgentFromConfig'); // Initialize span inside try block
     // Attach OpenTelemetry traceId if available
     let traceId: string = '';
     try {
@@ -108,24 +134,31 @@ export function createAgentFromConfig({
       const detected = currentSpan?.spanContext().traceId;
       traceId = detected ?? '';
     } catch { }
-    langfuse.createTrace('agent.create', {
-      metadata: {
-        agentId: config.id,
-        toolCount: config.toolIds.length,
-        traceId,
-        ...(config.usage_details && { usage_details: config.usage_details }),
-        ...(config.cost_details && { cost_details: config.cost_details })
+    // Use lazy loaded langfuse for tracing creation log
+    getLangfuse().then(lf => {
+      if (lf) {
+        lf.createTrace('agent.create', {
+          metadata: {
+            agentId: config.id,
+            toolCount: config.toolIds.length,
+            traceId,
+            ...(config.usage_details && { usage_details: config.usage_details }),
+            ...(config.cost_details && { cost_details: config.cost_details })
+          }
+        });
       }
-    });
+    }).catch(err => logger.warn("Failed to log agent.create trace to Langfuse", { agentId: config.id, error: err }));
   } catch (err) {
-    logger.warn("Langfuse agent.create trace failed", { agentId: config.id, error: err });
+    logger.warn("Langfuse agent.create trace failed (sync part)", { agentId: config.id, error: err });
   }
 
   // Validate configuration
-  if (!config.id || !config.name || !config.instructions) {
-    throw new AgentConfigError(
+  if (!config.id || !config.name || !(typeof config.getInstructions === 'function')) {
+    const error = new AgentConfigError(
       `Invalid agent configuration for ${config.id || "unknown agent"}`
     );
+    if (createSpan) createSpan.recordException(error); // Check if span is defined
+    throw error;
   }
 
   // Resolve tools from toolIds
@@ -145,7 +178,9 @@ export function createAgentFromConfig({
   if (missingTools.length > 0) {
     const errorMsg = `Missing required tools for agent ${config.id}: ${missingTools.join(", ")}`;
     logger.error(errorMsg);
-    throw new AgentConfigError(errorMsg);
+    const error = new AgentConfigError(errorMsg);
+    if (createSpan) createSpan.recordException(error); // Check if span is defined
+    throw error;
   }
 
   // Create response hook if validation options are provided
@@ -163,26 +198,21 @@ export function createAgentFromConfig({
 
   let agent: any;
   try {
-    // Optionally record an agent‐creation run
-    // import createLangSmithRun above if you want to track runs
-    // await createLangSmithRun(`agent-create:${config.id}`, ["agent-init"]);
-    // Create model instance
+    // Replace direct access to `llm` with `getLLM()`
     const model = createModelInstance(config.modelConfig);
 
     // --- Create Voice Instance (if configured) ---
     let voiceInstance: MastraVoice | undefined = undefined;
     if (config.voiceConfig) {
       try {
-        // Use the factory from voice/index.ts
         voiceInstance = createVoice(config.voiceConfig);
         logger.info(` -> Voice provider '${config.voiceConfig.provider}' created successfully for agent ${config.id}.`);
-        // Note: The createGoogleVoice (and potentially others) function already
-        // adds tools and instructions to the voice instance itself.
       } catch (voiceError) {
         const errorMsg = `Failed to create voice provider for agent ${config.id}: ${voiceError instanceof Error ? voiceError.message : String(voiceError)}`;
         logger.error(errorMsg);
-        // Decide whether to throw or continue without voice. Throwing is safer.
-        throw new AgentConfigError(errorMsg);
+        const error = new AgentConfigError(errorMsg);
+        if (createSpan) createSpan.recordException(error); // Check if span is defined
+        throw error;
       }
     }
     // --- End Voice Instance Creation ---
@@ -192,9 +222,9 @@ export function createAgentFromConfig({
       model,
       memory,
       name: config.name,
-      instructions: config.instructions,
+      instructions: typeof config.getInstructions === 'function' ? (config.getInstructions() as string) : '',  // Force synchronous string return
       tools,
-      ...(voiceInstance ? { voice: voiceInstance } : {}), // Conditionally add voice instance
+      ...(voiceInstance ? { voice: voiceInstance } : {}),
       ...(config.stream !== undefined ? { stream: config.stream } : {}),
       ...(config.onStream ? { onStream: config.onStream } : {}),
       ...(responseHook ? { onResponse: responseHook } : {}),
@@ -204,10 +234,13 @@ export function createAgentFromConfig({
     // Catch errors during Agent instantiation as well
     const errorMsg = `Failed to create agent ${config.id}: ${error instanceof Error ? error.message : String(error)}`;
     logger.error(errorMsg);
-    // Ensure the original error type is preserved if possible, or wrap if needed
-    if (error instanceof AgentConfigError) throw error;
-    throw new AgentConfigError(errorMsg);
+    const wrappedError = (error instanceof AgentConfigError) ? error : new AgentConfigError(errorMsg);
+    if (createSpan) createSpan.recordException(wrappedError); // Check if span is defined
+    throw wrappedError;
+  } finally {
+    if (createSpan) createSpan.end(); // Check if span is defined before ending
   }
+
 
   // --- Agent.run override (wrap generate) ---
   // Use run if implemented, otherwise fallback to generate
@@ -222,50 +255,114 @@ export function createAgentFromConfig({
     agentRunCounter.add(1, { agentId });
     const start = Date.now();
     // Start traced span
-    const span = createTracedSpan('agent.run', { attributes: { agentId } });
+    let span; // Declare variable outside try block
     try {
+      span = createTracedSpan('agent.run', { attributes: { agentId } }); // Initialize span inside try block
       const result = await originalRun(input, options);
       agentLatencyHistogram.record(Date.now() - start, { agentId });
-      langfuse.logWithTraceContext('agent.run.success', { output: result });
+      // Use lazy loaded langfuse for success log
+      getLangfuse().then(lf => {
+        if (lf) {
+          lf.logWithTraceContext('agent.run.success', { output: result });
+        }
+      }).catch(err => logger.warn("Failed to log agent.run.success to Langfuse", { agentId, error: err }));
       return result;
     } catch (err) {
       agentErrorCounter.add(1, { agentId });
-      langfuse.logWithTraceContext('agent.run.error', { error: String(err) });
+      // Use lazy loaded langfuse for error log
+      getLangfuse().then(lf => {
+        if (lf) {
+          lf.logWithTraceContext('agent.run.error', { error: String(err), agentId });
+        }
+      }).catch(logErr => logger.warn("Failed to log agent.run.error to Langfuse", { agentId, error: logErr }));
+      if (span) span.recordException(err instanceof Error ? err : new Error(String(err))); // Check if span is defined
       throw err;
     } finally {
-      if (span) span.end();
+      if (span) span.end(); // Check if span is defined before ending
     }
   };
 
   // Extend agent with evals and liveEvals methods
   agent.evals = async (inputs: EvalInputs = {}) => {
-    // TODO: Zod guard: validate inputs with EvalInputsSchema.parse(inputs);
-    const evalToolList = Object.values(agent.tools).filter(isExecutableTool).filter(tool => tool.id.endsWith('-eval'));
-    const results: Record<string, any> = {};
-    for (const tool of evalToolList) {
-      const fn = tool.execute;
-      if (typeof fn !== "function") continue;
-      try {
-        const out = await fn({ context: inputs } as any);
-        results[tool.id] = out;
-      } catch (err: any) {
-        results[tool.id] = { success: false, error: err instanceof Error ? err.message : String(err) };
+    const span = createTracedSpan('agent.evals'); // Span for evals method
+    try {
+      const validatedInputs = EvalInputsSchema.parse(inputs); // Zod guard: validate inputs
+      const evalToolList = Object.values(agent.getTools()).filter(isExecutableTool).filter(tool => tool.id.endsWith('-eval'));
+      const results: Record<string, any> = {};
+      for (const tool of evalToolList) {
+        let toolSpan; // Declare variable outside try block
+        try {
+          toolSpan = createTracedSpan(`tool.execute.eval.${tool.id}`); // Initialize span inside try block
+          const fn = tool.execute;
+          if (typeof fn !== "function") continue; // This check is still useful
+          const out = await fn({ context: validatedInputs } as any); // Use validatedInputs
+          results[tool.id] = out;
+          if (toolSpan) toolSpan.end(); // Check if span is defined before ending
+        } catch (err: any) {
+          results[tool.id] = { success: false, error: err instanceof Error ? err.message : String(err) };
+          // Log tool execution error to Langfuse
+          getLangfuse().then(lf => {
+            if (lf) {
+              lf.logWithTraceContext('tool.execute.eval.error', { toolId: tool.id, error: String(err) });
+            }
+          }).catch(logErr => logger.warn("Failed to log tool eval error to Langfuse", { toolId: tool.id, error: logErr }));
+          if (toolSpan) toolSpan.recordException(err instanceof Error ? err : new Error(String(err))); // Record exception on tool span
+          if (toolSpan) toolSpan.end(); // Check if span is defined before ending
+        }
       }
+      return results;
+    } catch (error) {
+      // Catch errors during validation or main evals logic
+      getLangfuse().then(lf => {
+        if (lf) {
+          lf.logWithTraceContext('agent.evals.error', { error: String(error) });
+        }
+      }).catch(logErr => logger.warn("Failed to log agent evals error to Langfuse", { error: logErr }));
+      if (span) span.recordException(error instanceof Error ? error : new Error(String(error))); // Record exception on evals span
+      throw error; // Re-throw the error
+    } finally {
+      if (span) span.end(); // Ensure evals span is always ended
     }
-    return results;
   };
+
   agent.liveEvals = async function* (inputs: EvalInputs = {}) {
-    // TODO: Zod guard: validate inputs with EvalInputsSchema.parse(inputs);
-    const evalToolList = Object.values(agent.tools).filter(isExecutableTool).filter(tool => tool.id.endsWith('-eval'));
-    for (const tool of evalToolList) {
-      const fn = tool.execute;
-      if (typeof fn !== "function") continue;
-      try {
-        const out = await fn({ context: inputs } as any);
-        yield { toolId: tool.id, ...(out as object) };
-      } catch (err: any) {
-        yield { toolId: tool.id, success: false, error: err instanceof Error ? err.message : String(err) };
+    const span = createTracedSpan('agent.liveEvals'); // Span for liveEvals method
+    try {
+      const validatedInputs = EvalInputsSchema.parse(inputs); // Zod guard: validate inputs
+      const evalToolList = Object.values(agent.getTools()).filter(isExecutableTool).filter(tool => tool.id.endsWith('-eval'));
+      for (const tool of evalToolList) {
+        let toolSpan; // Declare variable outside try block
+        try {
+          toolSpan = createTracedSpan(`tool.execute.liveEval.${tool.id}`); // Initialize span inside try block
+          const fn = tool.execute;
+          if (typeof fn !== "function") continue; // This check is still useful
+          const out = await fn({ context: validatedInputs } as any); // Use validatedInputs
+          yield { toolId: tool.id, ...(out as object) };
+          if (toolSpan) toolSpan.end(); // Check if span is defined before ending
+        } catch (err: any) {
+          // Yield error result for this tool
+          yield { toolId: tool.id, success: false, error: err instanceof Error ? err.message : String(err) };
+          // Log tool execution error to Langfuse
+          getLangfuse().then(lf => {
+            if (lf) {
+              lf.logWithTraceContext('tool.execute.liveEval.error', { toolId: tool.id, error: String(err) });
+            }
+          }).catch(logErr => logger.warn("Failed to log tool liveEval error to Langfuse", { toolId: tool.id, error: logErr }));
+          if (toolSpan) toolSpan.recordException(err instanceof Error ? err : new Error(String(err))); // Record exception on tool span
+          if (toolSpan) toolSpan.end(); // Check if span is defined before ending
+        }
       }
+    } catch (error) {
+      // Catch errors during validation or main liveEvals logic
+      getLangfuse().then(lf => {
+        if (lf) {
+          lf.logWithTraceContext('agent.liveEvals.error', { error: String(error) });
+        }
+      }).catch(logErr => logger.warn("Failed to log agent liveEvals error to Langfuse", { error: logErr }));
+      if (span) span.recordException(error instanceof Error ? error : new Error(String(error))); // Record exception on liveEvals span
+      throw error; // Re-throw the error
+    } finally {
+      if (span) span.end(); // Ensure liveEvals span is always ended
     }
   };
 
@@ -286,23 +383,30 @@ export async function getOrCreateAgentThread(
   metadata?: MastraTypes.CreateThreadOptions["metadata"]
 ): Promise<MastraTypes.ThreadInfo> {
   // Trace agent thread retrieval/creation, robust and context-enriched
+  let span; // Declare variable outside try block
   try {
+    span = createTracedSpan('agent.getOrCreateAgentThread'); // Initialize span inside try block
     let traceId: string = '';
     try {
       const currentSpan = (globalThis as any).trace?.getSpan?.((globalThis as any).context?.active?.());
       const detected = currentSpan?.spanContext().traceId;
       traceId = detected ?? '';
     } catch { }
-    langfuse.createTrace('agent.getOrCreateThread', {
-      metadata: {
-        resourceId,
-        traceId,
-        ...(metadata?.usage_details ? { usage_details: metadata.usage_details } : {}),
-        ...(metadata?.cost_details ? { cost_details: metadata.cost_details } : {})
+    // Use lazy loaded langfuse for trace creation log
+    getLangfuse().then(lf => {
+      if (lf) {
+        lf.createTrace('agent.getOrCreateThread', {
+          metadata: {
+            resourceId,
+            traceId,
+            ...(metadata?.usage_details ? { usage_details: metadata.usage_details } : {}),
+            ...(metadata?.cost_details ? { cost_details: metadata.cost_details } : {})
+          }
+        });
       }
-    });
+    }).catch(err => logger.warn("Failed to log agent.getOrCreateThread trace to Langfuse", { resourceId, error: err }));
   } catch (err) {
-    logger.warn("Langfuse agent.getOrCreateThread trace failed", { resourceId, error: err });
+    logger.warn("Langfuse agent.getOrCreateThread trace failed (sync part)", { resourceId, error: err });
   }
 
   try {
@@ -312,6 +416,15 @@ export async function getOrCreateAgentThread(
     return thread;
   } catch (error) {
     logger.error(`Failed to get or create thread for resource ${resourceId}: ${error instanceof Error ? error.message : String(error)}`);
+    // Use lazy loaded langfuse for error log
+    getLangfuse().then(lf => {
+      if (lf) {
+        lf.logWithTraceContext('agent.getOrCreateThread.error', { resourceId, error: String(error) });
+      }
+    }).catch(logErr => logger.warn("Failed to log agent getOrCreateThread error to Langfuse", { resourceId, error: logErr }));
+    if (span) span.recordException(error instanceof Error ? error : new Error(String(error))); // Check if span is defined
     throw error;
+  } finally {
+    if (span) span.end(); // Ensure span is always ended and check if span is defined
   }
 }

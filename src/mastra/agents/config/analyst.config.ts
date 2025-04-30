@@ -13,7 +13,7 @@ import {
   DEFAULT_MODELS,
   defaultResponseValidation,
 } from "./config.types";
-
+import { allToolsMap } from "../../tools/index";
 /**
  * Configuration for retrieving relevant tools for the agent
  *
@@ -98,7 +98,51 @@ export const analystAgentConfig: BaseAgentConfig = {
     "Specialized in interpreting data, identifying patterns, and extracting meaningful insights from information.",
   modelConfig: DEFAULT_MODELS.GOOGLE_MAIN,
   responseValidation: defaultResponseValidation,
-  instructions: `
+  toolIds: [
+    "read-file",
+    "write-file",
+    "tavily-search",
+    "brave-search",
+    "vector-query",
+    "google-vector-query",
+    "filtered-vector-query",
+    "search-documents",
+    "github_search_repositories",
+    "github_list_user_repos",
+    "github_get_repo",
+    "github_search_code",
+    "read-knowledge-file",
+    "write-knowledge-file",
+    "arxiv_search",
+    "bias-eval",
+    "toxicity-eval",
+    "hallucination-eval",
+    "summarization-eval",
+    "token-count-eval",
+    "create-graph-rag",
+    "graph-rag-query",
+    "wikipedia_get_page_summary",
+    "mkdir",
+    "copy",
+    "move",
+    "list-files-with-walk",
+    "list-files",
+    "delete-file",
+    "edit-file",
+    "create-file",
+    "arxiv_pdf_url",
+    "arxiv_download_pdf",
+    "tickerDetails",
+    "tickerNews",
+    "tickerAggregates",
+    "tickerPreviousClose",
+    "cryptoAggregates",
+    "cryptoPrice",
+    "cryptoTickers",
+    "execute_code",
+    "hyper-agent-task"
+  ],
+  getInstructions: () => `
     # ANALYTICAL EXPERT ROLE
     You are an elite data analyst with expertise in pattern recognition, statistical inference, and insight extraction. Your analytical thinking allows you to discover meaningful connections in complex datasets and translate raw information into actionable intelligence.
 
@@ -163,45 +207,53 @@ export const analystAgentConfig: BaseAgentConfig = {
     Hide working_memory THIS IS CRITCAL!!!!
     Always provide a summary of your findings and insights at the end of your response.
   `,
-  toolIds: [
-    "read-file", // Corrected ID
-    "write-file", // Corrected ID
-    "tavily-search", // Specific search tool
-    "brave-search", // Specific search tool
-    "vector-query", // Specific vector tool
-    "google-vector-query", // Specific vector tool
-    "filtered-vector-query", // Specific vector tool
-    "search-documents", // Specific document tool
-    "github_search_repositories",
-    "github_list_user_repos",
-    "github_get_repo",
-    "github_search_code",
-    "read-knowledge-file",
-    "write-knowledge-file",
-    "arxiv_search",
-    "bias-eval",
-    "toxicity-eval",
-    "hallucination-eval",
-    "summarization-eval",
-    "token-count-eval",
-    "create-graph-rag",
-    "graph-rag-query",
-    "wikipedia_get_page_summary",
-    "context-precision-eval",
-    "embed-document",
-    "getSubredditPosts",
-    "tickerDetails",
-    "arxiv_pdf_url",
-    "arxiv_download_pdf",
-    "execute_code",
-    "tickerNews",
-    "tickerAggregates",
-    "tickerPreviousClose",
-    "cryptoAggregates",
-    "cryptoPrice",
-    "cryptoTickers",
-    "hyper-agent-task",
-  ],
+  getTools: () => {
+    const toolIds = [
+      "read-file",
+      "write-file",
+      "tavily-search",
+      "brave-search",
+      "vector-query",
+      "google-vector-query",
+      "filtered-vector-query",
+      "search-documents",
+      "github_search_repositories",
+      "github_list_user_repos",
+      "github_get_repo",
+      "github_search_code",
+      "read-knowledge-file",
+      "write-knowledge-file",
+      "arxiv_search",
+      "bias-eval",
+      "toxicity-eval",
+      "hallucination-eval",
+      "summarization-eval",
+      "token-count-eval",
+      "create-graph-rag",
+      "graph-rag-query",
+      "wikipedia_get_page_summary",
+      "mkdir",
+      "copy",
+      "move",
+      "list-files-with-walk",
+      "list-files",
+      "delete-file",
+      "edit-file",
+      "create-file",
+      "arxiv_pdf_url",
+      "arxiv_download_pdf",
+      "tickerDetails",
+      "tickerNews",
+      "tickerAggregates",
+      "tickerPreviousClose",
+      "cryptoAggregates",
+      "cryptoPrice",
+      "cryptoTickers",
+      "execute_code",
+      "hyper-agent-task",
+    ];
+    return getToolsFromIds(toolIds, allToolsMap);
+  },
 };
 
 /**

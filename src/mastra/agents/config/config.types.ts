@@ -402,7 +402,7 @@ export interface PersonaConfig {
    */
   guardrails?: string[];
   /**
-   * User-facing summary of what the persona is, what it can/can’t do, and how to get help or give feedback
+   * User-facing summary of what the persona is, what it can/can't do, and how to get help or give feedback
    */
   explanation?: string;
   /**
@@ -430,7 +430,7 @@ export interface PersonaConfig {
    */
   dataUsageNotice?: string;
   /**
-   * List of supported persona modes (e.g., “empathetic coach”, “autonomous coder”, “creative partner”).
+   * List of supported persona modes (e.g., "empathetic coach", "autonomous coder", "creative partner").
    */
   personaPresets?: string[];
   /**
@@ -495,7 +495,7 @@ export const PersonaConfigSchema = z.object({
  *
  * Extended for observability: supports usage_details and cost_details for thread/cost metrics.
  */
-import type { UsageDetails, CostDetails } from '../../types';
+import type { UsageDetails, CostDetails } from '../../types.js';
 export interface BaseAgentConfig {
   /** Unique identifier for the agent */
   id: string;
@@ -519,16 +519,28 @@ export interface BaseAgentConfig {
   description: string;
 
   /**
-   * Model configuration for creating the model dynamically
-   * This is used to initialize the appropriate model (Google or Vertex AI)
+   * Model configuration for creating the model dynamically.
+   * Use `getLLM()` to resolve the model instance.
    */
   modelConfig: ModelConfig;
 
-  /** Main instructions that define the agent's behavior */
-  instructions: string;
+  /**
+   * Resolves the LLM instance for the agent.
+   * Replaces direct access to the deprecated `llm` property.
+   */
+  getLLM?: () => Promise<any>; // Adjust the return type as needed.
 
-  /** Tool IDs that this agent has access to */
-  toolIds: string[];
+  /**
+   * Resolves the agent's instructions dynamically.
+   * Replaces direct access to the deprecated `instructions` property.
+   */
+  getInstructions?: () => string | Promise<string>;
+
+  /**
+   * Resolves the tools available to the agent.
+   * Replaces direct access to the deprecated `tools` property.
+   */
+  getTools?: () => Record<string, Tool<any, any>> | Promise<Record<string, Tool<any, any>>>;
 
   /** Enable streaming responses */
   stream?: boolean;
@@ -538,16 +550,16 @@ export interface BaseAgentConfig {
   /** Optional response validation settings */
   responseValidation?: ResponseHookOptions;
 
-  /** Optional tools configuration */
-  tools?: Tool[];
-
   /** Optional voice configuration */
-  voiceConfig?: VoiceConfig;  // ← now exactly matches createVoice()
+  voiceConfig?: VoiceConfig;
 
   /** Optional usage metrics for observability (thread-level) */
   usage_details?: UsageDetails;
   /** Optional cost metrics for observability (thread-level) */
   cost_details?: CostDetails;
+
+  /** Tool IDs associated with the agent */
+  toolIds: string[];
 }
 
 // you can still re-export the enum if you like:

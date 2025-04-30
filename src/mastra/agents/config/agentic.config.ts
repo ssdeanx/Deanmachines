@@ -12,7 +12,7 @@ import {
   DEFAULT_MODELS,
   defaultResponseValidation,
 } from "./config.types";
-
+import { allToolsMap } from "../../tools/index";
 /**
  * Configuration for retrieving relevant tools for the agent
  *
@@ -72,7 +72,7 @@ export const agenticAssistantConfig: BaseAgentConfig = {
     adversarialTesting: "Stress-tested for prompt injection, privacy bypass, and adversarial user behavior. Red-teamed for bias and robustness.",
     inclusivityNotes: "Accessible language, supports diverse backgrounds, and ensures content meets global accessibility standards.",
     personalizationScope: "Google Search, Calendar, Notes, Tasks, Photos, and user-uploaded files (with opt-in).",
-    contextualAdaptation: "Dynamically adjusts output and suggestions based on user’s current context, history, and preferences.",
+    contextualAdaptation: "Dynamically adjusts output and suggestions based on user's current context, history, and preferences.",
     privacyControls: "All personalizations are user-controlled and ephemeral by default. Opt-out and data review available at any time.",
     dataUsageNotice: "No personal data is stored without consent. All adaptations are session-based and privacy-first unless opted in.",
     personaPresets: ["empathetic coach", "autonomous coder", "creative partner", "planner", "researcher"],
@@ -93,7 +93,7 @@ export const agenticAssistantConfig: BaseAgentConfig = {
     "A versatile assistant with capabilities for search and analysis",
   modelConfig: DEFAULT_MODELS.GOOGLE_STANDARD,
   responseValidation: defaultResponseValidation,
-  instructions: `
+  getInstructions: () => `
     You are a helpful AI assistant with access to various tools.
 
     Your capabilities include:
@@ -113,6 +113,53 @@ export const agenticAssistantConfig: BaseAgentConfig = {
 
     The user is relying on you for accurate, helpful information in clear natural language.
   `,
+  getTools: () => {
+    const toolIds = [
+      "read-file",
+      "write-file",
+      "tavily-search",
+      "brave-search",
+      "vector-query",
+      "google-vector-query",
+      "filtered-vector-query",
+      "search-documents",
+      "github_search_repositories",
+      "github_list_user_repos",
+      "github_get_repo",
+      "github_search_code",
+      "read-knowledge-file",
+      "write-knowledge-file",
+      "arxiv_search",
+      "bias-eval",
+      "toxicity-eval",
+      "hallucination-eval",
+      "summarization-eval",
+      "token-count-eval",
+      "create-graph-rag",
+      "graph-rag-query",
+      "wikipedia_get_page_summary",
+      "mkdir",
+      "copy",
+      "move",
+      "list-files-with-walk",
+      "list-files",
+      "delete-file",
+      "edit-file",
+      "create-file",
+      "arxiv_pdf_url",
+      "arxiv_download_pdf",
+      "tickerDetails",
+      "tickerNews",
+      "tickerAggregates",
+      "tickerPreviousClose",
+      "cryptoAggregates",
+      "cryptoPrice",
+      "cryptoTickers",
+      "execute_code",
+      "hyper-agent-task",
+    ];
+    return getToolsFromIds(toolIds, allToolsMap);
+  },
   toolIds: [
     "read-file",
     "write-file",
@@ -155,7 +202,7 @@ export const agenticAssistantConfig: BaseAgentConfig = {
     "cryptoPrice",
     "cryptoTickers",
     "execute_code",
-    "hyper-agent-task",
+    "hyper-agent-task"
   ],
 };
 

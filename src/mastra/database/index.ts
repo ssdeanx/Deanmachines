@@ -125,9 +125,15 @@ export async function createMemory(options: Partial<MemoryConfig> = defaultMemor
     const useHighTokenLimits = (options as any)?.highTokenLimits !== false;
     // Create memory instance with optimized processors for high token limits
     const memory = new Memory({
-      storage: storage as unknown as MastraStorage,
-      vector: vector as unknown as MastraVector,
-      options,
+      storage: new LibSQLStore({
+        url: process.env.DATABASE_URL || 'file:.mastra/mastra.db',
+        authToken: process.env.DATABASE_KEY,
+      }),
+      options: { semanticRecall: true },
+      vector: new LibSQLVector({
+        connectionUrl: process.env.DATABASE_URL || 'file:.mastra/mastra.db',
+        authToken: process.env.DATABASE_KEY,
+      }),
       // Add our custom processor chain for high token limits
       ...(useHighTokenLimits ? { processors: createLargeContextProcessors() } : {})
     });

@@ -245,3 +245,11 @@ export function createModelInstance(
 ): any {
   return createModelFromConfig(config, options);
 }
+
+/**
+ * Resolves the LLM instance for an agent based on its configuration.
+ * Replaces direct access to the deprecated `llm` property.
+ */
+export async function getLLM(config: ModelConfig, options?: ModelCreationOptions): Promise<any> {
+  return createModelFromConfig(config, options);
+}

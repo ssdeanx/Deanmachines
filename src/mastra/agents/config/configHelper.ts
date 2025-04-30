@@ -108,9 +108,10 @@ export function summarizeAllAgentConfigs() {
 /**
  * Tool schema helpers
  */
-export function getToolSchemas(config: BaseAgentConfig) {
-  if (!config.tools) return [];
-  return Object.entries(config.tools).map(([toolName, tool]) => {
+export async function getToolSchemas(config: BaseAgentConfig) {
+  // Use getTools() if available, otherwise return empty array
+  const tools = config.getTools ? await config.getTools() : {};
+  return Object.entries(tools).map(([toolName, tool]) => {
     return {
       toolName,
       inputSchema: tool.inputSchema,

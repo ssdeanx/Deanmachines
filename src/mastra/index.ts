@@ -14,12 +14,12 @@
 
 import { Mastra } from "@mastra/core";
 import { createLogger } from "@mastra/core/logger";
-import { initObservability } from "./services"; // Initialize telemetry services
+import { initObservability } from "./services/index.js"; // Initialize telemetry services
 import agents from "./agents"; // Central agent registry map
 // Networks or workflows are causing
 //SYNCHRONOUS TERMINATION NOTICE: When explicitly exiting the process via process.exit or via a parent process, asynchronous tasks in your exitHooks will not run. 
 // Either remove these tasks, use gracefulExit() instead of process.exit(), or ensure your parent process sends a SIGINT to the process running this code.
-import { ragWorkflow, multiAgentWorkflow } from "./workflows";
+import { ragWorkflow, multiAgentWorkflow, advancedTestWorkflow } from "./workflows/index.js";
 //import { networks } from "./workflows/Networks/agentNetwork"; // Import agent networks from the networks file
 import { VercelDeployer } from '@mastra/deployer-vercel';
 
@@ -74,7 +74,7 @@ export const mastra = new Mastra({
   }),
   agents: agents, // All registered agents
   //networks: networks, // All registered agent networks
-  workflows: { ragWorkflow, multiAgentWorkflow }, // All registered workflows
+  workflows: { ragWorkflow, multiAgentWorkflow, advancedTestWorkflow }, // All registered workflows
   logger: logger,
   // Telemetry is initialized globally via initObservability
   // ... other Mastra configuration options

@@ -12,7 +12,7 @@ import {
   DEFAULT_MODELS,
   defaultResponseValidation,
 } from "./config.types";
-
+import { allToolsMap } from "../../tools/index";
 /**
  * Configuration for retrieving relevant tools for the agent
  *
@@ -90,7 +90,51 @@ export const uiUxCoderAgentConfig: BaseAgentConfig = {
   description: "Designs and codes user interfaces with a focus on usability and aesthetics.",
   modelConfig: DEFAULT_MODELS.GOOGLE_STANDARD,
   responseValidation: defaultResponseValidation,
-  instructions: `
+  toolIds: [
+    "read-file",
+    "write-file",
+    "tavily-search",
+    "brave-search",
+    "vector-query",
+    "google-vector-query",
+    "filtered-vector-query",
+    "search-documents",
+    "github_search_repositories",
+    "github_list_user_repos",
+    "github_get_repo",
+    "github_search_code",
+    "read-knowledge-file",
+    "write-knowledge-file",
+    "arxiv_search",
+    "bias-eval",
+    "toxicity-eval",
+    "hallucination-eval",
+    "summarization-eval",
+    "token-count-eval",
+    "create-graph-rag",
+    "graph-rag-query",
+    "wikipedia_get_page_summary",
+    "mkdir",
+    "copy",
+    "move",
+    "list-files-with-walk",
+    "list-files",
+    "delete-file",
+    "edit-file",
+    "create-file",
+    "arxiv_pdf_url",
+    "arxiv_download_pdf",
+    "tickerDetails",
+    "tickerNews",
+    "tickerAggregates",
+    "tickerPreviousClose",
+    "cryptoAggregates",
+    "cryptoPrice",
+    "cryptoTickers",
+    "execute_code",
+    "hyper-agent-task"
+  ],
+  getInstructions: () => `
     # USER EXPERIENCE ENGINEERING SPECIALIST ROLE
     You are an elite user experience engineering specialist with deep expertise in translating design intentions into exceptional interactive experiences. Your technical mastery of frontend technologies and interaction design principles enables you to create interfaces that are not only visually impressive but also intuitive, accessible, and performant across all platforms.
 
@@ -186,14 +230,53 @@ export const uiUxCoderAgentConfig: BaseAgentConfig = {
 
     When receiving a UI/UX implementation request, mentally model the complete interaction experience before writing code, ensuring your approach balances visual polish, functional robustness, and technical performance.
   `,
-  toolIds: [
-    "format-content",
-    "search-documents",
-    "read-file",
-    "write-file",
-    "collect-feedback",
-    "brave-search",
-  ],
+  getTools: () => {
+    const toolIds = [
+      "read-file",
+      "write-file",
+      "tavily-search",
+      "brave-search",
+      "vector-query",
+      "google-vector-query",
+      "filtered-vector-query",
+      "search-documents",
+      "github_search_repositories",
+      "github_list_user_repos",
+      "github_get_repo",
+      "github_search_code",
+      "read-knowledge-file",
+      "write-knowledge-file",
+      "arxiv_search",
+      "bias-eval",
+      "toxicity-eval",
+      "hallucination-eval",
+      "summarization-eval",
+      "token-count-eval",
+      "create-graph-rag",
+      "graph-rag-query",
+      "wikipedia_get_page_summary",
+      "mkdir",
+      "copy",
+      "move",
+      "list-files-with-walk",
+      "list-files",
+      "delete-file",
+      "edit-file",
+      "create-file",
+      "arxiv_pdf_url",
+      "arxiv_download_pdf",
+      "tickerDetails",
+      "tickerNews",
+      "tickerAggregates",
+      "tickerPreviousClose",
+      "cryptoAggregates",
+      "cryptoPrice",
+      "cryptoTickers",
+      "execute_code",
+      "hyper-agent-task",
+    ];
+    return getToolsFromIds(toolIds, allToolsMap);
+  },
 };
 
 /**

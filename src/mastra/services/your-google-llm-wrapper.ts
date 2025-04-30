@@ -10,8 +10,8 @@ import { getModelConfig } from "../agents/config/config.types";
 import { createModelFromConfig } from "../agents/config/model.utils";
 import { setupGoogleProvider } from "../agents/config/provider.utils";
 import { LogLevel, createLogger } from "@mastra/core/logger";
-import { KeywordCoverageMetric, ContentSimilarityMetric } from "@mastra/evals/dist/metrics/nlp";
-import { AnswerRelevancyMetric, BiasMetric, HallucinationMetric } from "@mastra/evals/dist/metrics/llm";
+import { KeywordCoverageMetric, ContentSimilarityMetric } from "@mastra/evals/nlp";
+import { AnswerRelevancyMetric, BiasMetric, HallucinationMetric } from "@mastra/evals/llm";
 import { getTracer } from "../services/tracing";
 
 // LAZY LANGFUSE: dynamically imported within functions

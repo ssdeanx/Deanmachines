@@ -12,7 +12,7 @@ import {
   DEFAULT_MODELS,
   defaultResponseValidation,
 } from "./config.types";
-
+import { allToolsMap } from "../../tools/index";
 // Note: This function might be redundant if tool resolution happens centrally in base.agent.ts
 export function getToolsFromIds(
   toolIds: string[],
@@ -198,7 +198,6 @@ export const codeDocumenterConfig: BaseAgentConfig = {
   description: "Specializes in creating comprehensive code documentation",
   modelConfig: DEFAULT_MODELS.GOOGLE_STANDARD,
   responseValidation: defaultResponseValidation,
-  instructions: codeDocumenterInstructions,
   toolIds: [
     "read-file",
     "write-file",
@@ -241,8 +240,56 @@ export const codeDocumenterConfig: BaseAgentConfig = {
     "cryptoPrice",
     "cryptoTickers",
     "execute_code",
-    "hyper-agent-task",
+    "hyper-agent-task"
   ],
+  getInstructions: () => codeDocumenterInstructions,
+  getTools: () => {
+    const toolIds = [
+      "read-file",
+      "write-file",
+      "tavily-search",
+      "brave-search",
+      "vector-query",
+      "google-vector-query",
+      "filtered-vector-query",
+      "search-documents",
+      "github_search_repositories",
+      "github_list_user_repos",
+      "github_get_repo",
+      "github_search_code",
+      "read-knowledge-file",
+      "write-knowledge-file",
+      "arxiv_search",
+      "bias-eval",
+      "toxicity-eval",
+      "hallucination-eval",
+      "summarization-eval",
+      "token-count-eval",
+      "create-graph-rag",
+      "graph-rag-query",
+      "wikipedia_get_page_summary",
+      "mkdir",
+      "copy",
+      "move",
+      "list-files-with-walk",
+      "list-files",
+      "delete-file",
+      "edit-file",
+      "create-file",
+      "arxiv_pdf_url",
+      "arxiv_download_pdf",
+      "tickerDetails",
+      "tickerNews",
+      "tickerAggregates",
+      "tickerPreviousClose",
+      "cryptoAggregates",
+      "cryptoPrice",
+      "cryptoTickers",
+      "execute_code",
+      "hyper-agent-task",
+    ];
+    return getToolsFromIds(toolIds, allToolsMap);
+  },
 };
 
 /**
