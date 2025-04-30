@@ -26,13 +26,12 @@ import {
   createModelInstance,
 } from './config';
 import { z, ZodTypeAny, any as zodAny, type ZodType } from 'zod';
-import { fileLogger as fallbackLogger } from "../database/fileLogger";
 import { getTracer } from "../services/tracing";
 import type { LogLevel } from "@mastra/core/logger";
 const level = (process.env.LOG_LEVEL as LogLevel) || "info";
 const logger = typeof createLogger === "function"
   ? createLogger({ name: "agent-initialization", level })
-  : fallbackLogger;
+
 // Type guard for tools (global scope)
 function isExecutableTool(tool: any): tool is { id: string; execute: (...args: any[]) => any } {
   return tool && typeof tool.execute === 'function' && typeof tool.id === 'string';
