@@ -384,7 +384,7 @@ export const graphRagQueryTool = createTool({
         }));
 
       // Log generation event using Langfuse
-      await (await import("../services/langfuse")).langfuse.logGeneration("graph-rag-query-generation", {
+      (await import("../services/langfuse")).langfuse.logGeneration("graph-rag-query-generation", {
         input: context.query,
         output: { documentCount: results.length },
         traceId: span.spanContext().traceId,
@@ -757,7 +757,6 @@ export const graphRagExportImportTool = createTool({
 /**
  * Tool for graph observability/tracing
  */
-// (removed duplicate tool declaration)
 export const graphRagObservabilityTool = createTool({
   id: "graph-rag-observability",
   description: "Exposes detailed traces of retrieval, hops, and scoring for a query or node",

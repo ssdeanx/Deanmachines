@@ -7,11 +7,11 @@ import {
 import { XMLParser } from "fast-xml-parser";
 import defaultKy, { type KyInstance } from "ky";
 import { z } from "zod";
-import fs from "fs-extra";
-import path from "path";
+import * as fs from "fs-extra";
+import * as path from "path";
 
 import { castArray, getProp } from "./utils";
-import { createMastraTools } from "@agentic/mastra";
+import { createMastraTools } from "./mastra";
 
 export namespace arxiv {
   export const API_BASE_URL = "https://export.arxiv.org/api";

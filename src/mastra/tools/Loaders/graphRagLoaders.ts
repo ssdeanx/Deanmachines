@@ -78,7 +78,7 @@ export const graphRagDotLoader = createTool({
     const dotContent = await fs.readFile(absPath, "utf8");
     if (!dotContent.trim()) throw new Error("DOT file is empty");
     const edgeRegex = /(\w+)\s*->\s*(\w+)/g;
-    let match;
+    let match: RegExpExecArray | null;
     const edges: { source: string; target: string }[] = [];
     while ((match = edgeRegex.exec(dotContent)) !== null) {
       edges.push({ source: match[1], target: match[2] });

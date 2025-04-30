@@ -31,9 +31,15 @@ import type { LogLevel } from "@mastra/core/logger";
 const level = (process.env.LOG_LEVEL as LogLevel) || "info";
 const logger = typeof createLogger === "function"
   ? createLogger({ name: "agent-initialization", level })
+  : console;
 
 // Type guard for tools (global scope)
-function isExecutableTool(tool: any): tool is { id: string; execute: (...args: any[]) => any } {
+interface ExecutableTool {
+  id: string;
+  execute: (...args: any[]) => any;
+}
+
+function isExecutableTool(tool: any): tool is ExecutableTool {
   return tool && typeof tool.execute === 'function' && typeof tool.id === 'string';
 }
 

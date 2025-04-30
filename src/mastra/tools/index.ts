@@ -64,8 +64,28 @@ import { createMastraArxivTools } from "./arxiv"; // Import Mastra helper
 import { createMastraWikipediaTools } from "./wikibase"; // Import Mastra helper
 import { createMastraAISDKTools } from "./ai-sdk"; // Import Mastra helper
 import { createMastraE2BTools } from "./e2b"; // Import Mastra helper
-import { createGraphRagTool, graphRagQueryTool, graphRagTools } from "./graphRag"; // Import advanced GraphRAG tools array
-import { graphRagLoaders, graphRagExporters } from "./Loaders/graphRagLoaders"; // Import loader/exporter arrays
+import { createGraphRagTool,
+  graphRagQueryTool,
+  graphRagTools,
+  graphRagVisualizationTool,
+  graphRagInspectorTool,
+  graphRagEditTool,
+  graphRagPruneTool,
+  graphRagExportImportTool,
+  graphRagObservabilityTool,
+ } from "./graphRag"; // Import advanced GraphRAG tools array
+import { graphRagLoaders, graphRagExporters,
+  graphRagCsvLoader,
+  graphRagDotLoader,
+  graphRagGexfLoader,
+  graphRagGraphmlLoader,
+  graphRagJsonLoader,
+  graphRagCsvExporter,
+  graphRagDotExporter,
+  graphRagGexfExporter,
+  graphRagGraphmlExporter,
+  graphRagJsonExporter,
+ } from "./Loaders/graphRagLoaders"; // Import loader/exporter arrays
 import { createMastraGitHubTools } from "./github"; // Import Mastra helper
 import { createMastraMcpTools } from "./mcptool";
 import { github } from "../integrations"; // Used for custom getMainBranchRef
@@ -90,12 +110,15 @@ import {
 import { tracingTools } from "./tracingTools";
 import { createMastraPolygonTools, TickerDetailsSchema } from "./polygon"; // Import Mastra helper for Polygon tools
 import { createMastraRedditTools, SubredditPostSchema } from "./reddit"; // Import Mastra helper for Reddit tools
-import { createMastraNotionTools, createAISDKNotionTools, createGenkitNotionTools } from './notion-client'; // Import Notion tools
+import { createMastraNotionTools } from './notion-client'; // Import Notion tools
 import { puppeteerTool } from "./puppeteerTool";
 import { hyperAgentTool } from "./hyper-functionCalls";
 import { getTracer } from "../services/tracing";
-import { createMastraFirecrawlTools, FirecrawlScrapeSchema, FirecrawlCrawlSchema } from "./firecrawlTool"; // Import Firecrawl tools
-import { langfuse } from "../services/langfuse";
+import { scrapeWebpageTool,
+  extractDataTool,
+  mapWebsiteTool,
+  crawlWebsiteTool } from "./firecrawlTool"; // Import Firecrawl tools
+
 
 // === Export all tool modules (Consider if all are needed) ===
 export * from "./e2b";
@@ -328,15 +351,35 @@ const coreTools: Tool<any, any>[] = [
   deleteFileTool,
   listFilesTool,
   listFilesWithWalkTool,
+  scrapeWebpageTool,
+  crawlWebsiteTool,
+  mapWebsiteTool,
+  extractDataTool,
   mkdirTool,
   copyTool,
   moveTool,
   hyperAgentTool,
+  graphRagCsvLoader,
+  graphRagDotLoader,
+  graphRagGexfLoader,
+  graphRagGraphmlLoader,
+  graphRagJsonLoader,
+  graphRagCsvExporter,
+  graphRagDotExporter,
+  graphRagGexfExporter,
+  graphRagGraphmlExporter,
+  graphRagJsonExporter,
   //pdfReaderTool, 
   docxReaderTool,
   csvReaderTool,
   jsonReaderTool,
   extractHtmlTextTool,
+  graphRagVisualizationTool,
+  graphRagInspectorTool,
+  graphRagEditTool,
+  graphRagPruneTool,
+  graphRagExportImportTool,
+  graphRagObservabilityTool,
   //fetchAndExtractDocumentTool,
   collectFeedbackTool,
   analyzeFeedbackTool,
