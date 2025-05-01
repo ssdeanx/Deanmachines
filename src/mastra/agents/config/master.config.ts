@@ -1,6 +1,6 @@
 import type { Tool } from "@mastra/core/tools";
 import { DEFAULT_MODELS, ModelConfig, ResponseHookOptions, BaseAgentConfig, defaultResponseValidation, } from "./config.types";
-import { z, type ZodTypeAny } from "zod";
+import { z }from "zod";
 import { VoiceConfig, VoiceProvider } from "../../voice"; // ← real import
 import { allToolsMap } from "../../tools/index";
 

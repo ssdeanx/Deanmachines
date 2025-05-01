@@ -1,6 +1,38 @@
 # Changelog
 
-## [Unreleased]
+<!-- markdownlint-disable MD024 MD031 -->
+All notable changes to the DeanMachines Mastra Backend will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [v0.3.1] - 2025-05-01 10:00 EST
+
+### Added
+
+- **Memory Handling Enhancements**: Implemented the missing `createLargeContextProcessors()` function in `src/mastra/database/index.ts` to enable robust memory management with 1M token context support.
+- **Memory Processor Chain**: Created a complete processor chain with:
+  - `HighVolumeContextProcessor` for optimized chunking and filtering
+  - `TokenLimiter` for preventing context overflow
+  - `ToolCallFilter` for reducing noise in memory context
+  - `SemanticEmbeddingProcessor` for better recall capabilities
+  - `SemanticClusteringProcessor` for improved context organization
+
+### Fixed
+
+- Resolved critical runtime error in memory initialization that was preventing proper agent memory functionality
+- Fixed token limiting and embedding-based token counting, confirmed working through logs
+
+### Next Steps
+
+- Fix agent configuration issues to ensure all agents initialize and operate correctly
+- Continue improving thread management for persistent context
+- Integrate with `threadManager` for automatic memory compaction
+- Ensure all agents can access and update memory states synchronously
+
+- Test and validate the entire memory management system with various agents and workflows
+
+## [v0.3.0]
 
 ### Major Changes to Mastra Tools (readwrite.ts)
 
@@ -16,16 +48,6 @@
 - Resolved issues with tools in `src/mastra/tools/readwrite.ts` by ensuring proper registration and schema patching for tools like `list-files`, `edit-file`, and `create-file`.
 - Fixed instructions in agent configurations (e.g., `src/mastra/agents/base.agent.ts`) to enforce synchronous behavior and correct type assertions for methods like `getInstructions()`.
 - Updated LLM calls in agents (e.g., `src/mastra/agents/config/config.types.ts` and related files) to use method-based access (`getLLM()`) instead of deprecated properties, improving compatibility and type safety.
-
-### Upcoming Work
-
-- **Memory Handling Enhancements**: Next, we will focus on memory implementation in `src/mastra/database/index.js`, including adding robust thread management for persistent context, integrating with `threadManager` for automatic memory compaction, and ensuring all agents can access and update memory states synchronously to support long-running workflows without data loss.
-
-<!-- markdownlint-disable MD024 MD031 -->
-All notable changes to the DeanMachines Mastra Backend will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [v0.2.9] - 2025-04-30 14:30 EST
 

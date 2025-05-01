@@ -24,18 +24,17 @@ const processingLatency = createHistogram('memory_helper_latency_ms');
  */
 export interface MemoryMessage {
   role: string;
-  content: any;
+  content: string | Record<string, unknown>;
   id?: string;
   embedding?: number[];
   metadata?: {
     tags?: string[];
     source?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   createdAt?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
-
 /**
  * Cache manager for embeddings to avoid recalculating
  */
@@ -227,13 +226,12 @@ export function truncateText(text: string, maxLength: number): string {
 
 // Simple type for processor options
 export interface MemoryProcessorOpts {
-  [key: string]: any;
+  [key: string]: unknown;
 }
-
 /**
  * Type guard to ensure we return the correct type from processors
  */
-export function ensureMemoryProcessorReturn(messages: any[]): CoreMessage[] {
+export function ensureMemoryProcessorReturn(messages: CoreMessage[]): CoreMessage[] {
   // Map each message to ensure it has the correct role type
   return messages.map(msg => ({
     ...msg,
@@ -245,7 +243,6 @@ export function ensureMemoryProcessorReturn(messages: any[]): CoreMessage[] {
       : 'assistant'
   })) as CoreMessage[];
 }
-
 /**
  * Production-grade Semantic Clustering Processor
  * 
@@ -302,7 +299,7 @@ export class SemanticClusteringProcessor extends MemoryProcessor {
    * Note: This processor uses a synchronous implementation for compatibility.
    * In a production environment with full control of the types, you would use an async process method.
    */
-  process(messages: CoreMessage[], _opts: MemoryProcessorOpts = {}): CoreMessage[] {
+  process(messages: CoreMessage[]): CoreMessage[] {
     const startTime = performance.now();
     const span = createTracedSpan('memory.semanticClustering', { 
       messageCount: messages.length
@@ -356,5 +353,4 @@ export class SemanticClusteringProcessor extends MemoryProcessor {
       processingLatency.record(performance.now() - startTime, { processor: 'SemanticClusteringProcessor' });
       span?.end();
     }
-  }
-}
+  }}

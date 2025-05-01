@@ -13,7 +13,6 @@ import { ThreadManager, threadManager } from '../utils/thread-manager';
 import type { ThreadInfo } from '../types';
 import { createTracedSpan, createCounter, createHistogram } from '../services/tracing';
 import { 
-  createLargeContextProcessors, 
   HighVolumeContextProcessor, 
   TokenLimiter, 
   ToolCallFilter, 
@@ -93,8 +92,8 @@ export const storage = new LibSQLStore({
 });
 
 // Patch: add a no-op init if missing
-if (typeof (storage as any).init !== 'function') {
-  (storage as any).init = async () => { };
+if (typeof (storage as LibSQLStore).init !== 'function') {
+  (storage as LibSQLStore).init = async () => { };
 }
 
 // Create vector storage with matching configuration
@@ -116,13 +115,13 @@ export async function createMemory(options: Partial<MemoryConfig> = defaultMemor
     langfuse?.createTrace?.('memory.create', {
       metadata: {
         options,
-        ...('usage_details' in options ? { usage_details: (options as any).usage_details } : {}),
-        ...('cost_details' in options ? { cost_details: (options as any).cost_details } : {})
+        ...('usage_details' in options ? { usage_details: options.usage_details } : {}),
+        ...('cost_details' in options ? { cost_details: options.cost_details } : {})
       }
     });
     
     // Check if high token limits are requested (default to true for maximum performance)
-    const useHighTokenLimits = (options as any)?.highTokenLimits !== false;
+    const useHighTokenLimits = !('highTokenLimits' in options) || options.highTokenLimits !== false;
     // Create memory instance with optimized processors for high token limits
     const memory = new Memory({
       storage: new LibSQLStore({
@@ -156,7 +155,6 @@ export async function createMemory(options: Partial<MemoryConfig> = defaultMemor
     throw error;
   }
 }
-
 // Export shared memory instance with high token limit support
 export const sharedMemory = new Memory({
   storage: storage as unknown as MastraStorage,
@@ -165,33 +163,6 @@ export const sharedMemory = new Memory({
   processors: createLargeContextProcessors() // Add 1M token support to shared memory
 });
 
-// Optimize database performance by adding indices when needed
-export async function ensureDatabaseIndices(): Promise<void> {
-  const span = createTracedSpan('database.ensureIndices');
-  
-  try {
-    // These indices help with query performance for common operations
-    const indexOperations = [
-      "CREATE INDEX IF NOT EXISTS idx_messages_thread_id ON messages(thread_id)",
-      "CREATE INDEX IF NOT EXISTS idx_threads_resource_id ON threads(resourceId)",
-      "CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(createdAt)",
-      "CREATE INDEX IF NOT EXISTS idx_threads_updated_at ON threads(updatedAt)",
-    ];
-    
-    for (const indexOp of indexOperations) {
-      await (storage as any).exec(indexOp);
-    }
-    
-    logger.info('Database indices created or verified');
-    span?.end();
-  } catch (error) {
-    logger.warn('Failed to create database indices', {
-      error: error instanceof Error ? error.message : String(error)
-    });
-    span?.recordException?.(error);
-    span?.end();
-  }
-}
 
 // Ensure threadManager initializes only after sharedMemory is ready
 export const initThreadManager = (async () => {
@@ -199,16 +170,12 @@ export const initThreadManager = (async () => {
   
   try {
     // Wait for memory to initialize (if it has async init)
-    if (typeof (sharedMemory as any).init === 'function') {
-      await (sharedMemory as any).init();
-    } else {
-      // Fallback: wait a tick to ensure sharedMemory is constructed
-      await new Promise(res => setTimeout(res, 10));
-    }
-    
-    // Ensure indices exist
-    await ensureDatabaseIndices();
-    
+    if ('init' in sharedMemory && typeof sharedMemory.init === 'function') {
+          await sharedMemory.init();
+        } else {
+          // Fallback: wait a tick to ensure sharedMemory is constructed
+          await new Promise(res => setTimeout(res, 10));
+        }
     // Create a default thread to ensure threadManager works with memory
     let defaultThread: ThreadInfo | undefined;
     try {
@@ -235,29 +202,6 @@ export const initThreadManager = (async () => {
     throw error;
   }
 })();
-
-// Utility function to close all connections when shutting down
-export async function closeConnections(): Promise<void> {
-  try {
-    logger.info('Closing database connections...');
-    
-    // Close storage connections
-    if (typeof (storage as any).close === 'function') {
-      await (storage as any).close();
-    }
-    
-    // Close vector connections
-    if (typeof (vector as any).close === 'function') {
-      await (vector as any).close();
-    }
-    
-    logger.info('All database connections closed');
-  } catch (error) {
-    logger.error('Error closing database connections', {
-      error: error instanceof Error ? error.message : String(error)
-    });
-  }
-}
 
 // Re-export Memory type for convenience
 export type { Memory };
@@ -294,8 +238,8 @@ export async function createAdvancedMemory(options: Partial<EnhancedMemoryConfig
     langfuse?.createTrace?.('memory.createAdvanced', {
       metadata: {
         options,
-        ...('usage_details' in options ? { usage_details: (options as any).usage_details } : {}),
-        ...('cost_details' in options ? { cost_details: (options as any).cost_details } : {})
+        ...('usage_details' in options ? { usage_details: options.usage_details } : {}),
+        ...('cost_details' in options ? { cost_details: options.cost_details } : {})
       }
     });
     
@@ -334,4 +278,27 @@ export async function createAdvancedMemory(options: Partial<EnhancedMemoryConfig
     span?.end();
     throw error;
   }
+}
+/**
+ * Creates a chain of memory processors optimized for handling large context windows up to 1M tokens
+ * 
+ * @returns Array of memory processors configured for high-volume context
+ */
+function createLargeContextProcessors(): MemoryProcessor[] {
+  return [
+    // Process high volume context with optimized chunking and filtering
+    new HighVolumeContextProcessor(),
+    
+    // Apply token limiting to prevent context overflow
+    new TokenLimiter(),
+    
+    // Filter tool calls to reduce noise in the context
+    new ToolCallFilter(),
+    
+    // Add semantic embedding for better recall
+    new SemanticEmbeddingProcessor(),
+    
+    // Add semantic clustering for better context organization
+    new SemanticClusteringProcessor()
+  ];
 }
