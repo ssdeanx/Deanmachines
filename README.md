@@ -25,13 +25,12 @@ Welcome to the **DeanMachines Mastra AI Workspace**! This monorepo contains the 
   - [Changelog](#changelog)
   - [Notes for AI Assistants](#notes-for-ai-assistants)
   - [AI Assistant Notes (For GitHub Copilot / Collaborators)](#ai-assistant-notes-for-github-copilot--collaborators)
-  - [Additional AI Assistant Guidance (2025-04-15)](#additional-ai-assistant-guidance-2025-04-15)
+  - [Additional AI Assistant Guidance (2025-05-01)](#additional-ai-assistant-guidance-2025-05-01)
   - [Current Progress (as of 2025-04-16)](#current-progress-as-of-2025-04-16)
   - [Project Roadmap (Gantt Diagram)](#project-roadmap-gantt-diagram)
   - [Current Benchmarks (2025-04-15)](#current-benchmarks-2025-04-15)
   - [Final Notes](#final-notes)
   - [Getting Help](#getting-help)
-  - [Mermaid Diagram](#mermaid-diagram)
   - [Large Token Context Support](#large-token-context-support)
     - [Memory Processors](#memory-processors)
       - [How to Use](#how-to-use)
@@ -225,90 +224,100 @@ README.md
 ```mermaid
 graph TD
 
-    subgraph 11076["External Systems"]
-        11106["LLM Providers<br>Google AI / OpenAI / Anthropic / Ollama / Vertex AI"]
-        11107["Observability Platforms<br>LangSmith / SigNoz / Langfuse"]
-        11108["Search Services<br>Tavily / ExaSearch / Google / Brave / Bing"]
-        11109["Data Sources<br>Wikidata / Wikipedia / Reddit / Polygon / ArXiv / GitHub"]
-        11110["Cloud Storage/Docs<br>Google Drive / Google Docs"]
-        11111["Web Automation &amp; Sandbox<br>Puppeteer / Hyperbrowser / E2B"]
-        11112["Image Generation<br>Midjourney"]
-        11113["Content Extraction<br>Jina"]
-        11114["Voice Synthesis Services<br>Google Voice / ElevenLabs"]
-        11115["Collaboration Tools<br>Notion (Future)"]
-        11116["Diagramming Tools<br>Mermaid (Future)"]
+    subgraph 12854["External Systems"]
+        12888["LLM Providers<br>External Service (Google, OpenAI, Anthropic, Ollama)"]
+        12889["Observability Services<br>External Service (LangSmith, Langfuse, Signoz)"]
+        12890["Vector Databases<br>External Service (Pinecone, Supabase/PgVector, Redis/Upstash, LibSQL)"]
+        12891["Search Services<br>External Service (Google, Brave, Exa, Tavily, ArXiv)"]
+        12892["Data/Knowledge Services<br>External Service (Wikipedia, Wikidata, Notion, GitHub, Reddit, Polygon)"]
+        12893["Web Automation Services<br>External Service (Puppeteer Driver, Firecrawl API, Hyperbrowser)"]
+        12894["Code Sandbox Services<br>External Service (E2B)"]
+        12895["Voice Services<br>External Service (Google TTS/STT, ElevenLabs)"]
+        12896["Image Generation Services<br>External Service (Midjourney)"]
+        12897["Caching Services<br>External Service (Redis/Upstash)"]
+        12898["Logging Services<br>External Service (Upstash Logs)"]
+        12899["Collaboration Platform<br>External Service (GitHub)"]
+        12900["Local File System<br>Operating System Resource"]
     end
-    subgraph 11077["Data Stores"]
-        11102["Vector Databases<br>Pinecone / Upstash / PgVector / Redis"]
-        11103["Key-Value &amp; Cache<br>Redis / Upstash"]
-        11104["Relational Database<br>Supabase (Postgres) / LibSQL"]
-        11105["Logging Store<br>Upstash Logs / Filesystem"]
-    end
-    subgraph 11078["Mastra Core System"]
-        11084["Mastra Entry Point<br>TypeScript"]
-        11085["Core Types<br>TypeScript"]
-        11086["Utilities<br>TypeScript"]
-        11099["Voice Synthesis<br>TypeScript"]
-        11100["Agent Hooks<br>TypeScript"]
-        11101["Integrations<br>TypeScript"]
-        subgraph 11079["Data Access Layer"]
-            11097["Data Access &amp; Abstraction<br>TypeScript"]
-            11098["Logging<br>TypeScript"]
-        end
-        subgraph 11080["Core Services"]
-            11094["Observability &amp; Tracing<br>TypeScript"]
-            11095["LangChain Integration<br>TypeScript"]
-            11096["External Service Clients<br>TypeScript"]
-        end
-        subgraph 11081["Tools"]
-            11092["Tool Implementations<br>TypeScript"]
-            11093["Future Tools<br>TypeScript"]
+    subgraph 12855["Mastra Agent Framework"]
+        subgraph 12856["Core Application<br>TypeScript"]
+            12863["Mastra Core<br>TypeScript"]
+            12864["Agent Hooks<br>TypeScript"]
+            12865["Utilities<br>TypeScript"]
+            12887["Specific Integrations<br>TypeScript"]
+            subgraph 12857["Voice Subsystem<br>TypeScript"]
+                12886["Voice Synthesizer<br>TypeScript"]
+            end
+            subgraph 12858["Service Clients<br>TypeScript"]
+                12883["LLM Wrappers<br>TypeScript"]
+                12884["Observability Clients<br>TypeScript"]
+                12885["External Service Clients<br>TypeScript"]
+            end
+            subgraph 12859["Data Management Subsystem<br>TypeScript"]
+                12879["Memory Manager<br>TypeScript"]
+                12880["Vector Store Adapters<br>TypeScript"]
+                12881["Logging Adapters<br>TypeScript"]
+                12882["Storage Adapters<br>TypeScript"]
+            end
+            subgraph 12860["Tools Subsystem<br>TypeScript"]
+                12872["Tool Registry & Helpers<br>TypeScript"]
+                12873["Web & Data Retrieval Tools<br>TypeScript"]
+                12874["Knowledge Management Tools<br>TypeScript"]
+                12875["Execution & File Tools<br>TypeScript"]
+                12876["AI Integration Tools<br>TypeScript"]
+                12877["Evaluation & RL Tools<br>TypeScript"]
+                12878["Utility & Specialized Tools<br>TypeScript"]
+            end
+            subgraph 12861["Workflows Subsystem<br>TypeScript"]
+                12869["Workflow Engine<br>TypeScript"]
+                12870["Workflow Definitions<br>TypeScript"]
+                12871["Agent Networks<br>TypeScript"]
+            end
+            subgraph 12862["Agents Subsystem<br>TypeScript"]
+                12866["Agent Definitions<br>TypeScript"]
+                12867["Agent Configuration<br>TypeScript"]
+                12868["Base Agent Logic<br>TypeScript"]
+                %% Edges at this level (grouped by source)
+                12866["Agent Definitions<br>TypeScript"] --> 12867["Agent Configuration<br>TypeScript"]
+                12866["Agent Definitions<br>TypeScript"] --> 12868["Base Agent Logic<br>TypeScript"]
+            end
             %% Edges at this level (grouped by source)
-            11092["Tool Implementations<br>TypeScript"] -->|includes| 11093["Future Tools<br>TypeScript"]
+            12866["Agent Definitions<br>TypeScript"] --> 12864["Agent Hooks<br>TypeScript"]
+            12866["Agent Definitions<br>TypeScript"] --> 12872["Tool Registry & Helpers<br>TypeScript"]
+            12866["Agent Definitions<br>TypeScript"] --> 12879["Memory Manager<br>TypeScript"]
+            12866["Agent Definitions<br>TypeScript"] --> 12883["LLM Wrappers<br>TypeScript"]
+            12866["Agent Definitions<br>TypeScript"] --> 12886["Voice Synthesizer<br>TypeScript"]
+            12871["Agent Networks<br>TypeScript"] --> 12866["Agent Definitions<br>TypeScript"]
         end
-        subgraph 11082["Agents"]
-            11090["Agent Definitions<br>TypeScript"]
-            11091["Agent Configuration<br>TypeScript"]
-            %% Edges at this level (grouped by source)
-            11090["Agent Definitions<br>TypeScript"] -->|uses configuration from| 11091["Agent Configuration<br>TypeScript"]
-        end
-        subgraph 11083["Workflows"]
-            11087["Workflow Engine<br>TypeScript"]
-            11088["Workflow Definitions<br>TypeScript"]
-            11089["Agent Networks<br>TypeScript"]
-        end
-        %% Edges at this level (grouped by source)
-        11090["Agent Definitions<br>TypeScript"] -->|reports to| 11094["Observability &amp; Tracing<br>TypeScript"]
-        11090["Agent Definitions<br>TypeScript"] -->|uses| 11085["Core Types<br>TypeScript"]
-        11090["Agent Definitions<br>TypeScript"] -->|uses| 11086["Utilities<br>TypeScript"]
-        11090["Agent Definitions<br>TypeScript"] -->|can be invoked by| 11087["Workflow Engine<br>TypeScript"]
-        11090["Agent Definitions<br>TypeScript"] -->|uses| 11092["Tool Implementations<br>TypeScript"]
-        11090["Agent Definitions<br>TypeScript"] -->|accesses state via| 11097["Data Access &amp; Abstraction<br>TypeScript"]
-        11090["Agent Definitions<br>TypeScript"] -->|uses| 11099["Voice Synthesis<br>TypeScript"]
-        11090["Agent Definitions<br>TypeScript"] -->|uses| 11100["Agent Hooks<br>TypeScript"]
-        11084["Mastra Entry Point<br>TypeScript"] -->|initializes| 11090["Agent Definitions<br>TypeScript"]
-        11087["Workflow Engine<br>TypeScript"] -->|orchestrates| 11090["Agent Definitions<br>TypeScript"]
-        11087["Workflow Engine<br>TypeScript"] -->|uses| 11092["Tool Implementations<br>TypeScript"]
-        11089["Agent Networks<br>TypeScript"] -->|contain| 11090["Agent Definitions<br>TypeScript"]
-        11092["Tool Implementations<br>TypeScript"] -->|reports to| 11094["Observability &amp; Tracing<br>TypeScript"]
-        11092["Tool Implementations<br>TypeScript"] -->|uses| 11085["Core Types<br>TypeScript"]
-        11092["Tool Implementations<br>TypeScript"] -->|uses| 11086["Utilities<br>TypeScript"]
-        11092["Tool Implementations<br>TypeScript"] -->|accesses data via| 11097["Data Access &amp; Abstraction<br>TypeScript"]
     end
     %% Edges at this level (grouped by source)
-    11101["Integrations<br>TypeScript"] -->|interacts with| 11109["Data Sources<br>Wikidata / Wikipedia / Reddit / Polygon / ArXiv / GitHub"]
-    11099["Voice Synthesis<br>TypeScript"] -->|interacts with| 11114["Voice Synthesis Services<br>Google Voice / ElevenLabs"]
-    11097["Data Access &amp; Abstraction<br>TypeScript"] -->|interacts with| 11102["Vector Databases<br>Pinecone / Upstash / PgVector / Redis"]
-    11097["Data Access &amp; Abstraction<br>TypeScript"] -->|interacts with| 11103["Key-Value &amp; Cache<br>Redis / Upstash"]
-    11097["Data Access &amp; Abstraction<br>TypeScript"] -->|interacts with| 11104["Relational Database<br>Supabase (Postgres) / LibSQL"]
-    11097["Data Access &amp; Abstraction<br>TypeScript"] -->|interacts with| 11105["Logging Store<br>Upstash Logs / Filesystem"]
-    11097["Data Access &amp; Abstraction<br>TypeScript"] -->|uses embeddings from| 11106["LLM Providers<br>Google AI / OpenAI / Anthropic / Ollama / Vertex AI"]
-    11098["Logging<br>TypeScript"] -->|writes logs to| 11105["Logging Store<br>Upstash Logs / Filesystem"]
-    11098["Logging<br>TypeScript"] -->|may send logs to| 11107["Observability Platforms<br>LangSmith / SigNoz / Langfuse"]
-    11095["LangChain Integration<br>TypeScript"] -->|interacts with| 11106["LLM Providers<br>Google AI / OpenAI / Anthropic / Ollama / Vertex AI"]
-    11094["Observability &amp; Tracing<br>TypeScript"] -->|sends data to| 11107["Observability Platforms<br>LangSmith / SigNoz / Langfuse"]
-    11096["External Service Clients<br>TypeScript"] -->|interacts with| 11108["Search Services<br>Tavily / ExaSearch / Google / Brave / Bing"]
-    11096["External Service Clients<br>TypeScript"] -->|interacts with| 11111["Web Automation &amp; Sandbox<br>Puppeteer / Hyperbrowser / E2B"]
+    12887["Specific Integrations<br>TypeScript"] -->|interacts with| 12899["Collaboration Platform<br>External Service (GitHub)"]
+    12886["Voice Synthesizer<br>TypeScript"] -->|uses| 12895["Voice Services<br>External Service (Google TTS/STT, ElevenLabs)"]
+    12876["AI Integration Tools<br>TypeScript"] -->|uses| 12888["LLM Providers<br>External Service (Google, OpenAI, Anthropic, Ollama)"]
+    12876["AI Integration Tools<br>TypeScript"] -->|uses| 12890["Vector Databases<br>External Service (Pinecone, Supabase/PgVector, Redis/Upstash, LibSQL)"]
+    12877["Evaluation & RL Tools<br>TypeScript"] -->|uses| 12888["LLM Providers<br>External Service (Google, OpenAI, Anthropic, Ollama)"]
+    12877["Evaluation & RL Tools<br>TypeScript"] -->|uses| 12889["Observability Services<br>External Service (LangSmith, Langfuse, Signoz)"]
+    12878["Utility & Specialized Tools<br>TypeScript"] -->|uses| 12889["Observability Services<br>External Service (LangSmith, Langfuse, Signoz)"]
+    12878["Utility & Specialized Tools<br>TypeScript"] -->|uses| 12896["Image Generation Services<br>External Service (Midjourney)"]
+    12878["Utility & Specialized Tools<br>TypeScript"] -->|uses| 12900["Local File System<br>Operating System Resource"]
+    12874["Knowledge Management Tools<br>TypeScript"] -->|uses| 12890["Vector Databases<br>External Service (Pinecone, Supabase/PgVector, Redis/Upstash, LibSQL)"]
+    12874["Knowledge Management Tools<br>TypeScript"] -->|uses| 12892["Data/Knowledge Services<br>External Service (Wikipedia, Wikidata, Notion, GitHub, Reddit, Polygon)"]
+    12874["Knowledge Management Tools<br>TypeScript"] -->|uses| 12900["Local File System<br>Operating System Resource"]
+    12873["Web & Data Retrieval Tools<br>TypeScript"] -->|uses| 12891["Search Services<br>External Service (Google, Brave, Exa, Tavily, ArXiv)"]
+    12873["Web & Data Retrieval Tools<br>TypeScript"] -->|uses| 12892["Data/Knowledge Services<br>External Service (Wikipedia, Wikidata, Notion, GitHub, Reddit, Polygon)"]
+    12873["Web & Data Retrieval Tools<br>TypeScript"] -->|uses| 12893["Web Automation Services<br>External Service (Puppeteer Driver, Firecrawl API, Hyperbrowser)"]
+    12875["Execution & File Tools<br>TypeScript"] -->|uses| 12894["Code Sandbox Services<br>External Service (E2B)"]
+    12875["Execution & File Tools<br>TypeScript"] -->|uses| 12900["Local File System<br>Operating System Resource"]
+    12883["LLM Wrappers<br>TypeScript"] -->|interacts with| 12888["LLM Providers<br>External Service (Google, OpenAI, Anthropic, Ollama)"]
+    12884["Observability Clients<br>TypeScript"] -->|sends telemetry to| 12889["Observability Services<br>External Service (LangSmith, Langfuse, Signoz)"]
+    12885["External Service Clients<br>TypeScript"] -->|interacts with| 12891["Search Services<br>External Service (Google, Brave, Exa, Tavily, ArXiv)"]
+    12885["External Service Clients<br>TypeScript"] -->|interacts with| 12893["Web Automation Services<br>External Service (Puppeteer Driver, Firecrawl API, Hyperbrowser)"]
+    12880["Vector Store Adapters<br>TypeScript"] -->|uses embeddings from| 12888["LLM Providers<br>External Service (Google, OpenAI, Anthropic, Ollama)"]
+    12880["Vector Store Adapters<br>TypeScript"] -->|stores/retrieves vectors via| 12890["Vector Databases<br>External Service (Pinecone, Supabase/PgVector, Redis/Upstash, LibSQL)"]
+    12882["Storage Adapters<br>TypeScript"] -->|stores data via| 12890["Vector Databases<br>External Service (Pinecone, Supabase/PgVector, Redis/Upstash, LibSQL)"]
+    12882["Storage Adapters<br>TypeScript"] -->|caches data via| 12897["Caching Services<br>External Service (Redis/Upstash)"]
+    12881["Logging Adapters<br>TypeScript"] -->|logs to| 12898["Logging Services<br>External Service (Upstash Logs)"]
+    12881["Logging Adapters<br>TypeScript"] -->|logs to| 12900["Local File System<br>Operating System Resource"]
 ```
 
 ---
@@ -510,62 +519,87 @@ See [CHANGELOG.md](./CHANGELOG.md) for a detailed history of changes, releases, 
 ## AI Assistant Notes (For GitHub Copilot / Collaborators)
 
 - **Workspace Context:** You are working within the `c:\Users\dm\Documents\Backup\DeanmachinesMastrra` directory on Windows.
-- **Core Technologies:** Mastra AI framework, TypeScript, Zod (for schemas), Puppeteer (for browser automation), SigNoz/OpenTelemetry (for tracing), various LLM providers (Google, OpenAI, Anthropic, etc.).
-- **Key Files:**
-  - `src/mastra/tools/index.ts`: The main "barrel" file where all tools are registered and exported. **Crucial for tool discovery.**
-  - `src/mastra/tools/`: Directory containing individual tool implementations (e.g., `puppeteerTool.ts`, `readwrite.ts`, `document-tools.ts`).
-  - `src/mastra/agents/`: Directory containing agent configurations.
-  - `src/mastra/workflows/`: Directory containing workflow definitions.
-  - `src/mastra/services/`: Directory for shared services like tracing (`signoz.ts`) and database interactions.
-  - `CHANGELOG.md`: **Check this file frequently** for recent changes, additions, and context on the current state of development.
-  - `package.json`: Lists project dependencies.
-- **Recent Major Additions (See `CHANGELOG.md` v0.0.15):**
-  - **`puppeteerTool`:** A powerful tool for browser automation was added (`src/mastra/tools/puppeteerTool.ts`). It supports complex action sequences (clicking, typing, scraping, scrolling, etc.) defined via its input schema.
-  - **Knowledge Base Saving:** `puppeteerTool` can now save its scraped results directly to the knowledge base using the `writeKnowledgeFileTool` from `src/mastra/tools/readwrite.ts`. This requires providing `saveKnowledgeFilename` and related options in the input.
-  - **Tracing:** `puppeteerTool` is fully integrated with SigNoz tracing, providing detailed observability.
-  - **Registration:** `puppeteerTool` is correctly registered in `src/mastra/tools/index.ts`.
+- **Core Technologies:** 
+  - **Framework:** Mastra AI framework (TypeScript)
+  - **Type Safety:** Zod for schema validation, TypeScript for static typing
+  - **Web Automation:** Puppeteer for browser automation
+  - **Observability:** SigNoz/OpenTelemetry for tracing, Langfuse for LLM observability
+  - **LLM Providers:** Google, OpenAI, Anthropic, Vertex AI, Ollama (all with unified interfaces)
+  - **Memory:** LibSQL with 1M token context support via custom memory processors
+
+- **Key Files to Understand:**
+  - `src/mastra/tools/index.ts`: The central registry where all tools are registered and exported. **Critical for tool discovery.**
+  - `src/mastra/database/index.ts`: Memory management and thread persistence with 1M token support.
+  - `src/mastra/agents/config/`: Directory containing agent configurations and model utilities.
+  - `src/mastra/agents/base.agent.ts`: Base agent implementation with hooks, tracing, and voice support.
+  - `src/mastra/workflows/`: Orchestration of multi-agent workflows and networks.
+  - `src/mastra/services/`: Shared services like tracing (`signoz.ts`) and observability (`langfuse.ts`).
+  - `CHANGELOG.md`: **Check this file first** for recent changes and current development context.
+
+- **Recent Major Additions:**
+  - **Memory Processors:** Implemented in `src/mastra/database/memory-processors.ts` with 1M token support.
+  - **Puppeteer Tool:** Advanced browser automation in `src/mastra/tools/puppeteerTool.ts`.
+  - **Notion Integration:** Full Notion API client and tools in `src/mastra/tools/notion.ts`.
+  - **Universal Provider Support:** All major LLM providers (Google, OpenAI, Anthropic, Vertex, Ollama) with unified interfaces.
+  - **GraphRAG Tools:** Graph-based retrieval augmented generation tools in `src/mastra/tools/graphRag.ts`.
+
 - **Development Workflow:**
-    1. **Understand the Goal:** Clarify the user's request.
-    2. **Check `CHANGELOG.md`:** Review recent changes for context.
-    3. **Identify Relevant Files:** Locate the files needing modification (e.g., specific tool, agent config, barrel file).
-    4. **Implement Changes:** Write or modify the TypeScript code.
-        - Use Zod for defining input/output schemas for tools and agents.
-        - Leverage existing tools (like `writeKnowledgeFileTool`) when possible by importing them and calling their `.execute()` method, passing the necessary `context` and `container`.
-        - Integrate logging (`logger.info`, `logger.debug`, etc.) and tracing (`createAISpan`, `recordMetrics`, `span.addEvent`) for observability.
-    5. **Register Tools:** If adding a new tool, ensure it's imported and added to the appropriate arrays/maps in `src/mastra/tools/index.ts`.
-    6. **Update `CHANGELOG.md`:** Document the changes clearly, including file paths and key implementation details.
-    7. **Lint & Type Check:** Assume the user runs `eslint` and `tsc` after changes. Aim for code that passes these checks. **Do not introduce type errors.**
-- **Key Commands (Assume user runs these):**
-  - `pnpm install`: Install dependencies.
-  - `pnpm run dev`: Start the development server (likely using `mastra dev`).
-  - `pnpm run lint`: Check code style.
-  - `pnpm run typecheck`: Check TypeScript types.
-- **Goal:** Maintain a robust, type-safe, observable, and well-documented Mastra AI backend. Follow user instructions carefully and leverage the existing framework patterns.
+  1. **Understand Requirements:** Clarify what needs to be built or fixed.
+  2. **Check CHANGELOG.md:** Review recent changes for context.
+  3. **Locate Relevant Files:** Use semantic search to find related code.
+  4. **Implement Changes:** Follow existing patterns and use TypeScript + Zod.
+  5. **Register Tools:** If adding tools, ensure they're registered in `tools/index.ts` with proper schema patching.
+  6. **Update CHANGELOG.md:** Document your changes with file paths and implementation details.
+  7. **Run Type Checks:** Ensure your changes pass TypeScript validation.
+
+- **Common Patterns:**
+  - **Tool Registration:** All tools must be registered in `tools/index.ts` and have their output schemas patched.
+  - **Tracing:** Use `createTracedSpan()` for OpenTelemetry and `langfuse.createTrace()` for LLM observability.
+  - **Memory:** Use `createMemory()` or `sharedMemory` for agent memory with thread management.
+  - **Model Creation:** Use provider-specific utilities like `createGoogleModel()` or `createOpenAIModel()`.
 
 ---
 
-## Additional AI Assistant Guidance (2025-04-15)
+## Additional AI Assistant Guidance (2025-05-01)
+
+- **Memory System (New):**
+  - The workspace now fully supports 1M token contexts through custom memory processors in `database/memory-processors.ts`.
+  - The `createLargeContextProcessors()` function creates a chain of processors that handle token limiting, tool call filtering, and semantic clustering.
+  - When working with memory, use `createMemory()` with `highTokenLimits: true` (default) to enable 1M token support.
+  - Memory processors are observable via SigNoz and Langfuse for debugging and optimization.
 
 - **Provider Support:**
-  - This workspace now fully supports Google, Vertex AI, OpenAI, and Anthropic as LLM providers. Provider configuration is strictly validated with Zod schemas in `provider.utils.ts`.
-  - Model instantiation is robust and type-safe, using the correct provider instance pattern for @ai-sdk/openai and @ai-sdk/anthropic. See `model.utils.ts` for details.
+  - All major LLM providers (Google, Vertex, OpenAI, Anthropic, Ollama) are supported with unified interfaces.
+  - Provider configuration is strictly validated with Zod schemas in `provider.utils.ts`.
+  - Model instantiation follows the correct pattern for each provider's SDK.
+  - OpenAI-compatible endpoints are supported via the `"openai-compatible"` provider type.
+
 - **Type Safety:**
-  - All provider and model config types are exported from `config.types.ts` and `provider.utils.ts` for downstream use.
-  - Tool schemas are always patched and validated at registration in `tools/index.ts`.
+  - All schemas are defined with Zod and strictly enforced at runtime.
+  - Tool input/output schemas are patched and validated during registration.
+  - Provider and model configs have explicit types and validation.
+  - Use TypeScript type guards when accessing optional fields.
+
 - **Error Handling:**
-  - Lint and type errors must be checked after every file edit. Use the `get_errors` tool or your IDE's diagnostics.
-  - If you encounter a provider/model/tool registration error, check the README and the relevant config files for patterns and best practices.
+  - Always check for errors after async operations, especially database and LLM calls.
+  - Use the singleton `langfuse` instance for tracing and scoring.
+  - Wrap tool execution in try/catch and log errors with context.
+  - Use the recursion guard in `thread-manager.ts` to prevent stack overflows.
+
 - **Windows Context:**
-  - This workspace is developed and tested on Windows. File paths, scripts, and environment variables may use Windows conventions.
-- **Changelog Discipline:**
-  - All significant changes must be documented in `CHANGELOG.md` with a date and version. See the latest entry for format.
-- **AI Assistant Self-Reminder:**
-  - Always gather context before making changes.
-  - Prefer semantic search for codebase exploration.
-  - Never assume tool registration—verify in `tools/index.ts`.
-  - Document all new patterns and integrations here for future reference.
-  - Lint and type errors must be checked after every file edit. Use the `get_errors` tool or your IDE's diagnostics.
-  - If you encounter a provider/model/tool registration error, check the README and the relevant config files for patterns and best practices.
+  - This workspace is developed on Windows. Use Windows-compatible paths and commands.
+  - File paths should use forward slashes (`/`) in code for cross-platform compatibility.
+  - Environment variables are loaded from `.env` files and validated in `tools/index.ts`.
+
+- **Self-Reminder Checklist:**
+  - ✅ Gather context before making changes (check CHANGELOG.md first)
+  - ✅ Use semantic search to explore the codebase
+  - ✅ Verify tool registration in `tools/index.ts`
+  - ✅ Ensure all schemas are properly defined and patched
+  - ✅ Add tracing and observability to new code
+  - ✅ Document changes in CHANGELOG.md
+  - ✅ Run type checks after making changes
+  - ✅ Test with real data when possible
 
 ---
 
@@ -585,39 +619,61 @@ See [CHANGELOG.md](./CHANGELOG.md) for a detailed history of changes, releases, 
 ## Project Roadmap (Gantt Diagram)
 
 ```mermaid
-%% GitHub supports Mermaid Gantt, but only with valid syntax and no unsupported features
-%% See https://mermaid.js.org/syntax/gantt.html for reference
-
 gantt
-dateFormat  YYYY-MM-DD
-title DeanMachines Mastra AI Project Roadmap
+    dateFormat  YYYY-MM-DD
+    title DeanMachines Mastra AI Project Roadmap
+    axisFormat %m/%d
+    excludes    weekends
+    
+    section Core Infrastructure
+    Provider Refactor         :done,   a1, 2025-04-10, 2025-04-15
+    Observability Integration :done,   a2, 2025-04-12, 2025-04-15
+    Tool Registry Refactor    :done,   a3, 2025-04-13, 2025-04-15
+    Upstash Vector Integration:done,   a4, 2025-04-14, 2025-04-15
+    Memory Processor Implementation :done, a5, 2025-04-15, 2025-05-01
+    Agent Config Fixes        :active, a6, 2025-05-01, 2025-05-05
+    Thread Management Enhancements :    a7, 2025-05-05, 2025-05-10
+    API Gateway Implementation:    a8, 2025-05-10, 2025-05-15
+    WebSocket Support         :    a9, 2025-05-15, 2025-05-20
 
-section Core Infrastructure
-Provider Refactor         :done,   a1, 2025-04-10, 2025-04-15
-Observability Integration :done,   a2, 2025-04-12, 2025-04-15
-Tool Registry Refactor    :done,   a3, 2025-04-13, 2025-04-15
-Upstash Vector Integration:done,   a4, 2025-04-14, 2025-04-15
-ClickHouse Adapter        :active, a5, 2025-04-15, 3d
-Memory Adapter Upgrades   :        a6, 2025-04-18, 5d
-
-section Agent & Tool Expansion
-RL/Eval Tools             :active, b1, 2025-04-15, 5d
-Workflow Orchestration    :        b2, 2025-04-17, 7d
-RAG Workflow Integration  :        b3, 2025-04-18, 5d
-Document Chunking/Embed   :        b4, 2025-04-19, 4d
-Hybrid Search (RAG+Memory):        b5, 2025-04-20, 5d
-
-section Documentation & Testing
-README/Changelog Update   :done,   c1, 2025-04-15, 1d
-Test Coverage Expansion   :        c2, 2025-04-18, 5d
-RAG/VectorStore Examples  :        c3, 2025-04-19, 3d
-Workflow Examples         :        c4, 2025-04-20, 3d
-Agent/Tool Tutorials      :        c5, 2025-04-21, 4d
-
-section Deployment & Ops
-CI/CD Pipeline            :        d1, 2025-04-18, 3d
-Production Observability  :        d2, 2025-04-20, 4d
-Scaling/Performance       :        d3, 2025-04-22, 5d
+    section Agent & Tool Expansion
+    RL/Eval Tools             :done,   b1, 2025-04-15, 2025-04-20
+    Puppeteer Tool            :done,   b2, 2025-04-20, 2025-04-25
+    Notion Integration        :done,   b3, 2025-04-25, 2025-04-27
+    GraphRAG Integration      :active, b4, 2025-04-27, 2025-05-05
+    Document Processing       :        b5, 2025-05-05, 2025-05-10
+    Voice Integration         :        b6, 2025-05-10, 2025-05-15
+    Multi-modal Tools         :        b7, 2025-05-15, 2025-05-25
+    
+    section Frontend Integration
+    API Client Library        :        f1, 2025-05-06, 2025-05-10
+    Next.js Component Library :        f2, 2025-05-08, 2025-05-15
+    Agent UI Templates        :        f3, 2025-05-12, 2025-05-18
+    Real-time Chat Interface  :        f4, 2025-05-15, 2025-05-20
+    Voice/Speech UI Components:        f5, 2025-05-18, 2025-05-25
+    Dashboard & Analytics     :        f6, 2025-05-20, 2025-05-30
+    
+    section Documentation & Testing
+    README/Changelog Update   :done,   c1, 2025-04-15, 2025-05-01
+    Test Coverage Expansion   :active, c2, 2025-05-01, 2025-05-10
+    Agent Config Testing      :active, c3, 2025-05-01, 2025-05-05
+    Workflow Examples         :        c4, 2025-05-05, 2025-05-10
+    Agent/Tool Tutorials      :        c5, 2025-05-10, 2025-05-15
+    Frontend Integration Docs :        c6, 2025-05-15, 2025-05-25
+    
+    section Deployment & Ops
+    CI/CD Pipeline            :        d1, 2025-05-05, 2025-05-10
+    Production Observability  :        d2, 2025-05-10, 2025-05-15
+    Scaling/Performance       :        d3, 2025-05-15, 2025-05-20
+    Frontend Deployment       :        d4, 2025-05-20, 2025-05-25
+    E2E Testing & Monitoring  :        d5, 2025-05-25, 2025-06-01
+    
+    section User Experience
+    UX Research & Testing     :        u1, 2025-05-10, 2025-05-20
+    Accessibility Compliance  :        u2, 2025-05-15, 2025-05-25
+    Performance Optimization  :        u3, 2025-05-20, 2025-05-30
+    Mobile Responsiveness     :        u4, 2025-05-25, 2025-06-05
+    User Onboarding Flow      :        u5, 2025-06-01, 2025-06-10
 ```
 
 ---
@@ -644,9 +700,6 @@ Scaling/Performance       :        d3, 2025-04-22, 5d
 - For benchmarking, use SigNoz and OpenTelemetry dashboards to monitor latency, error rates, and token usage. Share findings in the README as you go.
 - For any questions or onboarding, review this README and the codebase structure, or contact the DeanMachines team.
 
----
-
-*Last updated: 2025-04-16*
 
 ---
 
@@ -655,130 +708,6 @@ Scaling/Performance       :        d3, 2025-04-22, 5d
 If you are a new contributor or AI assistant, please review this README and the codebase structure before making changes. For questions, contact the DeanMachines team or open an issue in the repository.
 
 ---
-
-## Mermaid Diagram
-
-```mermaid
-graph TD
-    11324["User<br>External Actor"]
-    subgraph 11314["Mastra System"]
-        subgraph 11315["External Services"]
-            11354["LLM Providers<br>Google AI / OpenAI / Anthropic / Ollama / Vertex AI"]
-            11355["Search Providers<br>Tavily / ExaSearch / BraveSearch / Google Search / Bing"]
-            11356["Knowledge Bases<br>Wikidata / Wikipedia / Notion / Reddit"]
-            11357["Code Execution Environment<br>E2B Sandbox"]
-            11358["Version Control Systems<br>GitHub"]
-            11359["Financial Data Provider<br>Polygon"]
-            11360["Image Generation Services<br>Midjourney"]
-            11361["Web Automation Services<br>Hyperbrowser / Puppeteer"]
-            11362["Cloud Storage Services<br>Google Drive"]
-            11363["Document Services<br>Google Docs"]
-            11364["Web Reading Services<br>Jina"]
-            11365["Voice Synthesis Services<br>Google Cloud TTS / ElevenLabs"]
-        end
-        subgraph 11316["Observability Systems"]
-            11351["Langfuse<br>External Service"]
-            11352["LangSmith<br>External Service"]
-            11353["SigNoz<br>External Service"]
-        end
-        subgraph 11317["Data Stores"]
-            11347["Vector Databases<br>Pinecone / Supabase PgVector / Redis / LibSQL"]
-            11348["Key-Value Stores<br>Redis / Upstash"]
-            11349["Relational Databases<br>Supabase Postgres / LibSQL"]
-            11350["Log Stores<br>Upstash"]
-        end
-        subgraph 11318["Mastra Core<br>TypeScript"]
-            11325["Mastra Entry Point<br>TypeScript"]
-            11326["Observability Integration<br>OpenTelemetry/Langfuse/LangSmith/SigNoz"]
-            11327["Core Types<br>TypeScript/Zod"]
-            11343["Voice Services<br>TypeScript"]
-            11344["Hooks<br>TypeScript"]
-            11345["Integrations (GitHub)<br>TypeScript"]
-            11346["Utilities<br>TypeScript"]
-            subgraph 11319["Database Abstractions"]
-                11340["Vector Store Abstractions<br>TypeScript"]
-                11341["Logging Abstractions<br>TypeScript"]
-                11342["Memory Management<br>TypeScript"]
-            end
-            subgraph 11320["Service Clients"]
-                11337["LLM Clients<br>TypeScript"]
-                11338["HyperBrowser Client<br>TypeScript"]
-                11339["ExaSearch Client<br>TypeScript"]
-            end
-            subgraph 11321["Tools"]
-                11335["Tool Definitions<br>TypeScript/Zod"]
-                11336["Tool Registry &amp; Helpers<br>TypeScript"]
-                %% Edges at this level (grouped by source)
-                11336["Tool Registry &amp; Helpers<br>TypeScript"] -->|manages| 11335["Tool Definitions<br>TypeScript/Zod"]
-            end
-            subgraph 11322["Workflows"]
-                11331["Workflow Engine<br>TypeScript"]
-                11332["Workflow Definitions<br>TypeScript"]
-                11333["Workflow Schemas<br>Zod"]
-                11334["Agent Networks<br>TypeScript"]
-                %% Edges at this level (grouped by source)
-                11332["Workflow Definitions<br>TypeScript"] -->|defines structure for| 11331["Workflow Engine<br>TypeScript"]
-                11332["Workflow Definitions<br>TypeScript"] -->|uses| 11333["Workflow Schemas<br>Zod"]
-                11331["Workflow Engine<br>TypeScript"] -->|executes| 11332["Workflow Definitions<br>TypeScript"]
-            end
-            subgraph 11323["Agents"]
-                11328["Agent Definitions<br>TypeScript"]
-                11329["Agent Configuration<br>TypeScript/Zod"]
-                11330["Base Agent Logic<br>TypeScript"]
-                %% Edges at this level (grouped by source)
-                11328["Agent Definitions<br>TypeScript"] -->|uses configuration from| 11329["Agent Configuration<br>TypeScript/Zod"]
-                11328["Agent Definitions<br>TypeScript"] -->|inherits from| 11330["Base Agent Logic<br>TypeScript"]
-            end
-            %% Edges at this level (grouped by source)
-            11325["Mastra Entry Point<br>TypeScript"] -->|initializes| 11326["Observability Integration<br>OpenTelemetry/Langfuse/LangSmith/SigNoz"]
-            11346["Utilities<br>TypeScript"] -->|supports| 11335["Tool Definitions<br>TypeScript/Zod"]
-            11335["Tool Definitions<br>TypeScript/Zod"] -->|report to| 11326["Observability Integration<br>OpenTelemetry/Langfuse/LangSmith/SigNoz"]
-            11335["Tool Definitions<br>TypeScript/Zod"] -->|call| 11337["LLM Clients<br>TypeScript"]
-            11335["Tool Definitions<br>TypeScript/Zod"] -->|query| 11340["Vector Store Abstractions<br>TypeScript"]
-            11335["Tool Definitions<br>TypeScript/Zod"] -->|use| 11346["Utilities<br>TypeScript"]
-            11332["Workflow Definitions<br>TypeScript"] -->|orchestrates| 11328["Agent Definitions<br>TypeScript"]
-            11332["Workflow Definitions<br>TypeScript"] -->|uses| 11336["Tool Registry &amp; Helpers<br>TypeScript"]
-            11331["Workflow Engine<br>TypeScript"] -->|invokes| 11328["Agent Definitions<br>TypeScript"]
-            11328["Agent Definitions<br>TypeScript"] -->|participates in| 11331["Workflow Engine<br>TypeScript"]
-            11328["Agent Definitions<br>TypeScript"] -->|uses| 11336["Tool Registry &amp; Helpers<br>TypeScript"]
-            11328["Agent Definitions<br>TypeScript"] -->|uses| 11337["LLM Clients<br>TypeScript"]
-            11328["Agent Definitions<br>TypeScript"] -->|accesses| 11342["Memory Management<br>TypeScript"]
-            11328["Agent Definitions<br>TypeScript"] -->|uses| 11343["Voice Services<br>TypeScript"]
-            11328["Agent Definitions<br>TypeScript"] -->|uses| 11344["Hooks<br>TypeScript"]
-            11334["Agent Networks<br>TypeScript"] -->|coordinates| 11328["Agent Definitions<br>TypeScript"]
-            11344["Hooks<br>TypeScript"] -->|applied to| 11328["Agent Definitions<br>TypeScript"]
-        end
-        %% Edges at this level (grouped by source)
-        11345["Integrations (GitHub)<br>TypeScript"] -->|connects to| 11358["Version Control Systems<br>GitHub"]
-        11343["Voice Services<br>TypeScript"] -->|calls| 11365["Voice Synthesis Services<br>Google Cloud TTS / ElevenLabs"]
-        11326["Observability Integration<br>OpenTelemetry/Langfuse/LangSmith/SigNoz"] -->|sends traces/metrics to| 11351["Langfuse<br>External Service"]
-        11326["Observability Integration<br>OpenTelemetry/Langfuse/LangSmith/SigNoz"] -->|sends traces/metrics to| 11352["LangSmith<br>External Service"]
-        11326["Observability Integration<br>OpenTelemetry/Langfuse/LangSmith/SigNoz"] -->|sends traces/metrics to| 11353["SigNoz<br>External Service"]
-        11337["LLM Clients<br>TypeScript"] -->|call| 11354["LLM Providers<br>Google AI / OpenAI / Anthropic / Ollama / Vertex AI"]
-        11339["ExaSearch Client<br>TypeScript"] -->|calls| 11355["Search Providers<br>Tavily / ExaSearch / BraveSearch / Google Search / Bing"]
-        11338["HyperBrowser Client<br>TypeScript"] -->|controls| 11361["Web Automation Services<br>Hyperbrowser / Puppeteer"]
-        11340["Vector Store Abstractions<br>TypeScript"] -->|connects to| 11347["Vector Databases<br>Pinecone / Supabase PgVector / Redis / LibSQL"]
-        11340["Vector Store Abstractions<br>TypeScript"] -->|uses embeddings from| 11354["LLM Providers<br>Google AI / OpenAI / Anthropic / Ollama / Vertex AI"]
-        11342["Memory Management<br>TypeScript"] -->|stores data in| 11347["Vector Databases<br>Pinecone / Supabase PgVector / Redis / LibSQL"]
-        11342["Memory Management<br>TypeScript"] -->|stores data in| 11348["Key-Value Stores<br>Redis / Upstash"]
-        11342["Memory Management<br>TypeScript"] -->|stores data in| 11349["Relational Databases<br>Supabase Postgres / LibSQL"]
-        11342["Memory Management<br>TypeScript"] -->|reports threads to| 11352["LangSmith<br>External Service"]
-        11341["Logging Abstractions<br>TypeScript"] -->|sends logs to| 11350["Log Stores<br>Upstash"]
-        11335["Tool Definitions<br>TypeScript/Zod"] -->|call| 11355["Search Providers<br>Tavily / ExaSearch / BraveSearch / Google Search / Bing"]
-        11335["Tool Definitions<br>TypeScript/Zod"] -->|access| 11356["Knowledge Bases<br>Wikidata / Wikipedia / Notion / Reddit"]
-        11335["Tool Definitions<br>TypeScript/Zod"] -->|execute code in| 11357["Code Execution Environment<br>E2B Sandbox"]
-        11335["Tool Definitions<br>TypeScript/Zod"] -->|interact with| 11358["Version Control Systems<br>GitHub"]
-        11335["Tool Definitions<br>TypeScript/Zod"] -->|fetch data from| 11359["Financial Data Provider<br>Polygon"]
-        11335["Tool Definitions<br>TypeScript/Zod"] -->|call| 11360["Image Generation Services<br>Midjourney"]
-        11335["Tool Definitions<br>TypeScript/Zod"] -->|interact with| 11361["Web Automation Services<br>Hyperbrowser / Puppeteer"]
-        11335["Tool Definitions<br>TypeScript/Zod"] -->|access| 11362["Cloud Storage Services<br>Google Drive"]
-        11335["Tool Definitions<br>TypeScript/Zod"] -->|access| 11363["Document Services<br>Google Docs"]
-        11335["Tool Definitions<br>TypeScript/Zod"] -->|call| 11364["Web Reading Services<br>Jina"]
-        11330["Base Agent Logic<br>TypeScript"] -->|uses evals via| 11352["LangSmith<br>External Service"]
-    end
-    %% Edges at this level (grouped by source)
-    11324["User<br>External Actor"] -->|interacts with| 11325["Mastra Entry Point<br>TypeScript"]
-```
 
 ## Large Token Context Support
 
