@@ -13,7 +13,7 @@ importers:
     dependencies:
       '@agentic/ai-sdk':
         specifier: ^7.6.4
-        version: 7.6.4(ai@4.3.12(react@19.1.0)(zod@3.24.3))(zod@3.24.3)
+        version: 7.6.4(ai@4.3.13(react@19.1.0)(zod@3.24.3))(zod@3.24.3)
       '@agentic/arxiv':
         specifier: ^7.6.4
         version: 7.6.4(zod@3.24.3)
@@ -145,7 +145,7 @@ importers:
         version: 0.3.19(@langchain/core@0.3.50(openai@4.96.2(encoding@0.1.13)(ws@8.18.1)(zod@3.24.3)))(encoding@0.1.13)
       '@langchain/community':
         specifier: ^0.3.42
-        version: 0.3.42(cc42c448cc5c1d0f81a182cdaf89a1b4)
+        version: 0.3.42(aff8255437eb6c42f945914fa4a69852)
       '@langchain/core':
         specifier: ^0.3.50
         version: 0.3.50(openai@4.96.2(encoding@0.1.13)(ws@8.18.1)(zod@3.24.3))
@@ -187,10 +187,10 @@ importers:
         version: 0.1.20(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)(rollup@4.40.1)(typescript@5.8.3)(zod@3.24.3)
       '@mastra/evals':
         specifier: ^0.1.20
-        version: 0.1.20(ai@4.3.12(react@19.1.0)(zod@3.24.3))(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)
+        version: 0.1.20(ai@4.3.13(react@19.1.0)(zod@3.24.3))(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)
       '@mastra/firecrawl':
         specifier: ^1.1.20
-        version: 1.1.20(ai@4.3.12(react@19.1.0)(zod@3.24.3))(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)
+        version: 1.1.20(ai@4.3.13(react@19.1.0)(zod@3.24.3))(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)
       '@mastra/github':
         specifier: ^1.1.20
         version: 1.1.20(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)
@@ -211,13 +211,13 @@ importers:
         version: 0.3.1(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)
       '@mastra/pg':
         specifier: ^0.3.1
-        version: 0.3.1(encoding@0.1.13)(openapi-types@12.1.3)(pg-query-stream@4.8.1(pg@8.15.6))(react@19.1.0)(zod@3.24.3)
+        version: 0.3.1(encoding@0.1.13)(openapi-types@12.1.3)(pg-query-stream@4.8.1(pg@8.14.1))(react@19.1.0)(zod@3.24.3)
       '@mastra/pinecone':
         specifier: ^0.2.10
         version: 0.2.10(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)(zod@3.24.3)
       '@mastra/rag':
         specifier: ^0.1.20
-        version: 0.1.20(ai@4.3.12(react@19.1.0)(zod@3.24.3))(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)
+        version: 0.1.20(ai@4.3.13(react@19.1.0)(zod@3.24.3))(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)
       '@mastra/ragie':
         specifier: ^1.1.20
         version: 1.1.20(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)
@@ -300,8 +300,8 @@ importers:
         specifier: ^1.2.1
         version: 1.2.1
       ai:
-        specifier: ^4.3.12
-        version: 4.3.12(react@19.1.0)(zod@3.24.3)
+        specifier: ^4.3.13
+        version: 4.3.13(react@19.1.0)(zod@3.24.3)
       cheerio:
         specifier: ^1.0.0
         version: 1.0.0
@@ -404,6 +404,9 @@ importers:
       remark:
         specifier: ^15.0.1
         version: 15.0.1
+      remarks:
+        specifier: ^0.3.4
+        version: 0.3.4
       type-fest:
         specifier: ^4.40.1
         version: 4.40.1
@@ -468,9 +471,6 @@ importers:
       mastra:
         specifier: ^0.6.0
         version: 0.6.0(@opentelemetry/api@1.9.0)(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)(typescript@5.8.3)
-      prettier:
-        specifier: ^3.5.3
-        version: 3.5.3
       typescript:
         specifier: ^5.8.3
         version: 5.8.3
@@ -677,8 +677,8 @@ packages:
     resolution: {integrity: sha512-qZMxYJ0qqX/RfnuIaab+zp8UAeJn/ygXXAffR5I4N0n1IrvA6qBsjc8hXLmBiMV2zoXlifkacF7sEFnYnjBcqg==}
     engines: {node: '>=18'}
 
-  '@ai-sdk/react@1.2.10':
-    resolution: {integrity: sha512-iUZfApc6aftVT7f41y9b1NPk0dZFt9vRR0/gkZsKdP56ShcKtuTu44BkjtWdrBs7fcTbN2BQZtDao1AY1GxzsQ==}
+  '@ai-sdk/react@1.2.11':
+    resolution: {integrity: sha512-+kPqLkJ3TWP6czaJPV+vzAKSUcKQ1598BUrcLHt56sH99+LhmIIW3ylZp0OfC3O6TR3eO1Lt0Yzw4R0mK6g9Gw==}
     engines: {node: '>=18'}
     peerDependencies:
       react: ^18 || ^19 || ^19.0.0-rc
@@ -686,6 +686,12 @@ packages:
     peerDependenciesMeta:
       zod:
         optional: true
+
+  '@ai-sdk/ui-utils@1.2.10':
+    resolution: {integrity: sha512-GUj+LBoAlRQF1dL/M49jtufGqtLOMApxTpCmVjoRpIPt/dFALVL9RfqfvxwztyIwbK+IxGzcYjSGRsrWrj+86g==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^3.23.8
 
   '@ai-sdk/ui-utils@1.2.9':
     resolution: {integrity: sha512-cbiLzgXDv3+460f61UVSykn3XdKOS+SHs/EANw+pdOQKwn8JN7rZJL/ggPyMuZ7D9lO3oWOfOJ1QS+9uClfVug==}
@@ -4761,8 +4767,8 @@ packages:
     resolution: {integrity: sha512-kja8j7PjmncONqaTsB8fQ+wE2mSU2DJ9D4XKoJ5PFWIdRMa6SLSN1ff4mOr4jCbfRSsxR4keIiySJU0N9T5hIQ==}
     engines: {node: '>= 8.0.0'}
 
-  ai@4.3.12:
-    resolution: {integrity: sha512-DWjtPI8YJVyvcJx27KW1i6PrwkbjTewflfH+qPtIuoAP0YYs6bH17cAihTt4je+itgazLXK07ZCbV019YkdYjw==}
+  ai@4.3.13:
+    resolution: {integrity: sha512-cC5HXItuOwGykSMacCPzNp6+NMTxeuTjOenztVgSJhdC9Z4OrzBxwkyeDAf4h1QP938ZFi7IBdq3u4lxVoVmvw==}
     engines: {node: '>=18'}
     peerDependencies:
       react: ^18 || ^19 || ^19.0.0-rc
@@ -7802,6 +7808,9 @@ packages:
   remark@15.0.1:
     resolution: {integrity: sha512-Eht5w30ruCXgFmxVUSlNWQ9iiimq07URKeFS3hNc8cUWy1llX4KDWfyEDZRycMc+znsN9Ux5/tJ/BFdgdOwA3A==}
 
+  remarks@0.3.4:
+    resolution: {integrity: sha512-NRInM/WWXyLAudAWmcS+ClpkkIJTdId9HRitea+sCfGHyxGuENJ6SUdv983Dzht5hC4qur0eRSZPBfItaJUaHg==}
+
   require-directory@2.1.1:
     resolution: {integrity: sha512-fGxEI7+wsG9xrvdjsrlmL22OMTTiHRwAMroiEeMgq8gzoLC/PQr7RsRDSTLUg/bZAZtF+TVIkHc6/4RIKrui+Q==}
     engines: {node: '>=0.10.0'}
@@ -8709,10 +8718,10 @@ packages:
 
 snapshots:
 
-  '@agentic/ai-sdk@7.6.4(ai@4.3.12(react@19.1.0)(zod@3.24.3))(zod@3.24.3)':
+  '@agentic/ai-sdk@7.6.4(ai@4.3.13(react@19.1.0)(zod@3.24.3))(zod@3.24.3)':
     dependencies:
       '@agentic/core': 7.6.4(zod@3.24.3)
-      ai: 4.3.12(react@19.1.0)(zod@3.24.3)
+      ai: 4.3.13(react@19.1.0)(zod@3.24.3)
     transitivePeerDependencies:
       - babel-plugin-macros
       - zod
@@ -9030,15 +9039,22 @@ snapshots:
     dependencies:
       json-schema: 0.4.0
 
-  '@ai-sdk/react@1.2.10(react@19.1.0)(zod@3.24.3)':
+  '@ai-sdk/react@1.2.11(react@19.1.0)(zod@3.24.3)':
     dependencies:
       '@ai-sdk/provider-utils': 2.2.7(zod@3.24.3)
-      '@ai-sdk/ui-utils': 1.2.9(zod@3.24.3)
+      '@ai-sdk/ui-utils': 1.2.10(zod@3.24.3)
       react: 19.1.0
       swr: 2.3.3(react@19.1.0)
       throttleit: 2.1.0
     optionalDependencies:
       zod: 3.24.3
+
+  '@ai-sdk/ui-utils@1.2.10(zod@3.24.3)':
+    dependencies:
+      '@ai-sdk/provider': 1.1.3
+      '@ai-sdk/provider-utils': 2.2.7(zod@3.24.3)
+      zod: 3.24.3
+      zod-to-json-schema: 3.24.5(zod@3.24.3)
 
   '@ai-sdk/ui-utils@1.2.9(zod@3.24.3)':
     dependencies:
@@ -10283,7 +10299,7 @@ snapshots:
     transitivePeerDependencies:
       - encoding
 
-  '@langchain/community@0.3.42(cc42c448cc5c1d0f81a182cdaf89a1b4)':
+  '@langchain/community@0.3.42(aff8255437eb6c42f945914fa4a69852)':
     dependencies:
       '@browserbasehq/stagehand': 1.14.0(@playwright/test@1.52.0)(deepmerge@4.3.1)(dotenv@16.5.0)(encoding@0.1.13)(openai@4.96.2(encoding@0.1.13)(ws@8.18.1)(zod@3.24.3))(zod@3.24.3)
       '@ibm-cloud/watsonx-ai': 1.6.4(@langchain/core@0.3.50(openai@4.96.2(encoding@0.1.13)(ws@8.18.1)(zod@3.24.3)))
@@ -10321,7 +10337,7 @@ snapshots:
       lodash: 4.17.21
       mammoth: 1.9.0
       pdf-parse: 1.1.1
-      pg: 8.15.6
+      pg: 8.14.1
       playwright: 1.52.0
       puppeteer: 24.7.2(typescript@5.8.3)
       redis: 4.7.0
@@ -10689,7 +10705,7 @@ snapshots:
       '@opentelemetry/sdk-trace-base': 1.30.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-trace-node': 1.30.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/semantic-conventions': 1.32.0
-      ai: 4.3.12(react@19.1.0)(zod@3.24.3)
+      ai: 4.3.13(react@19.1.0)(zod@3.24.3)
       cohere-ai: 7.17.1(encoding@0.1.13)
       date-fns: 3.6.0
       dotenv: 16.5.0
@@ -10725,7 +10741,7 @@ snapshots:
       '@opentelemetry/sdk-trace-base': 1.30.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-trace-node': 1.30.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/semantic-conventions': 1.32.0
-      ai: 4.3.12(react@19.1.0)(zod@3.24.3)
+      ai: 4.3.13(react@19.1.0)(zod@3.24.3)
       cohere-ai: 7.17.1(encoding@0.1.13)
       date-fns: 3.6.0
       dotenv: 16.5.0
@@ -10762,7 +10778,7 @@ snapshots:
       '@opentelemetry/sdk-trace-base': 1.30.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/sdk-trace-node': 1.30.1(@opentelemetry/api@1.9.0)
       '@opentelemetry/semantic-conventions': 1.32.0
-      ai: 4.3.12(react@19.1.0)(zod@3.24.3)
+      ai: 4.3.13(react@19.1.0)(zod@3.24.3)
       cohere-ai: 7.17.1(encoding@0.1.13)
       date-fns: 3.6.0
       dotenv: 16.5.0
@@ -10873,10 +10889,10 @@ snapshots:
       - valibot
       - zod-openapi
 
-  '@mastra/evals@0.1.20(ai@4.3.12(react@19.1.0)(zod@3.24.3))(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)':
+  '@mastra/evals@0.1.20(ai@4.3.13(react@19.1.0)(zod@3.24.3))(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)':
     dependencies:
       '@mastra/core': 0.9.1(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)(zod@3.24.3)
-      ai: 4.3.12(react@19.1.0)(zod@3.24.3)
+      ai: 4.3.13(react@19.1.0)(zod@3.24.3)
       compromise: 14.14.4
       difflib: 0.2.4
       fs-extra: 11.3.0
@@ -10904,11 +10920,11 @@ snapshots:
       - valibot
       - zod-openapi
 
-  '@mastra/firecrawl@1.1.20(ai@4.3.12(react@19.1.0)(zod@3.24.3))(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)':
+  '@mastra/firecrawl@1.1.20(ai@4.3.13(react@19.1.0)(zod@3.24.3))(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)':
     dependencies:
       '@hey-api/client-fetch': 0.3.4
       '@mastra/core': 0.9.1(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)(zod@3.24.3)
-      '@mastra/rag': 0.1.20(ai@4.3.12(react@19.1.0)(zod@3.24.3))(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)
+      '@mastra/rag': 0.1.20(ai@4.3.13(react@19.1.0)(zod@3.24.3))(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)
       ts-to-zod: 3.15.0
       zod: 3.24.3
     transitivePeerDependencies:
@@ -11067,7 +11083,7 @@ snapshots:
     dependencies:
       '@mastra/core': 0.9.1(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)(zod@3.24.3)
       '@upstash/redis': 1.34.8
-      ai: 4.3.12(react@19.1.0)(zod@3.24.3)
+      ai: 4.3.13(react@19.1.0)(zod@3.24.3)
       js-tiktoken: 1.0.20
       pg: 8.15.6
       pg-pool: 3.9.6(pg@8.15.6)
@@ -11096,12 +11112,12 @@ snapshots:
       - valibot
       - zod-openapi
 
-  '@mastra/pg@0.3.1(encoding@0.1.13)(openapi-types@12.1.3)(pg-query-stream@4.8.1(pg@8.15.6))(react@19.1.0)(zod@3.24.3)':
+  '@mastra/pg@0.3.1(encoding@0.1.13)(openapi-types@12.1.3)(pg-query-stream@4.8.1(pg@8.14.1))(react@19.1.0)(zod@3.24.3)':
     dependencies:
       '@mastra/core': 0.9.1(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)(zod@3.24.3)
       async-mutex: 0.5.0
       pg: 8.15.6
-      pg-promise: 11.13.0(pg-query-stream@4.8.1(pg@8.15.6))
+      pg-promise: 11.13.0(pg-query-stream@4.8.1(pg@8.14.1))
       xxhash-wasm: 1.1.0
     transitivePeerDependencies:
       - '@hono/arktype-validator'
@@ -11151,11 +11167,11 @@ snapshots:
       - zod
       - zod-openapi
 
-  '@mastra/rag@0.1.20(ai@4.3.12(react@19.1.0)(zod@3.24.3))(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)':
+  '@mastra/rag@0.1.20(ai@4.3.13(react@19.1.0)(zod@3.24.3))(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)':
     dependencies:
       '@mastra/core': 0.9.1(encoding@0.1.13)(openapi-types@12.1.3)(react@19.1.0)(zod@3.24.3)
       '@paralleldrive/cuid2': 2.2.2
-      ai: 4.3.12(react@19.1.0)(zod@3.24.3)
+      ai: 4.3.13(react@19.1.0)(zod@3.24.3)
       js-tiktoken: 1.0.20
       node-html-better-parser: 1.4.11
       pathe: 1.1.2
@@ -14656,12 +14672,12 @@ snapshots:
     dependencies:
       humanize-ms: 1.2.1
 
-  ai@4.3.12(react@19.1.0)(zod@3.24.3):
+  ai@4.3.13(react@19.1.0)(zod@3.24.3):
     dependencies:
       '@ai-sdk/provider': 1.1.3
       '@ai-sdk/provider-utils': 2.2.7(zod@3.24.3)
-      '@ai-sdk/react': 1.2.10(react@19.1.0)(zod@3.24.3)
-      '@ai-sdk/ui-utils': 1.2.9(zod@3.24.3)
+      '@ai-sdk/react': 1.2.11(react@19.1.0)(zod@3.24.3)
+      '@ai-sdk/ui-utils': 1.2.10(zod@3.24.3)
       '@opentelemetry/api': 1.9.0
       jsondiffpatch: 0.6.0
       zod: 3.24.3
@@ -17746,9 +17762,9 @@ snapshots:
 
   pg-connection-string@2.8.5: {}
 
-  pg-cursor@2.14.6(pg@8.15.6):
+  pg-cursor@2.14.6(pg@8.14.1):
     dependencies:
-      pg: 8.15.6
+      pg: 8.14.1
 
   pg-int8@1.0.1: {}
 
@@ -17762,22 +17778,22 @@ snapshots:
     dependencies:
       pg: 8.15.6
 
-  pg-promise@11.13.0(pg-query-stream@4.8.1(pg@8.15.6)):
+  pg-promise@11.13.0(pg-query-stream@4.8.1(pg@8.14.1)):
     dependencies:
       assert-options: 0.8.2
       pg: 8.14.1
       pg-minify: 1.7.0
-      pg-query-stream: 4.8.1(pg@8.15.6)
+      pg-query-stream: 4.8.1(pg@8.14.1)
       spex: 3.4.0
     transitivePeerDependencies:
       - pg-native
 
   pg-protocol@1.9.5: {}
 
-  pg-query-stream@4.8.1(pg@8.15.6):
+  pg-query-stream@4.8.1(pg@8.14.1):
     dependencies:
-      pg: 8.15.6
-      pg-cursor: 2.14.6(pg@8.15.6)
+      pg: 8.14.1
+      pg-cursor: 2.14.6(pg@8.14.1)
 
   pg-types@2.2.0:
     dependencies:
@@ -18193,6 +18209,8 @@ snapshots:
       unified: 11.0.5
     transitivePeerDependencies:
       - supports-color
+
+  remarks@0.3.4: {}
 
   require-directory@2.1.1: {}
 

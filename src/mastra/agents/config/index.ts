@@ -1,3 +1,4 @@
+
 /**
  * Agent Configuration Module
  *
@@ -11,7 +12,7 @@ export * from "./config.types.js";
 export * from "./model.utils.js";
 export {
   setupGoogleProvider,
-  createGoogleClientConfig,
+  createGoogleClient,
   setupVertexProvider,
   createVertexClientConfig,
   setupOpenAIProvider,
@@ -23,8 +24,7 @@ export {
   setupOpenAICompatibleProvider,
   createOpenAICompatibleClientConfig,
   getProviderConfig
-} from "./provider.utils.js";
-export type {
+} from "./provider.utils.js";export type {
   GoogleOptions,
   GoogleVertexOptions,
   ProviderSetupOptions,
@@ -41,7 +41,7 @@ export type {
 
 // Export specific agent configurations without the common utility functions
 // This prevents name conflicts from multiple exports of getToolsFromIds
-import { analystAgentConfig, analystResponseSchema } from "./analyst.config.js";
+import { analystAgentConfig, analystResponseSchema} from "./analyst.config.js";
 import { architectConfig } from "./architect.config.js";
 import {
   agenticAssistantConfig,

@@ -1,3 +1,13 @@
+// Project: Mastra - A Modular Agent Framework
+//  * @module src/mastra/agents/config/provider.utils.ts
+//  * @description This module provides utilities for setting up and configuring AI model providers.
+//  * It handles provider client setup and credential management, but NOT model instantiation.
+//  * @provider.utils.ts
+//  * @author ssdeanx
+//  * @license MIT
+//  * @version 1.0.1
+//  * @date 2025-05-01
+//
 /**
  * Model Provider Utilities
  *
@@ -7,7 +17,7 @@
  * @module provider.utils
  */
 
-import { google } from "@ai-sdk/google";
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createVertex } from "@ai-sdk/google-vertex";
 import { openai } from "@ai-sdk/openai";
 import { anthropic } from "@ai-sdk/anthropic";
@@ -139,15 +149,15 @@ export function setupGoogleProvider(
  * Creates a Google AI client configuration object
  *
  * @param config - Google provider configuration
- * @returns Google AI client configuration for @ai-sdk/google
+ * @returns Google AI client instance
  */
-export function createGoogleClientConfig(
+export function createGoogleClient(
   config: GoogleProviderConfig
-): Parameters<typeof google>[1] {
-  return {};
-}
-
-/**
+) {
+  return createGoogleGenerativeAI({
+    apiKey: config.apiKey
+  });
+}/**
  * Sets up the Google Vertex AI provider configuration
  *
  * @param options - Vertex AI specific options
@@ -232,10 +242,9 @@ export function setupOpenAIProvider(
  */
 export function createOpenAIClientConfig(config: OpenAIProviderConfig) {
   // Returns a function to create OpenAI models with injected config
-  return (modelId: string, settings?: any) =>
-    openai(modelId as any, { ...settings, apiKey: config.apiKey, baseUrl: config.baseUrl });
+  return (modelId: string, settings?: Record<string, unknown>) =>
+    openai(modelId as string, { ...settings, apiKey: config.apiKey, baseUrl: config.baseUrl });
 }
-
 /**
  * Sets up the Anthropic provider configuration
  *
@@ -261,10 +270,9 @@ export function setupAnthropicProvider(
  */
 export function createAnthropicClientConfig(config: AnthropicProviderConfig) {
   // Returns a function to create Anthropic models with injected config
-  return (modelId: string, settings?: any) =>
-    anthropic(modelId as any, { ...settings, apiKey: config.apiKey, baseUrl: config.baseUrl });
+  return (modelId: string, settings?: Record<string, unknown>) =>
+    anthropic(modelId, { ...settings, apiKey: config.apiKey });
 }
-
 /**
  * Sets up the Ollama provider configuration
  *
@@ -352,6 +360,6 @@ export function getProviderConfig(
     case "openai-compatible":
       return setupOpenAICompatibleProvider(options as Partial<OpenAICompatibleProviderConfig>);
     default:
-      throw new Error(`Unsupported model provider: ${provider}`);
+      throw new Error(`Unsupported model provider: ${provider}. Supported providers are: google, vertex, openai, anthropic, ollama, openai-compatible`);
   }
 }

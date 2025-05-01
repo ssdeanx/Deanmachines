@@ -1,3 +1,13 @@
+// Project: Mastra - A Modular Agent Framework
+//  * @module src/mastra/agents/config/config.types.ts
+//  * @description This module defines shared types and interfaces for agent configurations,
+//  * ensuring consistent typing across the agent configuration system.
+//  * @author ssdeanx
+//  * @license MIT
+//  * @version 1.0.1
+//  * @date 2025-05-01
+//  *
+//  * @module config.types
 /**
  * Agent Configuration Type Definitions
  *
@@ -7,7 +17,7 @@
  * @module config.types
  */
 
-import { z } from 'zod'; // Import Zod
+import { z, ZodType, ZodTypeDef } from 'zod'; // Import Zod
 import { Tool } from "@mastra/core/tools";
 import type { VoiceConfig, VoiceProvider } from "../../voice";  // ← reuse!
 
@@ -59,20 +69,20 @@ export const DEFAULT_MODELS = {
   // Works
   GOOGLE_STANDARD: {
     provider: "google" as const,
-    modelId: "gemini-2.0-flash",
+    modelId: "gemini-2.0-flash-exp",
     temperature: 0.6,
     topP: 0.95,
     maxTokens: DEFAULT_MAX_TOKENS,
     capabilities: {
       maxContextTokens: 1048576,
       multimodalInput: true,
-      imageGeneration: false,
+      imageGeneration: true,
       audioOutput: false,
       functionCalling: true,
       structuredOutput: true,
-      enhancedThinking: false,
+      enhancedThinking: true,
       grounding: true,
-      responseCaching: false,
+      responseCaching: true,
     },
   },
   GOOGLE_MAIN: {
@@ -510,7 +520,7 @@ export interface BaseAgentConfig {
   task: string;
 
   /** Contextual data or environmental facts for the agent */
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
 
   /** Preferred output format (e.g., markdown, JSON, step-by-step) */
   format: string;
@@ -528,7 +538,7 @@ export interface BaseAgentConfig {
    * Resolves the LLM instance for the agent.
    * Replaces direct access to the deprecated `llm` property.
    */
-  getLLM?: () => Promise<any>; // Adjust the return type as needed.
+  getLLM?: () => Promise<ZodType<unknown, ZodTypeDef, unknown> | Error>;
 
   /**
    * Resolves the agent's instructions dynamically.
@@ -537,10 +547,11 @@ export interface BaseAgentConfig {
   getInstructions?: () => string | Promise<string>;
 
   /**
-   * Resolves the tools available to the agent.
-   * Replaces direct access to the deprecated `tools` property.
+   * Resolves the tools available to the agent at runtime.
+   * @returns A record of tool instances mapped by their identifiers, or a Promise resolving to such a record.
    */
-  getTools?: () => Record<string, Tool<any, any>> | Promise<Record<string, Tool<any, any>>>;
+  getTools?: () => Record<string, Tool<z.ZodTypeAny | undefined, z.ZodTypeAny | undefined>> | 
+    Promise<Record<string, Tool<z.ZodTypeAny | undefined, z.ZodTypeAny | undefined>>>;
 
   /** Enable streaming responses */
   stream?: boolean;
@@ -560,11 +571,10 @@ export interface BaseAgentConfig {
 
   /** Tool IDs associated with the agent */
   toolIds: string[];
-}
 
-// you can still re-export the enum if you like:
-export { VoiceProvider };
 
+
+}export { VoiceProvider };
 /**
  * Helper function to get a model configuration by key with optional overrides
  *

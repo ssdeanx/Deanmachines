@@ -1,3 +1,13 @@
+// Project: Mastra - A Modular Agent Framework
+//  * @module src/mastra/agents/config/model.utils.ts
+//  * @description This module provides utility functions for creating model instances
+//  * based on configuration settings, supporting multiple providers.
+//  * @module model.utils
+//  * @author ssdeanx
+//  * @license MIT
+//  * @version 1.0.1
+//  * @date 2025-05-01
+//
 /**
  * Model Utility Functions
  *
@@ -42,7 +52,7 @@ export interface ModelCreationOptions {
 export function createModelFromConfig(
   modelConfig: ModelConfig,
   options: ModelCreationOptions = {}
-): any {
+): ReturnType<typeof google | typeof vertex | typeof openai | typeof anthropic | typeof ollama | typeof createOpenAICompatible> {
   try {
     const { provider, modelId, providerOptions } = modelConfig;
     switch (provider) {
@@ -67,7 +77,7 @@ export function createModelFromConfig(
         if (providerOptions && (providerOptions as OpenAIProviderConfig).baseUrl) {
           settings["baseUrl"] = (providerOptions as OpenAIProviderConfig).baseUrl;
         }
-        return openai(modelId as any, settings);
+        return openai(modelId as string, settings);
       }
       case "anthropic": {
         const settings: Record<string, unknown> = { ...options };
@@ -77,7 +87,7 @@ export function createModelFromConfig(
         if (providerOptions && (providerOptions as AnthropicProviderConfig).baseUrl) {
           settings["baseUrl"] = (providerOptions as AnthropicProviderConfig).baseUrl;
         }
-        return anthropic(modelId as any, settings);
+        return anthropic(modelId as string, settings);
       }
       case "ollama": {
         const { modelName } = (providerOptions as OllamaProviderConfig) || getProviderConfig("ollama", providerOptions);
@@ -90,7 +100,7 @@ export function createModelFromConfig(
           apiKey: typeof providerOptions?.apiKey === "string" ? providerOptions.apiKey : "",
           baseURL: typeof providerOptions?.baseUrl === "string" ? providerOptions.baseUrl : "",
         });
-        return provider(modelId as any, settings);
+        return provider(modelId as string, settings);
       }
       default:
         throw new Error(`Unsupported model provider: ${provider}`);
@@ -102,9 +112,8 @@ export function createModelFromConfig(
       }`
     );
   }
-}
 
-/**
+}/**
  * Creates a Google AI model instance with default settings
  *
  * @param modelId - Model ID to use
@@ -167,14 +176,13 @@ export function createOpenAIModel(
   modelId: string,
   config?: OpenAIProviderConfig,
   options?: Record<string, unknown>
-): any {
+): ReturnType<typeof openai> {
   // Merge config and options for settings
   const settings = { ...options };
   if (config?.apiKey) settings["apiKey"] = config.apiKey;
   if (config?.baseUrl) settings["baseUrl"] = config.baseUrl;
-  return openai(modelId as any, settings);
+  return openai(modelId as string, settings);
 }
-
 /**
  * Creates an Anthropic model instance with default settings
  *
@@ -187,14 +195,13 @@ export function createAnthropicModel(
   modelId: string,
   config?: AnthropicProviderConfig,
   options?: Record<string, unknown>
-): any {
+): ReturnType<typeof anthropic> {
   // Merge config and options for settings
   const settings = { ...options };
   if (config?.apiKey) settings["apiKey"] = config.apiKey;
   if (config?.baseUrl) settings["baseUrl"] = config.baseUrl;
-  return anthropic(modelId as any, settings);
+  return anthropic(modelId, settings);
 }
-
 /**
  * Creates an Ollama model instance with default settings
  *
@@ -205,7 +212,7 @@ export function createAnthropicModel(
 export function createOllamaModel(
   modelId: string,
   config?: OllamaProviderConfig
-): any {
+): ReturnType<typeof ollama> {
   // Only pass modelName; baseUrl is set via env var
   return ollama((config?.modelName || modelId));
 }
@@ -222,13 +229,18 @@ export function createOpenAICompatibleModel(
   modelId: string,
   config?: OpenAICompatibleProviderConfig,
   options?: Record<string, unknown>
-): any {
+): ReturnType<typeof createOpenAICompatible> {
   const provider = createOpenAICompatible({
     name: "openai-compatible",
     apiKey: config?.apiKey ?? "",
     baseURL: config?.baseUrl ?? "",
+    languageModel: modelId,
+    chatModel: modelId,
+    completionModel: modelId,
+    textEmbeddingModel: modelId,
+    imageModel: modelId
   });
-  return provider(modelId as any, options);
+  return provider(modelId, options);
 }
 
 /**
@@ -238,11 +250,10 @@ export function createOpenAICompatibleModel(
  * @param config - Model configuration
  * @param options - Optional creation options
  * @returns A model instance for the specified provider
- */
-export function createModelInstance(
+ */export function createModelInstance(
   config: ModelConfig,
   options: ModelCreationOptions = {}
-): any {
+): ReturnType<typeof createModelFromConfig> {
   return createModelFromConfig(config, options);
 }
 
@@ -250,6 +261,6 @@ export function createModelInstance(
  * Resolves the LLM instance for an agent based on its configuration.
  * Replaces direct access to the deprecated `llm` property.
  */
-export async function getLLM(config: ModelConfig, options?: ModelCreationOptions): Promise<any> {
+export async function getLLM(config: ModelConfig, options?: ModelCreationOptions): Promise<ReturnType<typeof createModelFromConfig>> {
   return createModelFromConfig(config, options);
 }

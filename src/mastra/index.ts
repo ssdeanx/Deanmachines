@@ -1,3 +1,12 @@
+// Project: Mastra - A Modular Agent Framework
+//  * @module src/mastra/index.ts
+//  * @description This module initializes the Mastra instance and registers agents, workflows, and networks.
+//  * @module index
+//  * @author ssdeanx
+//  * @license MIT
+//  * @version 1.0.1
+//  * @date 2025-05-01
+//  *
 /**
  * DeanMachines AI Platform - Mastra Core Instance
  *
