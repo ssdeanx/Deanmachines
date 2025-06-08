@@ -1,5 +1,51 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
+import { generateId } from 'ai';
+import { PinoLogger } from '@mastra/loggers';
+import { RuntimeContext } from "@mastra/core/runtime-context";
+
+const logger = new PinoLogger({ name: 'weatherTool', level: 'info' });
+
+// Enhanced Zod schemas with detailed validation
+const weatherInputSchema = z.object({
+  location: z.string()
+    .min(1, "Location cannot be empty")
+    .max(100, "Location name too long")
+    .describe('City name, state, or country to get weather for'),
+});
+
+const weatherOutputSchema = z.object({
+  temperature: z.number().describe('Temperature in Celsius'),
+  feelsLike: z.number().describe('Apparent temperature in Celsius'),
+  humidity: z.number().min(0).max(100).describe('Relative humidity percentage'),
+  windSpeed: z.number().min(0).describe('Wind speed in km/h'),
+  windGust: z.number().min(0).describe('Wind gust speed in km/h'),
+  conditions: z.string().describe('Weather condition description'),
+  location: z.string().describe('Resolved location name'),
+  timestamp: z.string().datetime().describe('Data timestamp in ISO format'),
+  weatherCode: z.number().describe('Numerical weather condition code'),
+});
+
+// API response schemas for validation
+const geocodingResponseSchema = z.object({
+  results: z.array(z.object({
+    latitude: z.number(),
+    longitude: z.number(),
+    name: z.string(),
+  })).optional().default([]),
+});
+
+const weatherResponseSchema = z.object({
+  current: z.object({
+    time: z.string(),
+    temperature_2m: z.number(),
+    apparent_temperature: z.number(),
+    relative_humidity_2m: z.number(),
+    wind_speed_10m: z.number(),
+    wind_gusts_10m: z.number(),
+    weather_code: z.number(),
+  }),
+});
 
 interface GeocodingResponse {
   results: {
@@ -22,48 +68,68 @@ interface WeatherResponse {
 
 export const weatherTool = createTool({
   id: 'get-weather',
-  description: 'Get current weather for a location',
-  inputSchema: z.object({
-    location: z.string().describe('City name'),
-  }),
-  outputSchema: z.object({
-    temperature: z.number(),
-    feelsLike: z.number(),
-    humidity: z.number(),
-    windSpeed: z.number(),
-    windGust: z.number(),
-    conditions: z.string(),
-    location: z.string(),
-  }),
+  description: 'Get comprehensive current weather information for any location worldwide',
+  inputSchema: weatherInputSchema,
+  outputSchema: weatherOutputSchema,
   execute: async ({ context }) => {
-    return await getWeather(context.location);
+    const requestId = generateId();
+    logger.info(`[${requestId}] Weather request started`, { location: context.location });
+    
+    try {
+      const result = await getWeather(context.location);
+      logger.info(`[${requestId}] Weather request completed successfully`, { 
+        location: result.location,
+        temperature: result.temperature 
+      });
+      return result;
+    } catch (error) {
+      logger.error(`[${requestId}] Weather request failed`, { 
+        location: context.location,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      throw error;
+    }
   },
 });
 
 const getWeather = async (location: string) => {
   const geocodingUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(location)}&count=1`;
   const geocodingResponse = await fetch(geocodingUrl);
-  const geocodingData = (await geocodingResponse.json()) as GeocodingResponse;
+  
+  if (!geocodingResponse.ok) {
+    throw new Error(`Geocoding API error: ${geocodingResponse.status}`);
+  }
+  
+  const geocodingData = await geocodingResponse.json();
+  const validatedGeocodingData = geocodingResponseSchema.parse(geocodingData);
 
-  if (!geocodingData.results?.[0]) {
+  if (!validatedGeocodingData.results?.[0]) {
     throw new Error(`Location '${location}' not found`);
   }
 
-  const { latitude, longitude, name } = geocodingData.results[0];
+  const { latitude, longitude, name } = validatedGeocodingData.results[0];
 
   const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_gusts_10m,weather_code`;
 
   const response = await fetch(weatherUrl);
-  const data = (await response.json()) as WeatherResponse;
+  
+  if (!response.ok) {
+    throw new Error(`Weather API error: ${response.status}`);
+  }
+  
+  const data = await response.json();
+  const validatedWeatherData = weatherResponseSchema.parse(data);
 
   return {
-    temperature: data.current.temperature_2m,
-    feelsLike: data.current.apparent_temperature,
-    humidity: data.current.relative_humidity_2m,
-    windSpeed: data.current.wind_speed_10m,
-    windGust: data.current.wind_gusts_10m,
-    conditions: getWeatherCondition(data.current.weather_code),
+    temperature: validatedWeatherData.current.temperature_2m,
+    feelsLike: validatedWeatherData.current.apparent_temperature,
+    humidity: validatedWeatherData.current.relative_humidity_2m,
+    windSpeed: validatedWeatherData.current.wind_speed_10m,
+    windGust: validatedWeatherData.current.wind_gusts_10m,
+    conditions: getWeatherCondition(validatedWeatherData.current.weather_code),
     location: name,
+    timestamp: new Date().toISOString(),
+    weatherCode: validatedWeatherData.current.weather_code,
   };
 };
 

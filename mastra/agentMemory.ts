@@ -7,14 +7,15 @@ import type { CoreMessage, Telemetry } from '@mastra/core';
 import { maskStreamTags } from '@mastra/core/utils';
 import { MemoryProcessor } from '@mastra/core/memory';
 import { TokenLimiter } from '@mastra/memory/processors';
-import { rerank } from '@mastra/rag';
+import { rerank, type RerankResult } from '@mastra/rag';
 import { google } from '@ai-sdk/google';
+import { UIMessage } from 'ai';
 
 const logger = new PinoLogger({ name: 'agentMemory', level: 'info' });
 
 // Create shared storage instance
 export const agentStorage = new LibSQLStore({
-  url: process.env.DATABASE_URL || 'file:./memory.db',
+  url: process.env.DATABASE_URL || 'file:./next/mastra.db',
   authToken: process.env.DATABASE_AUTH_TOKEN || ''
 });
 
@@ -23,7 +24,7 @@ export const agentStorage = new LibSQLStore({
  * Initializes vector storage for optimal search performance
  */
 export const agentVector = new LibSQLVector({
-  connectionUrl: process.env.DATABASE_URL || 'file:./vector.db',
+  connectionUrl: process.env.DATABASE_URL || 'file:./next/mastra.db',
   authToken: process.env.DATABASE_AUTH_TOKEN || ''
 });
 
@@ -67,7 +68,7 @@ export const agentMemory = new Memory({
   vector: agentVector,
   embedder: fastembed,
   options: {
-    lastMessages: 200,
+    lastMessages: 1000,
     semanticRecall: {
       topK: 3,
       messageRange: {
@@ -78,105 +79,107 @@ export const agentMemory = new Memory({
     workingMemory: {
       enabled: true,
       template: `
+---
 # {{agent_name}} Working Memory
-# This is the working memory for the agent, which is used to store dynamic context and knowledge
-# Timestamp: {new Date().toISOString()}
+Description: This is the working memory for the {{agent_name}}, which is used to store dynamic context and knowledge
+Timestamp: {{new Date().toISOString()}}
+---
 
 CurrentContext:
-  SessionID: "{session_id}" # Unique identifier for the user session
-  UserID: "{user_id}" # Unique identifier for the user
-  InteractionFocus: "{user_query}." # User's current query or focus
-  UserSentimentEstimate: "{sentiment_score}" # Estimate of user's sentiment
-  UnresolvedQuestions: "{unresolved_questions}" # List of unresolved questions
+  SessionID: "{{session_id}}" # Unique identifier for the user session
+  UserID: "{{user_id}}" # Unique identifier for the user
+  InteractionFocus: "{{user_query}}." # User's current query or focus
+  UserSentimentEstimate: "{{sentiment_score}}" # Estimate of user's sentiment
+  UnresolvedQuestions: "{{unresolved_questions}}" # List of unresolved questions
       - type: "user_query"
-        content: "{user_query}" # User's query or input
+        content: "{{user_query}}" # User's query or input
       - type: "agent_response"
-        content: "{agent_response}" # Agent's response to the query
+        content: "{{agent_response}}" # Agent's response to the query
 
-DynamicScratchpad: "{assistant_notes}" # Dynamic notes for current session
+DynamicScratchpad: "{{assistant_notes}}" # Dynamic notes for current session
   - type: "internal_monologue"
-    timestamp: "{new Date(Date.now() - 30000).toISOString()}" # 30 seconds ago
-    thought: "{agent_thought}" # Agent's internal thought process
+    timestamp: "{{new Date(Date.now() - 30000).toISOString()}}" # 30 seconds ago
+    thought: "{{agent_thought}}" # Agent's internal thought process
   - type: "retrieved_knowledge_summary"
-    timestamp: "{new Date(Date.now() - 20000).toISOString()}" # 20 seconds ago
+    timestamp: "{{new Date(Date.now() - 20000).toISOString()}}" # 20 seconds ago
     source: "internal_search_results_topic_advanced_WM"
-    summary: "{agent_summary}" # Summary of retrieved knowledge
+    summary: "{{agent_summary}}" # Summary of retrieved knowledge
   - type: "planning_step"
-    timestamp: "{new Date(Date.now() - 10000).toISOString()}" # 10 seconds ago
-    action_considered: "{agent_action_considered}" # Action under consideration
+    timestamp: "{{new Date(Date.now() - 10000).toISOString()}}" # 10 seconds ago
+    action_considered: "{{agent_action_considered}}" # Action under consideration
   - type: "current_action"
-    timestamp: "{new Date().toISOString()}"
-    action: "{agent_current_action}" # Current action being executed
+    timestamp: "{{new Date().toISOString()}}"
+    action: "{{agent_current_action}}" # Current action being executed
 
 TrackedEntitiesAndBeliefs: # Key entities/concepts agent is currently tracking
-  - entity_id: "{entity_id}"
+  - entity_id: "{{entity_id}}" # Unique identifier for the entity
     type: "Concept"
     properties:
-      definition: "{entity_definition}" # Definition of the entity
-      user_interest_level: "{entity_user_interest_level}" # User's interest level
-      discussion_history: "{entity_discussion_history}" # Discussion history
-    agent_belief: "{entity_agent_belief}" # Agent's belief about the entity
-  - entity_id: "{user_profile_id}" # User profile identifier
+      definition: "{{entity_definition}}" # Definition of the entity
+      user_interest_level: "{{entity_user_interest_level}}" # User's interest level
+      discussion_history: "{{entity_discussion_history}}" # Discussion history
+    agent_belief: "{{entity_agent_belief}}" # Agent's belief about the entity
+  - entity_id: "{{user_profile_id}}" # User profile identifier
     type: "User"
     properties:
-      preferred_format: "{user_preferred_format}" # Inferred by agent
-      technical_level_estimate: "{user_technical_level_estimate}" # Estimate of user's technical level
-      recent_interactions: "{user_recent_interactions}" # Summary of recent interactions
+      preferred_format: "{{user_preferred_format}}" # Inferred by agent
+      technical_level_estimate: "{{user_technical_level_estimate}}" # Estimate of user's technical level
+      recent_interactions: "{{user_recent_interactions}}" # Summary of recent interactions
 
-OperationalGoals: "{operational_goals}" # Short-term, evolving goals for the current interaction
-  - goal_id: "{goal_id}" # Unique identifier for the goal
-    description: "{goal_description}" # Description of the goal
-    status: "{goal_status}" # Status of the goal
+OperationalGoals: "{{operational_goals}}" # Short-term, evolving goals for the current interaction
+  - goal_id: "{{goal_id}}" # Unique identifier for the goal
+    description: "{{goal_description}}" # Description of the goal
+    status: "{{goal_status}}" # Status of the goal
     sub_goals:
-      - "{sub_goal_description}" # Description of the sub-goal
-      - "{sub_goal_status}" # Status of the sub-goal
-      - "{sub_goal_plan}" # Plan to achieve the sub-goal
+      - description: "{{sub_goal_description}}" # Description of the sub-goal
+      - status: "{{sub_goal_status}}" # Status of the sub-goal
+      - plan: "{{sub_goal_plan}}" # Plan to achieve the sub-goal
       - "{sub_goal_action}" # Action to achieve the sub-goal
 
 ActiveHypotheses:
-  - hypothesis_id: "{hypothesis_id}" # Unique identifier for the hypothesis
-    statement: "{hypothesis_statement}" # Statement of the hypothesis
-    confidence: "{hypothesis_confidence}" # Confidence in the hypothesis
+  - hypothesis_id: "{{hypothesis_id}}" # Unique identifier for the hypothesis
+    statement: "{{hypothesis_statement}}" # Statement of the hypothesis
+    confidence: "{{hypothesis_confidence}}" # Confidence in the hypothesis
 
 RelevantContextualSignals:
-  - signal_type: "{signal_type}" # Type of the signal
-    value: "{signal_value}" # Value of the signal
-    implication: "{signal_implication}" # Implication of the signal
+  - signal_type: "{{signal_type}}" # Type of the signal
+    value: "{{signal_value}}" # Value of the signal
+    implication: "{{signal_implication}}" # Implication of the signal
 
 InternalStateFlags:
-  is_learning_new_topic: {answer} # Whether the agent is learning a new topic
-  requires_clarification_on_last_user_input: {answer} # Whether the agent requires clarification on the last user input
-  high_computational_load: {answer} # Whether the agent has a high computational load
-  is_in_planning_mode: {answer} # Whether the agent is in planning mode
-  is_waiting_for_user_input: {answer} # Whether the agent is waiting for user input
-  is_executing_action: {answer} # Whether the agent is executing an action
+  is_learning_new_topic: {{answer}} # Whether the agent is learning a new topic
+  requires_clarification_on_last_user_input: {{answer}} # Whether the agent requires clarification on the last user input
+  high_computational_load: {{answer}} # Whether the agent has a high computational load
+  is_in_planning_mode: {{answer}} # Whether the agent is in planning mode
+  is_waiting_for_user_input: {{answer}} # Whether the agent is waiting for user input
+  is_executing_action: {{answer}} # Whether the agent is executing an action
 
 InteractingAgents:
-  - agent_id: "{agent_name}" # From CurrentContext
-    role: "{role}" # Primary querant or observer
-    last_interaction_summary: "{last_interaction_summary}" # Summary of the last interaction
-  - agent_id: "{agent_name}" # Another AI agent
-    status: "{status}" # Status of the agent
-    capabilities_relevant_to_current_focus: ["{capability_1}", "{capability_2}"] # Capabilities relevant to the current focus
+  - agent_id: "{{agent_name}}" # From CurrentContext
+    role: "{{role}}" # Primary querant or observer
+    last_interaction_summary: "{{last_interaction_summary}}" # Summary of the last interaction
+  - agent_id: "{{agent_name}}" # Another AI agent
+    status: "{{status}}" # Status of the agent
+    capabilities_relevant_to_current_focus: ["{{capability_1}}", "{{capability_2}}"] # Capabilities relevant to the current focus
 
 SharedKnowledgeReferences:
-  - ref_id: "{ref_id}" # Unique identifier for the reference
-    agreed_with: ["{agent_name_1}", "{agent_name_2}"] # Agents that agreed with the reference
-    source: "{source}" # Source of the reference
-    summary: "{summary}" # Summary of the reference
+  - ref_id: "{{ref_id}}" # Unique identifier for the reference
+    agreed_with: ["{{agent_name_1}}", "{{agent_name_2}}"] # Agents that agreed with the reference
+    source: "{{source}}" # Source of the reference
+    summary: "{{summary}}" # Summary of the reference
     last_accessed: "{{new Date().toISOString()}}" # Timestamp of the last access
     created_at: "{{new Date().toISOString()}}" # Timestamp of the creation
-    created_by: "{agent_name}" # Agent that created the reference
+    created_by: "{{agent_name}}" # Agent that created the reference
 
 RecentLearningEvents:
-  - event_type: "{event_type}" # Type of the event
+  - event_type: "{{event_type}}" # Type of the event
     timestamp: "{{new Date().toISOString()}}" # Timestamp of the event
-    user_feedback: "{user_feedback}" # User feedback related to the event
+    user_feedback: "{{user_feedback}}" # User feedback related to the event
     agent_action_taken: "{agent_action_taken}" # Action taken by the agent as a result of the event
   - event_type: "{event_type}" # Type of the event
     timestamp: "{{new Date().toISOString()}}" # Timestamp of the event
-    tool_id: "{tool_id}" # ID of the tool used in the event
-    outcome: "{outcome}" # Outcome of the event
+    tool_id: "{{tool_id}}" # ID of the tool used in the event
+    outcome: "{{outcome}}" # Outcome of the event
       `, // End of the illustrative YAML template string
     },
   },
@@ -293,7 +296,7 @@ export async function searchMessages(
   topK = 3,
   before = 2,
   after = 1
-): Promise<{ messages: CoreMessage[]; uiMessages: any[] }> {
+): Promise<{ messages: CoreMessage[]; uiMessages: UIMessage[] }> {
   const params = searchMessagesSchema.parse({ threadId, vectorSearchString, topK, before, after });
   try {
     return await agentMemory.query({
@@ -306,14 +309,13 @@ export async function searchMessages(
     throw error;
   }
 }
-
 /**
  * Retrieve UI-formatted messages for a thread.
  * @param threadId - Thread identifier
  * @param last - Number of recent messages
  * @returns Promise resolving to array of UI-formatted messages
  */
-export async function getUIThreadMessages(threadId: string, last = 100): Promise<any[]> {
+export async function getUIThreadMessages(threadId: string, last = 100): Promise<UIMessage[]> {
   const id = threadIdSchema.parse(threadId);
   try {
     const { uiMessages } = await agentMemory.query({
@@ -326,7 +328,6 @@ export async function getUIThreadMessages(threadId: string, last = 100): Promise
     throw error;
   }
 }
-
 /**
  * Masks internal working_memory updates from a response textStream.
  * @param textStream - Async iterable of response chunks including <working_memory> tags
@@ -388,18 +389,16 @@ export async function generateMemorySummary(
     });
 
     // Extract summary text from first generation
-    const summaryText = typeof result.text === 'string'
-      ? result.text
-      : (result as any)?.message?.content ?? '';
-
-    return summaryText;
+    if (typeof result.text === 'string') {
+      return result.text;
+    }
+    
+    throw new Error('Unexpected response format from model');
   } catch (error: unknown) {
     logger.error(`generateMemorySummary failed: ${(error as Error).message}`);
     throw error;
   }
 }
-
-
 /**
  * Enhanced search function with performance tracking and detailed logging
  * @param threadId - Thread identifier
@@ -415,7 +414,7 @@ export async function enhancedSearchMessages(
   topK = 3,
   before = 2,
   after = 1
-): Promise<{ messages: CoreMessage[]; uiMessages: any[]; searchMetadata: any }> {
+): Promise<{ messages: CoreMessage[]; uiMessages: UIMessage[]; searchMetadata: { topK: number; before: number; after: number } }> {
   try {
     const result = await agentMemory.query({
       threadId,
@@ -428,7 +427,6 @@ export async function enhancedSearchMessages(
     throw error;
   }
 }
-
 /**
  * Enhanced reranking search using Mastra's rerank function for better relevance
  * @param threadId - Thread identifier
@@ -446,7 +444,7 @@ export async function rerankSearchMessages(
   finalK = 3,
   before = 2,
   after = 1
-): Promise<{ messages: CoreMessage[]; uiMessages: any[]; rerankMetadata: any }> {
+): Promise<{ messages: CoreMessage[]; uiMessages: UIMessage[]; rerankMetadata: { topK: number; before: number; after: number } }> {
   const startTime = Date.now();
 
   try {
@@ -493,22 +491,30 @@ export async function rerankSearchMessages(
       );
 
       // Map reranked results back to messages
-      const rerankedMessages = rerankedResults.map((result: any) => {
-        const originalIndex = result.result.metadata.index;
-        return initialResults.messages[originalIndex];
-      });
-
-      const rerankedUIMessages = rerankedResults.map((result: any) => {
-        const originalIndex = result.result.metadata.index;
-        return initialResults.uiMessages[originalIndex];
-      });
+      const rerankedMessages = rerankedResults.map((result) => {
+        const originalIndex = result.result.metadata?.index;
+        if (typeof originalIndex === 'number') {
+          return initialResults.messages[originalIndex];
+        }
+        return undefined;
+      }).filter(Boolean) as CoreMessage[];
+      // Map reranked results to UI messages
+      const rerankedUIMessages = rerankedResults.map((result: RerankResult) => {
+        const originalIndex = result.result.metadata?.index as number | undefined;
+        if (typeof originalIndex === 'number') {
+          return initialResults.uiMessages[originalIndex];
+        }
+        return undefined;
+      }).filter(Boolean) as UIMessage[];
 
       const rerankMetadata = {
+        topK,
+        before,
+        after,
         initialResultCount: initialResults.messages.length,
-        finalResultCount: rerankedMessages.length,
         rerankingUsed: true,
         rerankingDuration: Date.now() - startTime,
-        averageRelevanceScore: rerankedResults.reduce((sum: number, r: any) => sum + r.score, 0) / rerankedResults.length
+        averageRelevanceScore: rerankedResults.length > 0 ? rerankedResults.reduce((sum: number, r: RerankResult) => sum + r.score, 0) / rerankedResults.length : 0
       };
 
       logger.info('Reranked search completed', {
@@ -520,7 +526,7 @@ export async function rerankSearchMessages(
       return {
         messages: rerankedMessages,
         uiMessages: rerankedUIMessages,
-        rerankMetadata
+        rerankMetadata: { topK, before, after }
       };
     } else {
       // Fallback to simple top-k without reranking
@@ -530,12 +536,7 @@ export async function rerankSearchMessages(
       return {
         messages: finalMessages,
         uiMessages: finalUIMessages,
-        rerankMetadata: {
-          initialResultCount: initialResults.messages.length,
-          finalResultCount: finalMessages.length,
-          rerankingUsed: false,
-          reason: 'insufficient_results'
-        }
+        rerankMetadata: { topK, before, after }
       };
     }
   } catch (error: unknown) {
@@ -543,7 +544,6 @@ export async function rerankSearchMessages(
     throw error;
   }
 }
-
 /**
  * Initialize vector indexes for optimal search performance
  * Should be called during application startup
@@ -552,8 +552,8 @@ export async function initializeVectorIndexes(): Promise<void> {
   try {
     // Create message embeddings index
     await agentVector.createIndex({
-      indexName: 'message_embeddings_idx',
-      dimension: 1536,
+      indexName: 'context',
+      dimension: 384, // Adjust based on your embedding model
       metric: 'cosine'
     });
 
@@ -574,42 +574,47 @@ export async function initializeVectorIndexes(): Promise<void> {
  * @param threadRequests - Array of thread creation requests
  * @returns Promise resolving to array of created threads
  */
+export interface Thread {
+  id: string;
+  resourceId: string;
+  metadata?: Record<string, unknown>;
+}
+
 export async function batchCreateThreads(
   threadRequests: Array<{
     resourceId: string;
-    title?: string;
     metadata?: Record<string, unknown>;
     threadId?: string;
   }>
-): Promise<any[]> {
+): Promise<Thread[]> {
   const startTime = Date.now();
 
   try {
     const results = await Promise.allSettled(
       threadRequests.map(request =>
-        createThread(request.resourceId, request.title, request.metadata, request.threadId)
+        createThread(request.resourceId, undefined, request.metadata, request.threadId)
       )
     );
 
     const successes = results.filter(r => r.status === 'fulfilled').length;
     const failures = results.filter(r => r.status === 'rejected').length;
+    const duration = Date.now() - startTime;
 
     logger.info('Batch thread creation completed', {
       totalRequests: threadRequests.length,
       successes,
       failures,
-      duration: Date.now() - startTime
+      duration,
     });
 
-    return results.map(result =>
-      result.status === 'fulfilled' ? result.value : null
-    ).filter(Boolean);
+    return results
+      .map(result => (result.status === 'fulfilled' ? result.value : null))
+      .filter(Boolean) as Thread[];
   } catch (error: unknown) {
     logger.error(`batchCreateThreads failed: ${(error as Error).message}`);
     throw error;
   }
 }
-
 /**
  * Enhanced memory cleanup and optimization
  * @param options - Cleanup configuration options

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { MCPClient } from "@mastra/mcp";
 import { PinoLogger } from '@mastra/loggers';
+import { RuntimeContext } from "@mastra/core/runtime-context";
 
 const logger = new PinoLogger({ name: 'mcp', level: 'info' });
 
