@@ -1,4 +1,7 @@
 onlyBuiltDependencies:
   - '@tailwindcss/oxide'
+  - isolated-vm
+  - onnxruntime-node
+  - protobufjs
   - sharp
   - unrs-resolver
