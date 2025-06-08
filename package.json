@@ -19,6 +19,7 @@
     "@mastra/github": "^1.2.1",
     "@mastra/libsql": "^0.10.1",
     "@mastra/loggers": "^0.10.1",
+    "@mastra/mcp": "^0.10.2",
     "@mastra/memory": "^0.10.2",
     "@mastra/rag": "^0.10.2",
     "@radix-ui/react-avatar": "^1.1.10",
