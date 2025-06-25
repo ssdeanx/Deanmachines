@@ -1,0 +1,6 @@
+Checking /home/runner/work/Deanmachines/Deanmachines/package.json
+
+Minor   Backwards-compatible features
+ next  15.3.4  →  15.4.0
+
+Run npx npm-check-updates --target minor --format group -u to upgrade package.json
