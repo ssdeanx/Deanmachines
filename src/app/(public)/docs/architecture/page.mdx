@@ -1,0 +1,283 @@
+"use client";
+
+# Architecture Overview
+
+DeanMachines RSC is built on a **modern, scalable architecture** that combines cutting-edge AI frameworks with production-ready infrastructure. This guide provides a comprehensive overview of the system design, components, and data flow.
+
+## System Architecture
+
+The platform is organized into **four distinct layers**, each with specific responsibilities and technologies:
+
+### Frontend Layer
+**Next.js 15 with App Router, React 19, and CopilotKit integration**
+
+<Card className="glass-effect border-primary/20 mb-6">
+  <CardHeader>
+    <CardTitle className="flex items-center gap-2">
+      <Globe className="w-5 h-5 text-primary" />
+      Frontend Technologies
+    </CardTitle>
+  </CardHeader>
+  <CardContent>
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <Badge variant="secondary" className="glass-effect">Next.js 15</Badge>
+      <Badge variant="secondary" className="glass-effect">React 19</Badge>
+      <Badge variant="secondary" className="glass-effect">TypeScript</Badge>
+      <Badge variant="secondary" className="glass-effect">Tailwind CSS v4</Badge>
+      <Badge variant="secondary" className="glass-effect">CopilotKit</Badge>
+      <Badge variant="secondary" className="glass-effect">Framer Motion</Badge>
+    </div>
+  </CardContent>
+</Card>
+
+**Responsibilities:**
+- User interface and experience
+- AI chat interfaces with CopilotKit
+- Agent interaction management
+- Real-time updates and streaming
+- Authentication and session management
+
+### Backend Layer
+**Mastra Core v0.10.5 with multi-agent orchestration**
+
+<Card className="glass-effect border-primary/20 mb-6">
+  <CardHeader>
+    <CardTitle className="flex items-center gap-2">
+      <Brain className="w-5 h-5 text-primary" />
+      Backend Technologies
+    </CardTitle>
+  </CardHeader>
+  <CardContent>
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <Badge variant="secondary" className="glass-effect">Mastra Core</Badge>
+      <Badge variant="secondary" className="glass-effect">Google Gemini 2.5</Badge>
+      <Badge variant="secondary" className="glass-effect">AG-UI Protocol</Badge>
+      <Badge variant="secondary" className="glass-effect">Node.js Runtime</Badge>
+      <Badge variant="secondary" className="glass-effect">TypeScript</Badge>
+      <Badge variant="secondary" className="glass-effect">Zod Validation</Badge>
+    </div>
+  </CardContent>
+</Card>
+
+**Responsibilities:**
+- 22+ specialized AI agents
+- Agent coordination and orchestration
+- Tool execution and MCP integration
+- Memory management and persistence
+- Runtime context management
+
+### Data Layer
+**LibSQL/Turso with Knowledge Graph capabilities**
+
+<Card className="glass-effect border-primary/20 mb-6">
+  <CardHeader>
+    <CardTitle className="flex items-center gap-2">
+      <Database className="w-5 h-5 text-primary" />
+      Data Technologies
+    </CardTitle>
+  </CardHeader>
+  <CardContent>
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <Badge variant="secondary" className="glass-effect">LibSQL/Turso</Badge>
+      <Badge variant="secondary" className="glass-effect">Knowledge Graphs</Badge>
+      <Badge variant="secondary" className="glass-effect">Vector Storage</Badge>
+      <Badge variant="secondary" className="glass-effect">Session Management</Badge>
+      <Badge variant="secondary" className="glass-effect">Persistent Memory</Badge>
+      <Badge variant="secondary" className="glass-effect">Real-time Sync</Badge>
+    </div>
+  </CardContent>
+</Card>
+
+**Responsibilities:**
+- Persistent agent memory
+- Knowledge graph storage
+- Vector embeddings and search
+- Session and user data
+- Configuration and settings
+
+### Integration Layer
+**MCP (Model Context Protocol) servers and external APIs**
+
+<Card className="glass-effect border-primary/20 mb-6">
+  <CardHeader>
+    <CardTitle className="flex items-center gap-2">
+      <Layers className="w-5 h-5 text-primary" />
+      Integration Technologies
+    </CardTitle>
+  </CardHeader>
+  <CardContent>
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <Badge variant="secondary" className="glass-effect">MCP Protocol</Badge>
+      <Badge variant="secondary" className="glass-effect">67+ Tools</Badge>
+      <Badge variant="secondary" className="glass-effect">GitHub API</Badge>
+      <Badge variant="secondary" className="glass-effect">Weather APIs</Badge>
+      <Badge variant="secondary" className="glass-effect">Search APIs</Badge>
+      <Badge variant="secondary" className="glass-effect">File System</Badge>
+    </div>
+  </CardContent>
+</Card>
+
+**Responsibilities:**
+- External API integrations
+- File system operations
+- Git repository management
+- Web scraping and search
+- Data processing and analysis
+
+## Data Flow Architecture
+
+Understanding how data flows through the system is crucial for effective development:
+
+### 1. User Interaction
+User sends message through CopilotKit chat interface
+
+```typescript
+// Frontend: User types message
+const message = "Analyze this repository: https://github.com/user/repo"
+
+// CopilotKit captures and processes
+useCopilotChat({
+  onMessage: (message) => {
+    // Send to selected agent via runtime
+  }
+})
+```
+
+### 2. Request Routing
+CopilotKit runtime routes request to selected agent
+
+```typescript
+// Runtime routes to appropriate agent
+const selectedAgent = "git-agent" // or "master-agent" for coordination
+
+// AG-UI protocol handles communication
+registerCopilotKit({
+  path: "/copilotkit/git-agent",
+  agent: gitAgent
+})
+```
+
+### 3. Agent Processing
+Agent processes request, accesses memory, and uses tools
+
+```typescript
+// Agent receives request and processes
+export const gitAgent = new Agent({
+  name: 'Git Agent',
+  instructions: 'You analyze Git repositories...',
+  tools: {
+    gitCloneTool,
+    fileAnalysisTool,
+    graphGenerationTool
+  },
+  memory: agentMemory
+})
+```
+
+### 4. Tool Execution
+MCP tools execute operations (search, file ops, etc.)
+
+```typescript
+// Tools perform actual operations
+const gitCloneTool = tool({
+  description: 'Clone a Git repository',
+  parameters: z.object({
+    url: z.string(),
+    branch: z.string().optional()
+  }),
+  execute: async ({ url, branch }) => {
+    // Clone repository using MCP filesystem tools
+    return await mcp.git.clone(url, branch)
+  }
+})
+```
+
+### 5. Memory Update
+Agent updates knowledge graph with new information
+
+```typescript
+// Update persistent memory
+await agentMemory.remember({
+  type: 'repository_analysis',
+  data: {
+    url: repositoryUrl,
+    structure: fileStructure,
+    dependencies: dependencies,
+    insights: analysisResults
+  }
+})
+```
+
+### 6. Response Streaming
+Results stream back to frontend via AG-UI protocol
+
+```typescript
+// Stream response back to user
+return {
+  type: 'text',
+  content: 'Repository analysis complete!',
+  metadata: {
+    files_analyzed: 150,
+    dependencies_found: 25,
+    graph_generated: true
+  }
+}
+```
+
+## Key Design Principles
+
+### 1. **Modularity**
+Each component is designed to be independent and replaceable:
+- Agents can be added/removed without affecting others
+- Tools follow standardized MCP protocol
+- Frontend components are reusable across pages
+
+### 2. **Scalability**
+Architecture supports horizontal and vertical scaling:
+- Stateless agent design enables multiple instances
+- Database connection pooling for high concurrency
+- CDN integration for static assets
+
+### 3. **Observability**
+Comprehensive monitoring and logging:
+- LangSmith integration for AI model performance
+- Structured logging with PinoLogger
+- OpenTelemetry for distributed tracing
+- Real-time error tracking and alerting
+
+### 4. **Security**
+Security-first approach throughout:
+- Input validation with Zod schemas
+- Environment variable management
+- API key rotation and secure storage
+- CORS configuration and rate limiting
+
+## Technology Stack Summary
+
+| Layer | Primary Technologies | Purpose |
+|-------|---------------------|---------|
+| **Frontend** | Next.js 15, React 19, CopilotKit | User interface and AI interactions |
+| **Backend** | Mastra Core, Google Gemini, AG-UI | Agent orchestration and processing |
+| **Data** | LibSQL/Turso, Knowledge Graphs | Persistent storage and memory |
+| **Integration** | MCP Protocol, 67+ Tools | External services and operations |
+| **Observability** | LangSmith, PinoLogger, OpenTelemetry | Monitoring and debugging |
+| **Authentication** | Supabase Auth, GitHub OAuth | User management and security |
+
+## Next Steps
+
+Now that you understand the architecture, explore specific components:
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+  <Button asChild className="glass-effect-strong electric-pulse">
+    <Link href="/docs/mastra/agents">
+      <Brain className="w-4 h-4 mr-2" />
+      Explore Agents
+    </Link>
+  </Button>
+  <Button variant="outline" asChild className="lightning-trail">
+    <Link href="/docs/copilotkit/setup">
+      <Code className="w-4 h-4 mr-2" />
+      CopilotKit Setup
+    </Link>
+  </Button>
+</div>

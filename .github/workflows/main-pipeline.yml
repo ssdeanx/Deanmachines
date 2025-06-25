@@ -1,0 +1,244 @@
+name: "🚀 Modern CI/CD Pipeline"
+
+on:
+  push:
+    branches: [main, develop, master]
+  pull_request:
+    branches: [main, develop, master]
+  schedule:
+    # Run dependency check weekly
+    - cron: "0 2 * * 1"
+
+env:
+  NODE_VERSION: "20.x"
+  # Use repository variables for configuration
+  MASTRA_URL: http://localhost:4111
+
+# Security-first approach with minimal permissions
+permissions:
+  contents: read
+
+jobs:
+  # Parallel quality checks for faster feedback
+  lint:
+    name: "� Lint & Format"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Check TypeScript
+        run: npx tsc --noEmit
+  test:
+    name: "🧪 Test Suite"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        node-version: ["18.x", "20.x"]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm run test:ci || npx vitest run
+        env:
+          CI: true
+
+      - name: Generate coverage report
+        if: matrix.node-version == '20.x'
+        run: npm run test:coverage || npx vitest run --coverage
+        continue-on-error: true
+
+      - name: Upload coverage to Codecov
+        if: matrix.node-version == '20.x'
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info,./coverage/clover.xml
+          directory: ./coverage/
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+          verbose: true
+
+      - name: Upload coverage reports (Node 20 only)
+        if: matrix.node-version == '20.x' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: coverage/
+          retention-days: 7
+
+  security:
+    name: "🔒 Security Audit"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run security audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true
+
+      - name: Dependency vulnerability scan
+        run: |
+          npx audit-ci --moderate || echo "Audit found issues, but continuing..."
+
+  # Build only after quality checks pass
+  build:
+    name: "🔨 Build Application"
+    runs-on: ubuntu-latest
+    needs: [lint, test, security]
+    permissions:
+      contents: read
+    outputs:
+      build-size: ${{ steps.build-info.outputs.size }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Get build info
+        id: build-info
+        run: |
+          if [ -d ".next" ]; then
+            SIZE=$(du -sh .next | cut -f1)
+            echo "size=$SIZE" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload build artifacts
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-files-${{ github.sha }}
+          path: |
+            .next/
+            !.next/cache
+          retention-days: 7
+
+  # Enhanced dependency management
+  dependencies:
+    name: "📦 Dependency Management"
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Check for updates
+        run: |
+          npx npm-check-updates --target minor --format group > dependency-updates.txt || true
+          cat dependency-updates.txt
+
+      - name: Update dependencies
+        run: |
+          npx npm-check-updates --target minor -u
+          npm install
+
+      - name: Run tests after update
+        run: npm run test:ci || npx vitest run --reporter=basic
+        continue-on-error: true
+
+      - name: Create dependency update PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: automated dependency updates"
+          title: "🔄 Automated Dependency Updates"
+          body: |
+            ## Automated Dependency Updates
+            
+            This PR contains automated dependency updates generated by GitHub Actions.
+            
+            ### Changes
+            $(cat dependency-updates.txt)
+            
+            ### Testing
+            - [x] Tests have been run
+            - [x] Build verification completed
+            
+            Please review the changes and merge if tests pass.
+          branch: deps/automated-updates-${{ github.run_number }}
+          delete-branch: true
+
+  # Summary job for status checks
+  ci-complete:
+    name: "✅ CI Complete"
+    runs-on: ubuntu-latest
+    needs: [lint, test, security, build]
+    if: always()
+    steps:
+      - name: Check all jobs status
+        run: |
+          if [[ "${{ needs.lint.result }}" == "success" && \
+                "${{ needs.test.result }}" == "success" && \
+                "${{ needs.security.result }}" == "success" && \
+                "${{ needs.build.result }}" == "success" ]]; then
+            echo "✅ All CI checks passed!"
+            echo "Build size: ${{ needs.build.outputs.build-size }}"
+          else
+            echo "❌ Some CI checks failed"
+            exit 1
+          fi

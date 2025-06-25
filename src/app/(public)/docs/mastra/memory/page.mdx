@@ -1,0 +1,443 @@
+"use client";
+
+---
+title: "Memory Systems"
+description: "Persistent memory and knowledge graph management in Mastra"
+---
+
+# Memory Systems
+
+DeanMachines RSC implements **sophisticated memory systems** that enable agents to maintain context, learn from interactions, and provide increasingly intelligent responses over time. This guide covers memory architecture, implementation patterns, and best practices.
+
+## Memory Architecture
+
+### Shared Memory System
+All agents share a **unified memory system** that enables cross-agent knowledge sharing and coordination.
+
+<Card className="glass-effect border-primary/20 mb-6">
+  <CardHeader>
+    <CardTitle className="flex items-center gap-2">
+      <Database className="w-5 h-5 text-primary" />
+      Memory Components
+    </CardTitle>
+  </CardHeader>
+  <CardContent>
+    <div className="grid md:grid-cols-2 gap-6">
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="glass-effect">Short-term Memory</Badge>
+        </div>
+        <p className="text-sm text-muted-foreground">Conversation context and session data</p>
+        <ul className="text-sm text-muted-foreground space-y-1">
+          <li>• Current conversation history</li>
+          <li>• Active session variables</li>
+          <li>• Temporary computation results</li>
+          <li>• User preferences for session</li>
+        </ul>
+      </div>
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="glass-effect">Long-term Memory</Badge>
+        </div>
+        <p className="text-sm text-muted-foreground">Persistent knowledge and relationships</p>
+        <ul className="text-sm text-muted-foreground space-y-1">
+          <li>• User profiles and preferences</li>
+          <li>• Project and repository knowledge</li>
+          <li>• Historical interaction patterns</li>
+          <li>• Accumulated insights and facts</li>
+        </ul>
+      </div>
+    </div>
+  </CardContent>
+</Card>
+
+### Knowledge Graph Storage
+Memory is organized as a **knowledge graph** with entities, relationships, and properties.
+
+```typescript
+// Knowledge graph structure
+interface MemoryEntity {
+  id: string;
+  type: 'user' | 'project' | 'repository' | 'insight' | 'preference';
+  properties: Record<string, any>;
+  relationships: MemoryRelationship[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface MemoryRelationship {
+  from: string;
+  to: string;
+  type: string;
+  properties?: Record<string, any>;
+  weight?: number;
+}
+```
+
+## Memory Implementation
+
+### Agent Memory Integration
+All agents use the shared memory system through a consistent interface:
+
+```typescript
+// src/mastra/agentMemory.ts
+import { Memory } from '@mastra/core';
+
+export const agentMemory = new Memory({
+  provider: 'libsql',
+  connectionString: process.env.DATABASE_URL,
+  authToken: process.env.DATABASE_AUTH_TOKEN,
+  enableKnowledgeGraph: true,
+  vectorSearch: {
+    enabled: true,
+    dimensions: 1536,
+    similarity: 'cosine'
+  }
+});
+
+// Memory operations
+export class AgentMemoryManager {
+  
+  /**
+   * Store a new memory with automatic relationship detection
+   */
+  async remember(data: {
+    type: string;
+    content: any;
+    userId?: string;
+    sessionId?: string;
+    tags?: string[];
+  }) {
+    return await agentMemory.store({
+      ...data,
+      timestamp: new Date(),
+      embedding: await this.generateEmbedding(data.content)
+    });
+  }
+
+  /**
+   * Retrieve memories based on semantic similarity
+   */
+  async recall(query: string, options?: {
+    limit?: number;
+    threshold?: number;
+    filters?: Record<string, any>;
+  }) {
+    return await agentMemory.search(query, {
+      limit: options?.limit || 10,
+      threshold: options?.threshold || 0.7,
+      ...options?.filters
+    });
+  }
+
+  /**
+   * Update existing memory with new information
+   */
+  async update(memoryId: string, updates: Partial<any>) {
+    return await agentMemory.update(memoryId, {
+      ...updates,
+      updatedAt: new Date()
+    });
+  }
+
+  /**
+   * Create relationships between memories
+   */
+  async relate(fromId: string, toId: string, relationship: {
+    type: string;
+    properties?: Record<string, any>;
+    weight?: number;
+  }) {
+    return await agentMemory.createRelationship(fromId, toId, relationship);
+  }
+}
+```
+
+### Memory Usage in Agents
+Agents integrate memory operations seamlessly into their workflows:
+
+```typescript
+// Example: Weather Agent with memory
+export const weatherAgent = new Agent({
+  name: 'Weather Agent',
+  instructions: `You are a weather assistant with memory capabilities.
+  
+  You can:
+  - Remember user location preferences
+  - Track weather patterns and alerts
+  - Learn from user feedback and preferences
+  - Provide personalized weather insights
+  
+  Always use memory to provide better, more personalized responses.`,
+  
+  model: createTracedGoogleModel('gemini-2.5-flash-preview-05-20', {
+    name: 'weather-agent',
+    tags: ['agent', 'weather', 'memory']
+  }),
+  
+  tools: {
+    weatherTool,
+    locationTool,
+    
+    // Memory tools
+    rememberPreference: tool({
+      description: 'Remember user weather preferences',
+      parameters: z.object({
+        userId: z.string(),
+        preference: z.object({
+          location: z.string().optional(),
+          units: z.enum(['metric', 'imperial']).optional(),
+          alertTypes: z.array(z.string()).optional()
+        })
+      }),
+      execute: async ({ userId, preference }) => {
+        await agentMemory.remember({
+          type: 'weather_preference',
+          content: preference,
+          userId,
+          tags: ['preference', 'weather']
+        });
+        return { success: true, message: 'Preference saved' };
+      }
+    }),
+    
+    recallPreferences: tool({
+      description: 'Recall user weather preferences',
+      parameters: z.object({
+        userId: z.string()
+      }),
+      execute: async ({ userId }) => {
+        const memories = await agentMemory.recall('weather preferences', {
+          filters: { userId, type: 'weather_preference' },
+          limit: 5
+        });
+        return { preferences: memories };
+      }
+    })
+  },
+  
+  memory: agentMemory
+});
+```
+
+## Memory Patterns
+
+### 1. User Preference Learning
+Agents learn and adapt to user preferences over time:
+
+```typescript
+// Learning user coding style preferences
+await agentMemory.remember({
+  type: 'coding_preference',
+  content: {
+    language: 'typescript',
+    style: 'functional',
+    testFramework: 'vitest',
+    linting: 'strict'
+  },
+  userId: 'user123',
+  tags: ['preference', 'coding', 'style']
+});
+```
+
+### 2. Project Context Retention
+Agents remember project-specific information:
+
+```typescript
+// Storing repository analysis results
+await agentMemory.remember({
+  type: 'repository_analysis',
+  content: {
+    url: 'https://github.com/user/project',
+    structure: fileStructure,
+    dependencies: packageDependencies,
+    insights: analysisInsights,
+    lastAnalyzed: new Date()
+  },
+  tags: ['repository', 'analysis', 'project']
+});
+```
+
+### 3. Interaction History
+Agents track successful interaction patterns:
+
+```typescript
+// Recording successful workflow patterns
+await agentMemory.remember({
+  type: 'workflow_success',
+  content: {
+    workflow: 'code_analysis',
+    steps: ['clone', 'analyze', 'visualize', 'document'],
+    duration: 45000,
+    userSatisfaction: 'high'
+  },
+  tags: ['workflow', 'success', 'pattern']
+});
+```
+
+### 4. Knowledge Accumulation
+Agents build domain-specific knowledge over time:
+
+```typescript
+// Accumulating weather pattern insights
+await agentMemory.remember({
+  type: 'weather_insight',
+  content: {
+    location: 'San Francisco',
+    pattern: 'morning_fog_summer',
+    frequency: 'daily',
+    conditions: 'clear_by_noon',
+    confidence: 0.85
+  },
+  tags: ['insight', 'weather', 'pattern']
+});
+```
+
+## Advanced Memory Features
+
+### Vector Search
+Semantic search capabilities for intelligent memory retrieval:
+
+```typescript
+// Semantic memory search
+const relatedMemories = await agentMemory.search(
+  'JavaScript performance optimization',
+  {
+    limit: 10,
+    threshold: 0.75,
+    filters: { type: 'coding_insight' }
+  }
+);
+```
+
+### Relationship Mapping
+Automatic relationship detection between memories:
+
+```typescript
+// Create relationships between related memories
+await agentMemory.relate(
+  repositoryMemoryId,
+  analysisMemoryId,
+  {
+    type: 'analyzed_by',
+    properties: { confidence: 0.9 },
+    weight: 1.0
+  }
+);
+```
+
+### Memory Consolidation
+Periodic consolidation of related memories:
+
+```typescript
+// Consolidate related user preferences
+const consolidatedPreferences = await agentMemory.consolidate({
+  type: 'user_preference',
+  userId: 'user123',
+  strategy: 'merge_similar',
+  threshold: 0.8
+});
+```
+
+## Memory Best Practices
+
+### 1. **Structured Storage**
+Use consistent schemas for different memory types:
+
+```typescript
+// Define memory schemas
+const MemorySchemas = {
+  user_preference: z.object({
+    category: z.string(),
+    setting: z.string(),
+    value: z.any(),
+    confidence: z.number().min(0).max(1)
+  }),
+  
+  project_insight: z.object({
+    projectId: z.string(),
+    insight: z.string(),
+    evidence: z.array(z.string()),
+    relevance: z.number().min(0).max(1)
+  })
+};
+```
+
+### 2. **Privacy and Security**
+Implement proper data protection:
+
+```typescript
+// Encrypt sensitive memories
+await agentMemory.remember({
+  type: 'sensitive_data',
+  content: await encrypt(sensitiveData),
+  userId,
+  encrypted: true,
+  retention: '30_days'
+});
+```
+
+### 3. **Memory Lifecycle Management**
+Implement retention policies and cleanup:
+
+```typescript
+// Automatic memory cleanup
+await agentMemory.cleanup({
+  olderThan: '90_days',
+  types: ['temporary', 'session'],
+  preserveImportant: true
+});
+```
+
+### 4. **Performance Optimization**
+Optimize memory operations for performance:
+
+```typescript
+// Batch memory operations
+await agentMemory.batchStore([
+  { type: 'interaction', content: interaction1 },
+  { type: 'interaction', content: interaction2 },
+  { type: 'interaction', content: interaction3 }
+]);
+```
+
+## Memory Analytics
+
+### Usage Patterns
+Track memory usage and effectiveness:
+
+```typescript
+// Memory analytics
+const analytics = await agentMemory.getAnalytics({
+  timeRange: '30_days',
+  metrics: ['storage_growth', 'retrieval_frequency', 'accuracy']
+});
+```
+
+### Memory Health
+Monitor memory system health:
+
+```typescript
+// Health checks
+const health = await agentMemory.healthCheck();
+console.log('Memory system status:', health.status);
+console.log('Storage usage:', health.storage);
+console.log('Query performance:', health.performance);
+```
+
+## Next Steps
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+  <Button asChild className="glass-effect-strong electric-pulse">
+    <Link href="/docs/mastra/workflows">
+      <Workflow className="w-4 h-4 mr-2" />
+      Explore Workflows
+    </Link>
+  </Button>
+  <Button variant="outline" asChild className="lightning-trail">
+    <Link href="/docs/guides/memory-management">
+      <Brain className="w-4 h-4 mr-2" />
+      Memory Management Guide
+    </Link>
+  </Button>
+</div>

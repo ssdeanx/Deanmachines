@@ -1,0 +1,39 @@
+# .github/workflows/inject-directives.yml
+name: "Inject Copilot Directives"
+
+on:
+  pull_request:
+    paths:
+      - "src/**/*.{ts,tsx}"
+
+jobs:
+  inject:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Inject Copilot directives
+        run: |
+          for f in $(find src -type f \( -name '*.ts' -o -name '*.tsx' \)); do
+            sed -E -i.bak '
+              /async function / {
+                x; /copilot: start-task/! {
+                  x;
+                  s/^(async function[[:space:]]+([[:alnum:]_]+))$/\/\/ copilot: start-task "Implement \2"\n\/\/ Description: <brief description>\n\/\/ Return type: <ReturnType>\n\/\/ copilot: end-task\n\1/
+                }
+                x
+              }
+            ' "$f" && rm "${f}.bak"
+          done
+
+      - name: Commit and push changes
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "chore: inject Copilot directives 🚀"
+          branch: ${{ github.head_ref }}
+          file_pattern: "src/**/*.{ts,tsx}"

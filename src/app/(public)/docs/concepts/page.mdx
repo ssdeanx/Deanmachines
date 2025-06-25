@@ -1,0 +1,226 @@
+"use client";
+
+---
+title: "Basic Concepts"
+description: "Core concepts and terminology for DeanMachines RSC"
+---
+
+# Basic Concepts
+
+Understanding the **fundamental concepts** of DeanMachines RSC is essential for building effective AI-powered applications. This guide covers the core terminology, architecture patterns, and mental models you need to succeed.
+
+## Core Components
+
+### Agents
+**Autonomous AI entities** that can understand, reason, and act on behalf of users.
+
+<Card className="glass-effect border-primary/20 mb-6">
+  <CardHeader>
+    <CardTitle className="flex items-center gap-2">
+      <Brain className="w-5 h-5 text-primary" />
+      Agent Characteristics
+    </CardTitle>
+  </CardHeader>
+  <CardContent>
+    <div className="space-y-3">
+      <div className="flex items-start gap-3">
+        <CheckCircle className="w-4 h-4 text-primary mt-1" />
+        <div>
+          <span className="font-medium">Specialized Purpose</span>
+          <p className="text-sm text-muted-foreground">Each agent is designed for specific tasks (weather, code analysis, research)</p>
+        </div>
+      </div>
+      <div className="flex items-start gap-3">
+        <CheckCircle className="w-4 h-4 text-primary mt-1" />
+        <div>
+          <span className="font-medium">Tool Integration</span>
+          <p className="text-sm text-muted-foreground">Agents use tools to interact with external systems and APIs</p>
+        </div>
+      </div>
+      <div className="flex items-start gap-3">
+        <CheckCircle className="w-4 h-4 text-primary mt-1" />
+        <div>
+          <span className="font-medium">Memory Persistence</span>
+          <p className="text-sm text-muted-foreground">Agents remember context and learn from interactions</p>
+        </div>
+      </div>
+      <div className="flex items-start gap-3">
+        <CheckCircle className="w-4 h-4 text-primary mt-1" />
+        <div>
+          <span className="font-medium">Coordination Capability</span>
+          <p className="text-sm text-muted-foreground">Agents can work together on complex multi-step tasks</p>
+        </div>
+      </div>
+    </div>
+  </CardContent>
+</Card>
+
+### Tools
+**Functional capabilities** that extend what agents can do beyond text generation.
+
+Tools enable agents to:
+- **File Operations**: Read, write, and manipulate files
+- **Web Interactions**: Search the internet, fetch web pages, scrape data
+- **API Integrations**: Connect to external services and databases
+- **System Operations**: Execute commands, manage processes
+- **Data Processing**: Analyze, transform, and visualize data
+
+### Memory
+**Persistent knowledge storage** that allows agents to maintain context across conversations.
+
+<Alert className="mb-6 glass-effect border-blue-500/50 bg-blue-500/10">
+  <Info className="h-4 w-4" />
+  <AlertTitle>Memory Types</AlertTitle>
+  <AlertDescription>
+    DeanMachines RSC uses both **short-term memory** (conversation context) and **long-term memory** (persistent knowledge graphs) to provide intelligent, context-aware responses.
+  </AlertDescription>
+</Alert>
+
+### Workflows
+**Orchestrated sequences** of agent interactions that accomplish complex tasks.
+
+Example workflow: Repository Analysis
+1. **Git Agent** clones the repository
+2. **Code Agent** analyzes file structure and dependencies
+3. **Graph Agent** generates visual dependency maps
+4. **Documentation Agent** creates summary reports
+5. **Master Agent** coordinates and presents results
+
+## Key Concepts
+
+### Runtime Context
+**Configuration and state information** that agents use during execution.
+
+```typescript
+// Example: Weather Agent Runtime Context
+export type WeatherAgentRuntimeContext = {
+  "user-id": string;           // User identification
+  "session-id": string;        // Session tracking
+  "location-preference": string; // Default location
+  "units": string;             // Temperature units (metric/imperial)
+  "forecast-days": string;     // Default forecast period
+  "weather-alerts": string;    // Alert preferences
+};
+```
+
+### Model Context Protocol (MCP)
+**Standardized interface** for tool integration that ensures consistency and reliability.
+
+Benefits of MCP:
+- **Standardization**: Consistent tool interfaces across all agents
+- **Reliability**: Robust error handling and validation
+- **Scalability**: Easy addition of new tools and capabilities
+- **Interoperability**: Tools work seamlessly across different agents
+
+### AG-UI Protocol
+**Communication bridge** between Mastra agents and CopilotKit frontend interfaces.
+
+The AG-UI protocol handles:
+- **Real-time Communication**: Streaming responses and updates
+- **State Synchronization**: Frontend-backend state management
+- **Tool Execution**: Visual feedback for agent tool usage
+- **Error Handling**: Graceful error recovery and user feedback
+
+## Architecture Patterns
+
+### Agent Specialization
+Each agent is designed for **specific domains** rather than being a general-purpose assistant.
+
+**Benefits**:
+- **Expertise**: Deep knowledge in specific areas
+- **Performance**: Optimized for particular use cases
+- **Maintainability**: Easier to update and improve specific capabilities
+- **Reliability**: Reduced complexity leads to more predictable behavior
+
+### Coordination Over Centralization
+The **Master Agent** coordinates other agents rather than trying to do everything itself.
+
+**Pattern**:
+```typescript
+// Master Agent delegates to specialists
+const analysisResult = await masterAgent.coordinate([
+  { agent: 'git-agent', task: 'clone-repository', params: { url } },
+  { agent: 'code-agent', task: 'analyze-structure', params: { path } },
+  { agent: 'graph-agent', task: 'generate-visualization', params: { data } }
+]);
+```
+
+### Memory-Driven Intelligence
+Agents use **persistent memory** to provide increasingly intelligent responses over time.
+
+**Memory Categories**:
+- **User Preferences**: Personal settings and preferences
+- **Project Context**: Information about specific projects or repositories
+- **Interaction History**: Previous conversations and outcomes
+- **Knowledge Base**: Accumulated facts and insights
+
+### Tool Composition
+Complex capabilities are built by **composing simple tools** rather than creating monolithic functions.
+
+**Example**: Repository analysis combines:
+- File system tools (reading files)
+- Git tools (repository operations)
+- Analysis tools (code parsing)
+- Visualization tools (graph generation)
+
+## Development Mental Models
+
+### Think in Workflows
+Instead of single-step operations, design **multi-step workflows** that leverage multiple agents.
+
+**Good**: "Analyze this repository by coordinating Git, Code, and Graph agents"
+**Better**: "Create a comprehensive repository analysis workflow with dependency mapping, code quality assessment, and documentation generation"
+
+### Embrace Specialization
+Design agents with **clear, focused purposes** rather than trying to make them do everything.
+
+**Good**: Weather agent that provides weather information
+**Better**: Weather agent that provides location-based forecasts, weather alerts, historical data, and climate insights
+
+### Memory as Intelligence
+Use **persistent memory** to make agents smarter over time rather than treating each interaction as isolated.
+
+**Good**: Agent that answers questions about code
+**Better**: Agent that remembers previous code discussions, learns project patterns, and provides increasingly relevant suggestions
+
+### Tools as Extensions
+Think of tools as **extensions of agent capabilities** rather than separate systems.
+
+**Good**: Agent that can search the web
+**Better**: Agent that seamlessly integrates web search, content analysis, fact verification, and knowledge synthesis
+
+## Best Practices
+
+### 1. **Clear Separation of Concerns**
+Each agent should have a well-defined purpose and scope.
+
+### 2. **Consistent Interfaces**
+Use standardized patterns for agent creation, tool integration, and memory management.
+
+### 3. **Error Resilience**
+Design agents and workflows to handle failures gracefully and provide meaningful feedback.
+
+### 4. **Performance Optimization**
+Consider memory usage, response times, and resource consumption in agent design.
+
+### 5. **User Experience**
+Design agent interactions to be intuitive, helpful, and aligned with user expectations.
+
+## Next Steps
+
+Now that you understand the core concepts, explore specific implementation details:
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+  <Button asChild className="glass-effect-strong electric-pulse">
+    <Link href="/docs/mastra/agents">
+      <Brain className="w-4 h-4 mr-2" />
+      Explore Agents
+    </Link>
+  </Button>
+  <Button variant="outline" asChild className="lightning-trail">
+    <Link href="/docs/guides/first-agent">
+      <Rocket className="w-4 h-4 mr-2" />
+      Build Your First Agent
+    </Link>
+  </Button>
+</div>

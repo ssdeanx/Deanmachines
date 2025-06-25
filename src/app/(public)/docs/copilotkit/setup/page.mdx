@@ -1,0 +1,360 @@
+"use client";
+
+# CopilotKit Setup & Configuration
+
+CopilotKit provides the **conversational AI interface** for DeanMachines RSC, enabling seamless interaction with your Mastra agents through chat interfaces, sidebars, and custom components.
+
+## Overview
+
+CopilotKit integration in DeanMachines RSC includes:
+
+<Card className="glass-effect border-primary/20 mb-6">
+  <CardContent className="pt-6">
+    <div className="grid md:grid-cols-2 gap-6">
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <MessageSquare className="w-4 h-4 text-primary" />
+          <span className="font-medium">Chat Interface</span>
+        </div>
+        <p className="text-sm text-muted-foreground">Pre-built chat components with customizable styling</p>
+      </div>
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Zap className="w-4 h-4 text-primary" />
+          <span className="font-medium">Agent Switching</span>
+        </div>
+        <p className="text-sm text-muted-foreground">Dynamic agent switching during conversations</p>
+      </div>
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Layers className="w-4 h-4 text-primary" />
+          <span className="font-medium">Multi-Agent Support</span>
+        </div>
+        <p className="text-sm text-muted-foreground">Seamless integration with multiple Mastra agents</p>
+      </div>
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <Settings className="w-4 h-4 text-primary" />
+          <span className="font-medium">Runtime Configuration</span>
+        </div>
+        <p className="text-sm text-muted-foreground">Dynamic configuration and context management</p>
+      </div>
+    </div>
+  </CardContent>
+</Card>
+
+## Installation
+
+CopilotKit is already installed in DeanMachines RSC. The key packages include:
+
+```json
+{
+  "@copilotkit/react-core": "^1.8.14",
+  "@copilotkit/react-ui": "^1.8.14",
+  "@copilotkit/runtime": "^1.8.14",
+  "@mastra/agui": "latest"
+}
+```
+
+## Configuration
+
+### 1. Root Layout Setup
+
+The CopilotKit provider is configured in the root layout:
+
+```typescript
+// src/app/layout.tsx
+import { CopilotKit } from '@copilotkit/react-core';
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en">
+      <body>
+        <CopilotKit
+          runtimeUrl={process.env.NEXT_PUBLIC_COPILOTKIT_RUNTIME_URL || "http://localhost:4111/copilotkit"}
+          agent="master-agent"
+        >
+          {children}
+        </CopilotKit>
+      </body>
+    </html>
+  );
+}
+```
+
+### 2. Playground Implementation
+
+The main playground demonstrates CopilotKit integration:
+
+```typescript
+// src/app/playground/page.tsx
+'use client';
+
+import { CopilotChat } from '@copilotkit/react-ui';
+import { useCopilotAgent } from '@copilotkit/react-core';
+
+export default function PlaygroundPage() {
+  const { switchAgent, currentAgent } = useCopilotAgent();
+
+  return (
+    <div className="h-screen flex">
+      {/* Agent Selector */}
+      <div className="w-64 p-4 border-r glass-effect">
+        <h3 className="font-semibold mb-4 text-primary neon-text">Available Agents</h3>
+        {[
+          'master-agent', 
+          'weather-agent', 
+          'git-agent', 
+          'code-agent',
+          'data-agent'
+        ].map((agent) => (
+          <button
+            key={agent}
+            onClick={() => switchAgent(agent)}
+            className={`w-full p-3 text-left rounded-lg mb-2 transition-all duration-300 ${
+              currentAgent === agent 
+                ? 'bg-primary text-primary-foreground neon-glow' 
+                : 'hover:bg-muted glass-effect'
+            }`}
+          >
+            {agent.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+          </button>
+        ))}
+      </div>
+
+      {/* Chat Interface */}
+      <div className="flex-1">
+        <CopilotChat
+          labels={{
+            title: "DeanMachines RSC Assistant",
+            initial: "Hello! I'm your AI assistant. How can I help you today?"
+          }}
+          className="h-full glass-effect-strong"
+        />
+      </div>
+    </div>
+  );
+}
+```
+
+### 3. Backend Configuration
+
+Mastra agents are registered with CopilotKit using AG-UI protocol:
+
+```typescript
+// src/mastra/index.ts
+import { registerCopilotKit } from '@mastra/agui';
+import { masterAgent, weatherAgent, gitAgent } from './agents';
+
+// Register Master Agent
+registerCopilotKit<MasterAgentRuntimeContext>({
+  actions: masterAgent.actions,
+  runtime: "node",
+  runtimeContext: {
+    "user-id": "",
+    "session-id": "",
+    "coordination-mode": "intelligent",
+    "max-agents": "5",
+    "workflow-timeout": "300",
+    "memory-retention": "session"
+  }
+});
+
+// Register Weather Agent
+registerCopilotKit<WeatherAgentRuntimeContext>({
+  actions: weatherAgent.actions,
+  runtime: "node",
+  runtimeContext: {
+    "user-id": "",
+    "session-id": "",
+    "location-preference": "auto",
+    "units": "metric",
+    "forecast-days": "7",
+    "weather-alerts": "enabled"
+  }
+});
+
+// Register Git Agent
+registerCopilotKit<GitAgentRuntimeContext>({
+  actions: gitAgent.actions,
+  runtime: "node",
+  runtimeContext: {
+    "user-id": "",
+    "session-id": "",
+    "default-branch": "main",
+    "clone-depth": "shallow",
+    "analysis-scope": "full",
+    "graph-generation": "enabled"
+  }
+});
+```
+
+## Environment Variables
+
+Configure the following environment variables:
+
+```bash
+# CopilotKit Runtime URL
+NEXT_PUBLIC_COPILOTKIT_RUNTIME_URL=http://localhost:4111/copilotkit
+
+# Mastra Backend Port
+MASTRA_PORT=4111
+
+# Google AI API Key (for agents)
+GOOGLE_GENERATIVE_AI_API_KEY=your_gemini_key
+
+# LangSmith (for observability)
+LANGSMITH_API_KEY=your_langsmith_key
+LANGSMITH_PROJECT=deanmachines-rsc
+```
+
+## Custom Components
+
+### CopilotSidebar
+
+For sidebar-style interactions:
+
+```typescript
+import { CopilotSidebar } from '@copilotkit/react-ui';
+
+export function CustomSidebar() {
+  return (
+    <CopilotSidebar
+      labels={{
+        title: "AI Assistant",
+        initial: "How can I help you?"
+      }}
+      className="glass-effect-strong neon-border"
+      defaultOpen={false}
+    />
+  );
+}
+```
+
+### CopilotPopup
+
+For popup-style interactions:
+
+```typescript
+import { CopilotPopup } from '@copilotkit/react-ui';
+
+export function CustomPopup() {
+  return (
+    <CopilotPopup
+      labels={{
+        title: "Quick Assistant",
+        initial: "Ask me anything!"
+      }}
+      className="glass-effect-strong electric-pulse"
+    />
+  );
+}
+```
+
+## Advanced Configuration
+
+### Custom Styling
+
+CopilotKit components can be styled with Tailwind CSS and your electric neon theme:
+
+```css
+/* Custom CopilotKit styles */
+.copilot-chat {
+  @apply glass-effect-strong neon-border;
+}
+
+.copilot-message {
+  @apply glass-effect rounded-lg;
+}
+
+.copilot-input {
+  @apply glass-effect border-primary/30 focus:border-primary/60;
+}
+
+.copilot-button {
+  @apply bg-primary text-primary-foreground hover:bg-primary/90 neon-glow;
+}
+```
+
+### Runtime Context Types
+
+Define proper TypeScript types for runtime contexts:
+
+```typescript
+// Agent runtime context types
+export type MasterAgentRuntimeContext = {
+  "user-id": string;
+  "session-id": string;
+  "coordination-mode": string;
+  "max-agents": string;
+  "workflow-timeout": string;
+  "memory-retention": string;
+};
+
+export type WeatherAgentRuntimeContext = {
+  "user-id": string;
+  "session-id": string;
+  "location-preference": string;
+  "units": string;
+  "forecast-days": string;
+  "weather-alerts": string;
+};
+```
+
+## Troubleshooting
+
+### Common Issues
+
+**Connection Errors**
+```bash
+# Check if Mastra backend is running
+curl http://localhost:4111/health
+
+# Verify environment variables
+echo $NEXT_PUBLIC_COPILOTKIT_RUNTIME_URL
+```
+
+**Agent Not Found**
+- Ensure agent is properly registered in `src/mastra/index.ts`
+- Check that runtime context types match registration
+- Verify agent name matches exactly
+
+**Runtime Context Errors**
+- Ensure all required properties are defined in runtime context
+- Check TypeScript types match registration
+- Verify context values are properly set
+
+### Debug Mode
+
+Enable debug logging for troubleshooting:
+
+```typescript
+// Add to your component
+import { useCopilotAgent } from '@copilotkit/react-core';
+
+const { currentAgent, error } = useCopilotAgent();
+
+console.log('Current agent:', currentAgent);
+console.log('Agent error:', error);
+```
+
+## Next Steps
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+  <Button asChild className="glass-effect-strong electric-pulse">
+    <Link href="/docs/copilotkit/components">
+      <Code className="w-4 h-4 mr-2" />
+      Components & Hooks
+    </Link>
+  </Button>
+  <Button variant="outline" asChild className="lightning-trail">
+    <Link href="/playground">
+      <Rocket className="w-4 h-4 mr-2" />
+      Try Playground
+    </Link>
+  </Button>
+</div>

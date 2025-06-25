@@ -1,0 +1,549 @@
+---
+title: Augment Guidelines for Dean Machines RSC Project
+description: Comprehensive development guidelines for the Dean Machines RSC AI platform, covering architecture, code style, testing, and advanced patterns.
+version: 2.0
+date: 06/13/2025
+author: @ssdeanx
+repository: ssdean/dean-machines-rsc
+glob:
+    - ./src/mastra/**/*.ts
+    - ./src/mastra/**/*.test.ts
+    - ./src/app/**/*.tsx
+    - ./src/components/**/*.tsx
+    - ./src/hooks/**/*.ts
+    - ./src/lib/**/*.ts
+    - ./src/utility/**/*.ts
+    - ./README.md
+    - ./CHANGELOG.md
+    - ./eslint.config.mjs
+    - ./next.config.ts
+    - ./package.json
+    - ./.env
+    - ./tsconfig.json
+    - ./.env.example
+tags: [project-guidelines, mastra, nextjs15, typescript, tailwindcss, ai-sdk, google-ai, copilotkit, langsmith, libsql, mcp, observability, ag-ui, advanced-patterns, nextauth, mentalmodel, code-graph, research-canvas, settings-ui, playground-features, supabase-auth, github-oauth, supabase-ssr, tech-stack, architecture]
+---
+# Dean Machines RSC Project - Augment Guidelines
+
+## 1. Project Architecture & Technology Stack
+
+### Core Technologies
+- **Frontend**: Next.js 15 with App Router, React 19, TypeScript 5.8
+- **Styling**: Tailwind CSS v4 with custom design system and electric neon theme
+- **AI Framework**: Mastra Core v0.10.5 with Google Gemini 2.5 Flash integration
+- **UI Integration**: CopilotKit v1.8.14 for conversational AI interfaces
+- **Database**: LibSQL/Turso with Knowledge Graph capabilities
+- **Authentication**: Supabase Auth with GitHub OAuth integration
+- **Observability**: LangSmith, PinoLogger, OpenTelemetry
+- **Package Manager**: npm (strict requirement - no yarn/pnpm)
+
+### Authentication System
+- **Provider**: Supabase Auth (NextAuth removed due to handler issues)
+- **OAuth**: GitHub OAuth with proper redirect flow implementation
+- **Email/Password**: Complete registration and login functionality
+- **Server Utilities**: Centralized auth utilities in `src/utility/supabase/server.ts`
+- **Error Handling**: Comprehensive error handling with dedicated error pages
+- **Status**: Fully functional and production-ready ✅
+
+### Architecture Layers
+1. **Frontend Layer**: Next.js with App Router, CopilotKit UI components
+2. **Backend Layer**: Mastra framework with multi-agent orchestration
+3. **Data Layer**: LibSQL/Turso with persistent memory and knowledge graphs
+4. **Integration Layer**: MCP (Model Context Protocol) servers and external APIs
+
+## 2. Directory Structure & Patterns
+
+### Current Project Structure
+```
+deanmachines-rsc/
+├── .github/                    # GitHub workflows and issue templates
+│   └── instructions/          # Project-specific coding guidelines
+├── .husky/                    # Git hooks configuration
+├── .mastra/                   # Mastra framework cache and config
+├── .next/                     # Next.js build output
+├── .vscode/                   # VS Code workspace settings
+├── public/                    # Static assets and images
+├── src/                       # Source code
+│   ├── app/                   # Next.js 15 App Router
+│   │   ├── (playground)/      # Protected playground features
+│   │   │   ├── layout.tsx     # CopilotKit provider setup
+│   │   │   ├── page.tsx       # Main agent chat interface
+│   │   │   ├── multi-agent/   # Multi-agent coordination
+│   │   │   ├── codegraph/     # Code analysis tools
+│   │   │   ├── research/      # Research canvas
+│   │   │   ├── components/    # Playground-specific components
+│   │   │   └── settings/      # Configuration pages
+│   │   ├── (public)/          # Public marketing pages
+│   │   │   ├── about/         # About page
+│   │   │   ├── contact/       # Contact page
+│   │   │   ├── demo/          # Demo page
+│   │   │   ├── docs/          # Documentation
+│   │   │   ├── features/      # Features page
+│   │   │   └── solutions/     # Solutions page
+│   │   ├── action/            # Server actions
+│   │   │   ├── git/           # Git-related actions
+│   │   │   └── graph/         # Graph-related actions
+│   │   ├── api/               # API routes
+│   │   │   └── copilotkit/    # CopilotKit runtime endpoints
+│   │   ├── auth/              # Authentication pages
+│   │   │   ├── auth-code-error/ # OAuth error handling
+│   │   │   └── callback/      # OAuth callback handler
+│   │   ├── error/             # Error pages
+│   │   ├── login/             # Login page and actions
+│   │   ├── private/           # Private/protected pages
+│   │   ├── test/              # Test pages
+│   │   ├── layout.tsx         # Root layout with providers
+│   │   ├── page.tsx           # Landing page
+│   │   └── globals.css        # Global styles and Tailwind config
+│   ├── components/            # Reusable React components
+│   │   ├── copilotkit/        # CopilotKit custom components
+│   │   ├── effects/           # Visual effects (lightning, etc.)
+│   │   ├── landing/           # Landing page sections
+│   │   ├── researchCanvas/    # Research-specific components
+│   │   ├── ui/                # Shadcn/ui base components
+│   │   └── providers.tsx      # Client-side providers wrapper
+│   ├── hooks/                 # Custom React hooks
+│   ├── lib/                   # Utility libraries and helpers
+│   ├── mastra/                # Mastra AI framework
+│   │   ├── agents/            # 22+ specialized AI agents
+│   │   ├── config/            # Framework configuration
+│   │   ├── tools/             # MCP-compatible tools
+│   │   ├── workflows/         # Multi-agent workflows
+│   │   ├── agentMemory.ts     # Shared memory system
+│   │   └── index.ts           # Framework exports
+│   └── utility/               # Utility functions
+│       └── supabase/          # Supabase client utilities
+│           ├── client.ts      # Client-side Supabase
+│           └── server.ts      # Server-side Supabase (auth utils)
+├── .env.example               # Environment variables template
+├── .gitignore                # Git ignore patterns
+├── .augment-guidelines       # This file - project guidelines
+├── CHANGELOG.md              # Version history and changes
+├── README.md                 # Project documentation
+├── package.json              # Dependencies and scripts
+├── next.config.ts            # Next.js configuration
+├── tsconfig.json             # TypeScript configuration
+├── eslint.config.mjs         # ESLint configuration
+├── vitest.config.ts          # Vitest testing configuration
+├── components.json           # Shadcn/ui configuration
+├── middleware.ts             # Next.js middleware
+└── postcss.config.mjs        # PostCSS configuration
+```
+
+### App Router Structure
+- **(playground)**: Protected features for AI interactions
+  - `layout.tsx`: CopilotKit provider setup
+  - `page.tsx`: Main agent chat interface
+  - `multi-agent/`: Multi-agent coordination
+  - `codegraph/`: Code analysis tools
+  - `research/`: Research canvas
+  - `components/`: Playground-specific components
+  - `settings/`: Configuration pages
+
+### Mastra Framework Structure
+- **Agents**: `src/mastra/agents/` - 22 specialized AI agents
+- **Tools**: `src/mastra/tools/` - MCP-compatible tool implementations
+- **Memory**: `src/mastra/agentMemory.ts` - Shared memory system
+- **Workflows**: `src/mastra/workflows/` - Multi-agent workflows
+- **Config**: `src/mastra/config/` - Agent and runtime configurations
+
+## 3. Agent Development Patterns
+
+### Agent Architecture
+- **Master Agent**: Central orchestrator managing all specialized agents
+- **Specialized Agents**: Domain-specific agents (22 total):
+  - Development: Code, Git, Debug, Documentation
+  - Data: Data, Graph, Research, Weather
+  - Management: Manager, Marketing
+  - Operations: Sysadmin, Browser, Quality
+  - Creative: Design, Content, Animation
+  - AI/ML: ML, Prompt Engineering, AI Research
+
+### Agent Creation Guidelines
+- Extend base Mastra agent class with specialized capabilities
+- Implement proper tool integration with MCP protocol
+- Use shared memory system for cross-agent communication
+- Follow naming convention: `{domain}-agent.ts`
+- Include comprehensive TSDoc documentation
+
+### CopilotKit Integration
+- Each agent must have corresponding CopilotKit endpoint
+- Implement proper agent switching with `useCopilotAgent`
+- Use standardized chat interfaces: `CopilotChat`, `CopilotSidebar`, `CopilotPopup`
+- Configure runtime URLs with environment variables
+
+### AG-UI Protocol Integration
+The project uses **AG-UI (Agent User Interaction Protocol)**, developed by CopilotKit, as the communication bridge between Mastra agents and the frontend interface.
+
+#### AG-UI Protocol Overview
+- **Protocol Type**: Open-source, lightweight, event-based protocol
+- **Purpose**: Facilitates rich, real-time interactions between frontend and AI agents
+- **Implementation**: Uses `registerCopilotKit` from `@mastra/agui` for Mastra integration
+- **Communication**: Standard HTTP or optional binary channels with streaming JSON events
+
+#### AG-UI Event Types
+1. **Lifecycle Events**: Agent workflow state management
+   - `RUN_STARTED`: Agent begins processing request
+   - `RUN_FINISHED`: Agent completes execution
+   
+2. **Text Message Events**: Conversation flow handling
+   - `TEXT_MESSAGE_START`: Agent begins new message
+   - `TEXT_MESSAGE_CONTENT`: Streaming message content
+   - `TEXT_MESSAGE_END`: Message completion
+   
+3. **Tool Call Events**: Agent tool execution
+   - `TOOL_CALL_START`: Agent initiates tool usage
+   - `TOOL_CALL_END`: Tool execution completion
+   
+4. **State Management Events**: Frontend-backend synchronization
+   - `STATE_SNAPSHOT`: Current conversation state
+   - `STATE_DELTA`: Incremental state updates
+
+#### AG-UI Implementation Pattern
+```typescript
+// Register agent with AG-UI protocol
+registerCopilotKit<RuntimeContextType>({
+  path: "/copilotkit/agent-name",
+  resourceId: "agent-name",
+  setContext: (c, runtimeContext) => {
+    runtimeContext.set("user-id", c.req.header("X-User-ID") || "anonymous");
+    runtimeContext.set("session-id", c.req.header("X-Session-ID") || `session-${Date.now()}`);
+    // Additional context configuration
+  }
+})
+```
+
+#### AG-UI Benefits
+- **Real-time Communication**: Event-driven updates between agents and UI
+- **State Synchronization**: Automatic frontend-backend state management
+- **Tool Integration**: Seamless tool usage with visual feedback
+- **Framework Agnostic**: Works with multiple agent frameworks (Mastra, CrewAI, AG2)
+- **Streaming Support**: Real-time response streaming for better UX
+
+## 4. Frontend Development Standards
+
+### Next.js 15 App Router Patterns
+- Use server components by default, mark client components with `'use client'`
+- Implement proper route grouping with `(playground)` and `(public)` patterns
+- Follow layout composition: root layout → group layout → page layout
+- Use dynamic routing for documentation and feature pages
+
+### Component Development
+- **UI Components**: Use Shadcn/ui as base, extend with custom styling
+- **Landing Components**: Modular sections for marketing pages
+- **CopilotKit Components**: Custom chat interfaces and agent controls
+- **Effect Components**: Visual enhancements (lightning cursor, particles)
+
+### Styling Guidelines
+- **Tailwind CSS v4**: Utilize custom design tokens in `globals.css`
+- **Electric Neon Theme**: Primary yellow (`oklch(0.9 0.4 105)`), cyan accents
+- **Glass Effects**: Use `glass-effect` and `glass-effect-strong` classes
+- **Animations**: Leverage Framer Motion for page transitions and interactions
+- **Responsive Design**: Mobile-first with breakpoint-specific utilities
+
+## 5. State Management & Data Flow
+
+### React State Patterns
+- Use `useState` for local component state
+- Implement custom hooks for complex state logic
+- Context providers for shared state (theme, agent selection)
+- Immutable state updates with proper TypeScript typing
+
+### Agent Context Management
+- `AgentContext` for current agent selection
+- `CopilotKit` provider for AI interactions
+- Dynamic endpoint switching based on agent selection
+- Persistent agent preferences and configurations
+
+### Memory & Persistence
+- Shared agent memory via `agentMemory.ts`
+- LibSQL/Turso for persistent storage
+- Knowledge graph for entity relationships
+- Session-based context preservation
+
+## 6. Testing & Quality Assurance
+
+### Testing Framework
+- **Vitest**: Primary testing framework for unit and integration tests
+- **Test Structure**: Mirror source directory structure in test files
+- **Naming Convention**: `*.test.ts` for test files
+- **Coverage**: Aim for >80% coverage on critical paths
+
+### Quality Gates
+- ESLint configuration in `eslint.config.mjs`
+- TypeScript strict mode enforcement
+- Husky pre-commit hooks for quality checks
+- Automated testing in CI/CD pipeline
+
+### Performance Monitoring
+- LangSmith integration for AI model performance
+- PinoLogger for structured application logging
+- OpenTelemetry for distributed tracing
+- Client-side performance monitoring
+
+## 7. Advanced Development Patterns
+
+### Multi-Agent Workflows
+- Orchestrated agent coordination through Master Agent
+- Sequential and parallel agent execution patterns
+- Cross-agent data sharing through memory system
+- Error handling and recovery strategies
+
+### Tool Development (MCP)
+- Implement tools following Model Context Protocol
+- Zod schema validation for all tool inputs/outputs
+- Proper error handling and logging
+- Tool registration and discovery mechanisms
+
+### AI Integration Patterns
+- Google Gemini 2.5 Flash as primary model
+- Streaming responses for real-time interactions
+- Context window management and optimization
+- Prompt engineering best practices
+
+## 8. Security & Performance
+
+### Security Best Practices
+- Environment variable configuration (`.env.example` template)
+- API key management and rotation
+- CORS configuration for cross-origin requests
+- Input validation with Zod schemas
+- Secure cookie handling for authentication
+
+### Performance Optimization
+- Code splitting with Next.js dynamic imports
+- Image optimization with Next.js Image component
+- Lazy loading for non-critical components
+- Bundle analysis and optimization
+- Database query optimization
+
+### Monitoring & Observability
+- Structured logging with PinoLogger
+- Error tracking and alerting
+- Performance metrics collection
+- User interaction analytics
+- AI model usage monitoring
+
+## 9. Deployment & DevOps
+
+### Environment Configuration
+```bash
+# Required Environment Variables
+GOOGLE_GENERATIVE_AI_API_KEY=your_gemini_key
+DATABASE_URL=your_libsql_url
+DATABASE_AUTH_TOKEN=your_auth_token
+LANGSMITH_API_KEY=your_langsmith_key
+GITHUB_TOKEN=your_github_token
+NEXT_PUBLIC_COPILOTKIT_RUNTIME_URL=http://localhost:4111/copilotkit
+MASTRA_PORT=4111
+```
+
+### Development Workflow
+```bash
+# Start Next.js frontend
+npm run dev
+
+# Start Mastra backend
+npm run dev:mastra
+
+# Build for production
+npm run build
+npm run build:mastra
+```
+
+### Production Considerations
+- Horizontal scaling with stateless agents
+- Load balancing for multiple instances
+- Database connection pooling
+- CDN configuration for static assets
+- Health check endpoints for monitoring
+
+
+## 10. Code Style & Conventions
+
+### TypeScript Guidelines
+- Use single quotes for all imports and strings
+- Prefer `interface` over `type` for object shapes
+- Use strict typing - avoid `any` type
+- Implement proper generic constraints
+- Use utility types where appropriate (`Partial`, `Pick`, etc.)
+
+### ESLint & Prettier Configuration
+- Follow existing ESLint configuration in `eslint.config.mjs`
+- Use automatic formatting with Prettier integration
+- Configure import ordering and grouping
+- Enforce consistent naming conventions
+
+### File & Component Patterns
+- Use PascalCase for React components
+- Use camelCase for functions and variables
+- Use kebab-case for file names (except components)
+- Follow existing page structure patterns from `src/app/page.tsx`
+
+## 11. TSDoc Comments Standards
+- Use TSDoc comments for all public functions, classes, interfaces, and types
+- Follow existing TSDoc style in `src/mastra/agents/master-agent.ts`
+- Use `@param {Type} name - Description` for parameter types and descriptions
+- Use `@returns {Type} - Description` for return types and descriptions
+- Use `@throws {ErrorType} - Description` for error types and descriptions`
+- Use `@example` for usage examples
+- Use `@see` for related references
+- Use `@link` for external documentation
+- Use `@linkcode` for code references
+- Use `@fileoverview` for file-level documentation
+- Use `@deprecated` for deprecated methods or properties
+- Use `@since` to indicate when a feature was added
+- Use `@experimental` for features under active development
+- Use `@date` for last modification date
+- Use `@author` to indicate the author of the code
+- Use `@model` to indicate the AI model used
+- Use `@version` to indicate the version of the code
+- Use these tags when appropriate
+
+### Documentation Example
+```typescript
+/**
+ * Creates a new specialized agent with MCP tool integration
+ * 
+ * @param agentConfig - Configuration object for the agent
+ * @param agentConfig.name - Display name for the agent
+ * @param agentConfig.description - Agent capability description
+ * @param agentConfig.tools - Array of MCP tools to register
+ * @param agentConfig.memory - Optional shared memory configuration
+ * @returns Promise resolving to configured agent instance
+ * @throws {AgentCreationError} When agent configuration is invalid
+ * @example
+ * ```typescript
+ * const weatherAgent = await createAgent({
+ *   name: 'Weather Agent',
+ *   description: 'Provides weather information',
+ *   tools: [weatherTool, locationTool]
+ * });
+ * ```
+ * @see {@link MasterAgent} for orchestration patterns
+ * @link https://docs.mastra.ai/agents
+ */
+```
+
+## 12. Environment Variables & Configuration
+- Define all environment variables in `.env.example`
+- Use `process.env` with proper typing
+- Never hardcode sensitive information
+- Group related environment variables with comments
+- Validate environment variables at startup
+
+### Environment Variable Template
+```bash
+# AI & LLM Configuration
+GOOGLE_GENERATIVE_AI_API_KEY=your_gemini_key
+OPENAI_API_KEY=your_openai_key
+
+# Database Configuration
+DATABASE_URL=your_libsql_url
+DATABASE_AUTH_TOKEN=your_auth_token
+
+# Observability
+LANGSMITH_API_KEY=your_langsmith_key
+LANGSMITH_PROJECT=deanmachines-rsc
+
+# External Integrations
+GITHUB_TOKEN=your_github_token
+SERPER_API_KEY=your_serper_key
+
+# Runtime Configuration
+NEXT_PUBLIC_COPILOTKIT_RUNTIME_URL=http://localhost:4111/copilotkit
+MASTRA_PORT=4111
+NODE_ENV=development
+```
+
+## 13. Documentation Standards
+
+### Project Documentation
+- Update `README.md` for new features or architectural changes
+- Maintain `CHANGELOG.md` for version tracking
+- Create detailed feature documentation in `src/app/(public)/docs/`
+- Include setup instructions and troubleshooting guides
+
+### Code Documentation
+- Write clear, concise comments for complex business logic
+- Document architectural decisions and design patterns
+- Include TODO comments with date and author: `// TODO: @username 2025-06-13 - description`
+- Maintain inline documentation for configuration files
+
+## 14. Code Quality Best Practices
+
+### General Principles
+- Write clean, readable, and maintainable code
+- Use meaningful variable and function names
+- Break complex functions into smaller, reusable components
+- Apply single responsibility principle
+- Prefer composition over inheritance
+
+### Async Operations & Error Handling
+- Always use `async/await` for asynchronous operations
+- Wrap potentially failing operations in try/catch blocks
+- Use proper error types and error boundaries
+- Log errors with structured logging using PinoLogger
+- Implement graceful degradation for non-critical failures
+
+### React-Specific Guidelines
+- Use functional components with hooks
+- Implement proper dependency arrays for `useEffect`
+- Memoize expensive computations with `useMemo`
+- Use `useCallback` for event handlers passed as props
+- Implement proper loading and error states
+
+### TypeScript Best Practices
+- Define interfaces for all data structures
+- Use discriminated unions for state management
+- Implement proper type guards for runtime validation
+- Leverage mapped types and conditional types where appropriate
+- Use Zod for runtime schema validation
+
+## 15. Git & Version Control
+
+### Commit Message Convention
+Follow conventional commit format:
+```
+feat: add weather agent with location-based forecasting
+fix: resolve memory leak in agent context switching
+docs: update CopilotKit integration guide
+refactor: simplify agent registry initialization
+test: add unit tests for graph generation tools
+```
+
+### Branch Naming Convention
+- `feature/agent-memory-optimization`
+- `fix/copilotkit-connection-timeout`
+- `docs/deployment-guide-update`
+- `refactor/component-structure-cleanup`
+
+### Pull Request Guidelines
+- Include comprehensive description of changes
+- Reference related issues or feature requests
+- Add screenshots for UI changes
+- Ensure all tests pass and coverage is maintained
+- Request reviews from relevant team members
+
+## 16. Advanced Patterns & Mental Models
+
+### Architectural Patterns
+- **Domain-Driven Design**: Organize code around business domains
+- **Event-Driven Architecture**: Use events for loose coupling between agents
+- **CQRS**: Separate read and write operations for complex data flows
+- **Hexagonal Architecture**: Keep business logic independent of infrastructure
+
+### Problem-Solving Mental Models
+- **First Principles Thinking**: Break complex problems into fundamental parts
+- **Rubber Duck Debugging**: Explain code execution step-by-step
+- **Occam's Razor**: Prefer simpler solutions when multiple options exist
+- **Separation of Concerns**: Keep different responsibilities in separate modules
+
+### Performance Optimization Patterns
+- **Lazy Loading**: Load resources only when needed
+- **Memoization**: Cache expensive computation results
+- **Debouncing**: Limit frequency of expensive operations
+- **Virtual Scrolling**: Handle large data sets efficiently
+- **Code Splitting**: Bundle optimization for faster load times
+
+This comprehensive augment guidelines document provides the foundation for consistent, high-quality development in the Dean Machines RSC project. Regular updates should reflect evolving best practices and new framework capabilities.

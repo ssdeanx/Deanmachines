@@ -1,0 +1,498 @@
+@import "tailwindcss";
+
+/* Tailwind v4 Cascade Layers for Better Style Organization */
+@layer theme, base, components, utilities;
+
+/* CSS-First Theme Configuration - Tailwind v4 Style */
+:root {
+  /* Spacing Scale - Dynamic utilities support */
+  --spacing: 0.25rem;
+
+  /* Modern OKLCH Color Palette - P3 Wide Gamut */
+  --color-background: oklch(0.09 0.005 270);
+  --color-foreground: oklch(0.98 0.005 60);
+  --color-card: oklch(0.11 0.01 270);
+  --color-card-foreground: oklch(0.98 0.005 60);
+  --color-popover: oklch(0.11 0.01 270);
+  --color-popover-foreground: oklch(0.98 0.005 60);
+
+  /* Electric Neon Primary Palette */
+  --color-primary: oklch(0.7 0.25 105);
+  --color-primary-foreground: oklch(0.09 0.005 270);
+  --color-secondary: oklch(0.15 0.01 270);
+  --color-secondary-foreground: oklch(0.85 0.02 60);
+
+  /* Enhanced Accent Colors */
+  --color-muted: oklch(0.12 0.02 270);
+  --color-muted-foreground: oklch(0.6 0.015 270);
+  --color-accent: oklch(0.6 0.2 180);
+  --color-accent-foreground: oklch(0.09 0.005 270);
+  --color-destructive: oklch(0.65 0.3 15);
+  --color-destructive-foreground: oklch(0.98 0.005 60);
+
+  /* Interactive States */
+  --color-border: oklch(0.2 0.01 270);
+  --color-input: oklch(0.15 0.01 270);
+  --color-ring: oklch(0.7 0.25 105);
+
+  /* Electric Chart Palette - Wide Gamut */
+  --color-chart-1: oklch(0.7 0.25 105);
+  --color-chart-2: oklch(0.8 0.2 60);
+  --color-chart-3: oklch(0.75 0.25 180);
+  --color-chart-4: oklch(0.65 0.22 270);
+  --color-chart-5: oklch(0.6 0.3 330);
+
+  /* Sidebar Theme */
+  --color-sidebar: oklch(0.11 0.01 270);
+  --color-sidebar-foreground: oklch(0.98 0.005 60);
+  --color-sidebar-primary: oklch(0.7 0.25 105);
+  --color-sidebar-primary-foreground: oklch(0.09 0.005 270);
+  --color-sidebar-accent: oklch(0.15 0.01 270);
+  --color-sidebar-accent-foreground: oklch(0.98 0.005 60);
+  --color-sidebar-border: oklch(0.2 0.01 270);
+  --color-sidebar-ring: oklch(0.7 0.25 105);
+
+  /* Modern Typography Scale */
+  --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+
+  /* Enhanced Breakpoints with Container Queries */
+  --breakpoint-xs: 475px;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+  --breakpoint-3xl: 1920px;
+
+  /* 3D Transform Perspective */
+  --perspective-near: 300px;
+  --perspective-normal: 600px;
+  --perspective-far: 1200px;
+
+  /* Modern Easing Functions */
+  --ease-linear: linear;
+  --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-elastic: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  /* Border Radius Scale */
+  --radius-none: 0px;
+  --radius-sm: 0.125rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
+  --radius-full: 9999px;
+}
+
+/* Light Theme Support */
+.light {
+  --color-background: oklch(0.98 0.005 60);
+  --color-foreground: oklch(0.09 0.005 270);
+  --color-card: oklch(0.95 0.01 60);
+  --color-card-foreground: oklch(0.09 0.005 270);
+  --color-primary: oklch(0.6 0.25 105);
+  --color-primary-foreground: oklch(0.98 0.005 60);
+  --color-secondary: oklch(0.9 0.01 60);
+  --color-secondary-foreground: oklch(0.15 0.02 270);
+  --color-muted: oklch(0.92 0.02 60);
+  --color-muted-foreground: oklch(0.4 0.015 270);
+  --color-border: oklch(0.85 0.01 60);
+  --color-input: oklch(0.9 0.01 60);
+}
+
+@layer base {
+  /* Modern CSS Reset with Tailwind v4 Features */
+  * {
+    border-color: var(--color-border);
+    outline-color: color-mix(in oklch, var(--color-ring) 50%, transparent);
+  }
+
+  html {
+    /* Enable smooth scrolling and modern font rendering */
+    scroll-behavior: smooth;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Support for color-scheme */
+    color-scheme: dark light;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    overflow-x: hidden;
+    /* Modern logical properties */
+    margin-inline: 0;
+    margin-block: 0;
+    /* Support for field-sizing */
+    field-sizing: content;
+  }
+
+  /* Container Query Support */
+  .container {
+    container-type: inline-size;
+  }
+
+  /* 3D Transform Support */
+  .transform-3d {
+    transform-style: preserve-3d;
+  }
+
+  /* Modern Focus Styles */
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+
+  /* Reduced Motion Support */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  /* Modern Neon Effects with OKLCH Colors */
+  .neon-glow {
+    box-shadow:
+      0 0 5px var(--color-primary),
+      0 0 10px var(--color-primary),
+      0 0 15px var(--color-primary);
+  }
+
+  .neon-glow-subtle {
+    box-shadow:
+      0 0 3px var(--color-primary),
+      0 0 6px var(--color-primary),
+      0 0 9px var(--color-primary);
+  }
+
+  .neon-text {
+    text-shadow:
+      0 0 5px var(--color-primary),
+      0 0 10px var(--color-primary),
+      0 0 15px var(--color-primary);
+    -webkit-text-stroke: 1px color-mix(in oklch, black 80%, transparent);
+  }
+
+  /* Enhanced Glass Effects with Modern CSS */
+  .glass-effect {
+    background: color-mix(in oklch, white 3%, transparent);
+    backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid color-mix(in oklch, white 8%, transparent);
+    box-shadow:
+      0 8px 32px color-mix(in oklch, black 30%, transparent),
+      inset 0 1px 0 color-mix(in oklch, white 10%, transparent);
+  }
+
+  .glass-effect-strong {
+    background: color-mix(in oklch, white 8%, transparent);
+    backdrop-filter: blur(20px) saturate(200%);
+    border: 1px solid color-mix(in oklch, white 15%, transparent);
+    box-shadow:
+      0 12px 40px color-mix(in oklch, black 40%, transparent),
+      inset 0 1px 0 color-mix(in oklch, white 20%, transparent),
+      0 0 20px color-mix(in oklch, var(--color-primary) 10%, transparent);
+  }
+
+  /* Modern Gradient Utilities */
+  .gradient-mesh {
+    background:
+      radial-gradient(circle at 20% 80%, color-mix(in oklch, var(--color-primary) 15%, transparent) 0%, transparent 60%),
+      radial-gradient(circle at 80% 20%, color-mix(in oklch, var(--color-accent) 12%, transparent) 0%, transparent 60%),
+      radial-gradient(circle at 40% 40%, color-mix(in oklch, var(--color-chart-3) 10%, transparent) 0%, transparent 60%),
+      radial-gradient(circle at 60% 70%, color-mix(in oklch, var(--color-chart-5) 8%, transparent) 0%, transparent 60%);
+  }
+
+  /* Cyber Grid with Container Queries */
+  .cyber-grid {
+    background-image:
+      linear-gradient(color-mix(in oklch, var(--color-primary) 3%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in oklch, var(--color-primary) 3%, transparent) 1px, transparent 1px);
+    background-size: calc(var(--spacing) * 5) calc(var(--spacing) * 5);
+  }
+
+  /* 3D Transform Utilities */
+  .perspective-near { perspective: var(--perspective-near); }
+  .perspective-normal { perspective: var(--perspective-normal); }
+  .perspective-far { perspective: var(--perspective-far); }
+
+  /* Modern Holographic Effect */
+  .holographic {
+    background: conic-gradient(
+      from 0deg at 50% 50%,
+      color-mix(in oklch, var(--color-primary) 10%, transparent),
+      color-mix(in oklch, var(--color-accent) 10%, transparent),
+      color-mix(in oklch, var(--color-chart-3) 10%, transparent),
+      color-mix(in oklch, var(--color-chart-5) 10%, transparent),
+      color-mix(in oklch, var(--color-primary) 10%, transparent)
+    );
+    background-size: 400% 400%;
+    animation: holographic-shift 8s ease-in-out infinite;
+  }
+
+  .floating {
+    animation: floating 3s ease-in-out infinite;
+  }
+
+  .pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  .gradient-mesh {
+    background:
+      radial-gradient(circle at 20% 80%, oklch(0.9 0.4 105 / 0.15) 0%, transparent 60%),
+      radial-gradient(circle at 80% 20%, oklch(0.7 0.35 180 / 0.12) 0%, transparent 60%),
+      radial-gradient(circle at 40% 40%, oklch(0.75 0.3 300 / 0.1) 0%, transparent 60%),
+      radial-gradient(circle at 60% 70%, oklch(0.8 0.25 30 / 0.08) 0%, transparent 60%);
+  }
+
+  .cyber-grid {
+    background-image:
+      linear-gradient(rgba(var(--primary), 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(var(--primary), 0.03) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+
+  .holographic {
+    background: linear-gradient(45deg,
+        oklch(0.9 0.4 105 / 0.1),
+        oklch(0.7 0.35 180 / 0.1),
+        oklch(0.75 0.3 300 / 0.1),
+        oklch(0.8 0.25 30 / 0.1));
+    background-size: 400% 400%;
+    animation: holographic-shift 8s ease-in-out infinite;
+  }
+
+  .lightning-trail {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .lightning-trail::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, var(--primary), transparent);
+    animation: lightning-sweep 3s infinite;
+    opacity: 0.6;
+  }
+
+  .electric-pulse {
+    animation: electric-pulse 3s ease-in-out infinite;
+  }
+
+  .neon-border {
+    border: 1px solid var(--primary);
+    box-shadow:
+      0 0 5px var(--primary),
+      inset 0 0 5px rgba(var(--primary), 0.1);
+  }
+
+  .text-glow {
+    text-shadow:
+      0 0 10px var(--primary),
+      0 0 20px var(--primary),
+      0 0 30px var(--primary);
+    -webkit-text-stroke: 1px rgba(0, 0, 0, 0.8);
+  }
+
+  .lightning-flash {
+    animation: lightning-flash 4s infinite;
+  }
+
+  .electric-field {
+    background:
+      radial-gradient(circle at 20% 20%, oklch(0.9 0.4 105 / 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, oklch(0.7 0.35 180 / 0.08) 0%, transparent 50%),
+      radial-gradient(circle at 40% 60%, oklch(0.8 0.3 30 / 0.06) 0%, transparent 50%);
+    animation: electric-field-pulse 6s ease-in-out infinite;
+  }
+
+  .storm-clouds {
+    background:
+      radial-gradient(ellipse at top, oklch(0.2 0.05 270 / 0.3) 0%, transparent 70%),
+      radial-gradient(ellipse at 30% 40%, oklch(0.15 0.03 280 / 0.2) 0%, transparent 60%),
+      radial-gradient(ellipse at 70% 30%, oklch(0.18 0.04 260 / 0.25) 0%, transparent 65%);
+    animation: storm-drift 20s linear infinite;
+  }
+
+  .energy-pulse {
+    animation: energy-pulse 3s ease-in-out infinite;
+  }
+
+  .reference-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: oklch(0.02 0.01 270);
+    color: oklch(0.98 0.005 60);
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    text-decoration: none;
+    margin: 0 2px;
+    border: 1px solid oklch(0.15 0.03 270);
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  }
+}
+
+
+
+/* Modern Keyframe Animations with Tailwind v4 Features */
+@keyframes floating {
+  0%, 100% {
+    transform: translateY(0px) rotateZ(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotateZ(1deg);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow:
+      0 0 5px var(--color-primary),
+      0 0 10px var(--color-primary),
+      0 0 15px var(--color-primary);
+  }
+  50% {
+    box-shadow:
+      0 0 10px var(--color-primary),
+      0 0 20px var(--color-primary),
+      0 0 30px var(--color-primary);
+  }
+}
+
+@keyframes lightning-sweep {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes holographic-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+    filter: hue-rotate(0deg);
+  }
+  25% {
+    background-position: 100% 0%;
+    filter: hue-rotate(90deg);
+  }
+  50% {
+    background-position: 100% 100%;
+    filter: hue-rotate(180deg);
+  }
+  75% {
+    background-position: 0% 100%;
+    filter: hue-rotate(270deg);
+  }
+}
+
+@keyframes electric-pulse {
+
+  0%,
+  100% {
+    box-shadow:
+      0 0 5px var(--primary),
+      0 0 10px var(--primary),
+      0 0 15px var(--primary),
+      inset 0 0 5px rgba(var(--primary), 0.1);
+  }
+
+  50% {
+    box-shadow:
+      0 0 10px var(--primary),
+      0 0 20px var(--primary),
+      0 0 30px var(--primary),
+      0 0 40px var(--primary),
+      inset 0 0 10px rgba(var(--primary), 0.2);
+  }
+}
+
+@keyframes lightning-flash {
+  0%, 90%, 100% {
+    opacity: 0;
+  }
+
+  5%, 10% {
+    opacity: 1;
+    filter: brightness(2) saturate(1.5);
+  }
+
+  15%, 20% {
+    opacity: 0.8;
+  }
+
+  25% {
+    opacity: 0;
+  }
+}
+
+@keyframes electric-field-pulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes storm-drift {
+  0% {
+    transform: translateX(-10%) translateY(-5%);
+  }
+
+  50% {
+    transform: translateX(10%) translateY(5%);
+  }
+
+  100% {
+    transform: translateX(-10%) translateY(-5%);
+  }
+}
+
+@keyframes energy-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 5px var(--primary),
+      0 0 15px var(--primary),
+      0 0 25px var(--primary);
+    transform: scale(1);
+  }
+
+  50% {
+    box-shadow:
+      0 0 10px var(--primary),
+      0 0 25px var(--primary),
+      0 0 40px var(--primary),
+      0 0 60px var(--primary);
+    transform: scale(1.02);
+  }
+}

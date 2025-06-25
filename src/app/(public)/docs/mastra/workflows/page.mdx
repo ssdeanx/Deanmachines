@@ -1,0 +1,510 @@
+"use client";
+
+---
+title: "Workflows"
+description: "Multi-agent workflow orchestration and automation"
+---
+
+# Workflows
+
+**Multi-agent workflows** enable complex task automation by orchestrating multiple specialized agents in coordinated sequences. This guide covers workflow design, implementation, and optimization patterns in DeanMachines RSC.
+
+## Workflow Architecture
+
+### Workflow Components
+Workflows consist of **coordinated steps** executed by different agents:
+
+<Card className="glass-effect border-primary/20 mb-6">
+  <CardHeader>
+    <CardTitle className="flex items-center gap-2">
+      <Workflow className="w-5 h-5 text-primary" />
+      Workflow Elements
+    </CardTitle>
+  </CardHeader>
+  <CardContent>
+    <div className="grid md:grid-cols-2 gap-6">
+      <div className="space-y-4">
+        <div>
+          <Badge variant="secondary" className="glass-effect mb-2">Steps</Badge>
+          <p className="text-sm text-muted-foreground">Individual tasks performed by specific agents</p>
+        </div>
+        <div>
+          <Badge variant="secondary" className="glass-effect mb-2">Dependencies</Badge>
+          <p className="text-sm text-muted-foreground">Relationships between steps and data flow</p>
+        </div>
+      </div>
+      <div className="space-y-4">
+        <div>
+          <Badge variant="secondary" className="glass-effect mb-2">Coordination</Badge>
+          <p className="text-sm text-muted-foreground">Master Agent orchestration and monitoring</p>
+        </div>
+        <div>
+          <Badge variant="secondary" className="glass-effect mb-2">Error Handling</Badge>
+          <p className="text-sm text-muted-foreground">Failure recovery and alternative paths</p>
+        </div>
+      </div>
+    </div>
+  </CardContent>
+</Card>
+
+### Workflow Types
+
+#### Sequential Workflows
+Steps execute **one after another** with clear dependencies:
+
+```typescript
+// Example: Repository Analysis Workflow
+const repositoryAnalysisWorkflow = {
+  name: 'Repository Analysis',
+  steps: [
+    {
+      id: 'clone',
+      agent: 'git-agent',
+      action: 'clone_repository',
+      inputs: ['repository_url', 'branch'],
+      outputs: ['local_path']
+    },
+    {
+      id: 'analyze',
+      agent: 'code-agent',
+      action: 'analyze_structure',
+      inputs: ['local_path'],
+      outputs: ['file_structure', 'dependencies'],
+      dependsOn: ['clone']
+    },
+    {
+      id: 'visualize',
+      agent: 'graph-agent',
+      action: 'generate_dependency_graph',
+      inputs: ['dependencies'],
+      outputs: ['graph_data'],
+      dependsOn: ['analyze']
+    },
+    {
+      id: 'document',
+      agent: 'documentation-agent',
+      action: 'generate_summary',
+      inputs: ['file_structure', 'dependencies', 'graph_data'],
+      outputs: ['analysis_report'],
+      dependsOn: ['analyze', 'visualize']
+    }
+  ]
+};
+```
+
+#### Parallel Workflows
+Multiple steps execute **simultaneously** for efficiency:
+
+```typescript
+// Example: Multi-Source Research Workflow
+const researchWorkflow = {
+  name: 'Comprehensive Research',
+  steps: [
+    {
+      id: 'web_search',
+      agent: 'research-agent',
+      action: 'search_web',
+      inputs: ['query'],
+      outputs: ['web_results'],
+      parallel: true
+    },
+    {
+      id: 'academic_search',
+      agent: 'research-agent',
+      action: 'search_academic',
+      inputs: ['query'],
+      outputs: ['academic_results'],
+      parallel: true
+    },
+    {
+      id: 'news_search',
+      agent: 'research-agent',
+      action: 'search_news',
+      inputs: ['query'],
+      outputs: ['news_results'],
+      parallel: true
+    },
+    {
+      id: 'synthesize',
+      agent: 'content-agent',
+      action: 'synthesize_research',
+      inputs: ['web_results', 'academic_results', 'news_results'],
+      outputs: ['research_summary'],
+      dependsOn: ['web_search', 'academic_search', 'news_search']
+    }
+  ]
+};
+```
+
+#### Conditional Workflows
+Steps execute based on **dynamic conditions** and results:
+
+```typescript
+// Example: Adaptive Code Review Workflow
+const codeReviewWorkflow = {
+  name: 'Adaptive Code Review',
+  steps: [
+    {
+      id: 'initial_scan',
+      agent: 'code-agent',
+      action: 'scan_changes',
+      inputs: ['diff'],
+      outputs: ['change_complexity', 'file_types']
+    },
+    {
+      id: 'security_review',
+      agent: 'security-agent',
+      action: 'security_analysis',
+      inputs: ['diff'],
+      outputs: ['security_issues'],
+      condition: 'change_complexity > 0.7 || file_types.includes("auth")'
+    },
+    {
+      id: 'performance_review',
+      agent: 'performance-agent',
+      action: 'performance_analysis',
+      inputs: ['diff'],
+      outputs: ['performance_issues'],
+      condition: 'file_types.includes("database") || file_types.includes("api")'
+    },
+    {
+      id: 'compile_review',
+      agent: 'documentation-agent',
+      action: 'compile_review_report',
+      inputs: ['change_complexity', 'security_issues?', 'performance_issues?'],
+      outputs: ['review_report'],
+      dependsOn: ['initial_scan']
+    }
+  ]
+};
+```
+
+## Workflow Implementation
+
+### Workflow Engine
+The Master Agent acts as the **workflow orchestrator**:
+
+```typescript
+// src/mastra/workflows/engine.ts
+export class WorkflowEngine {
+  private agents: Map<string, Agent>;
+  private memory: AgentMemoryManager;
+
+  constructor(agents: Agent[], memory: AgentMemoryManager) {
+    this.agents = new Map(agents.map(agent => [agent.name, agent]));
+    this.memory = memory;
+  }
+
+  /**
+   * Execute a workflow with full orchestration
+   */
+  async executeWorkflow(
+    workflow: WorkflowDefinition,
+    inputs: Record<string, any>,
+    options?: {
+      userId?: string;
+      sessionId?: string;
+      timeout?: number;
+      retryPolicy?: RetryPolicy;
+    }
+  ): Promise<WorkflowResult> {
+    const execution = new WorkflowExecution(workflow, inputs, options);
+    
+    try {
+      // Initialize workflow state
+      await this.initializeExecution(execution);
+      
+      // Execute steps according to dependencies
+      const result = await this.executeSteps(execution);
+      
+      // Store workflow results in memory
+      await this.storeWorkflowResult(execution, result);
+      
+      return result;
+    } catch (error) {
+      await this.handleWorkflowError(execution, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Execute workflow steps with dependency resolution
+   */
+  private async executeSteps(execution: WorkflowExecution): Promise<WorkflowResult> {
+    const { workflow, inputs } = execution;
+    const stepResults: Record<string, any> = {};
+    const executedSteps = new Set<string>();
+    
+    // Build dependency graph
+    const dependencyGraph = this.buildDependencyGraph(workflow.steps);
+    
+    // Execute steps in topological order
+    while (executedSteps.size < workflow.steps.length) {
+      const readySteps = this.getReadySteps(workflow.steps, executedSteps, dependencyGraph);
+      
+      if (readySteps.length === 0) {
+        throw new Error('Workflow deadlock: no steps ready to execute');
+      }
+      
+      // Execute ready steps (potentially in parallel)
+      const stepPromises = readySteps.map(step => 
+        this.executeStep(step, { ...inputs, ...stepResults }, execution)
+      );
+      
+      const results = await Promise.allSettled(stepPromises);
+      
+      // Process results and handle failures
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        const step = readySteps[i];
+        
+        if (result.status === 'fulfilled') {
+          stepResults[step.id] = result.value;
+          executedSteps.add(step.id);
+        } else {
+          await this.handleStepFailure(step, result.reason, execution);
+        }
+      }
+    }
+    
+    return {
+      success: true,
+      results: stepResults,
+      executionTime: Date.now() - execution.startTime,
+      stepsExecuted: executedSteps.size
+    };
+  }
+
+  /**
+   * Execute individual workflow step
+   */
+  private async executeStep(
+    step: WorkflowStep,
+    availableData: Record<string, any>,
+    execution: WorkflowExecution
+  ): Promise<any> {
+    // Check step condition if present
+    if (step.condition && !this.evaluateCondition(step.condition, availableData)) {
+      return { skipped: true, reason: 'condition_not_met' };
+    }
+    
+    // Get the agent for this step
+    const agent = this.agents.get(step.agent);
+    if (!agent) {
+      throw new Error(`Agent not found: ${step.agent}`);
+    }
+    
+    // Prepare step inputs
+    const stepInputs = this.prepareStepInputs(step, availableData);
+    
+    // Execute the step
+    const startTime = Date.now();
+    const result = await agent.execute(step.action, stepInputs);
+    const duration = Date.now() - startTime;
+    
+    // Log step execution
+    await this.logStepExecution(step, result, duration, execution);
+    
+    return result;
+  }
+}
+```
+
+### Workflow Definition
+Define workflows using a **declarative configuration**:
+
+```typescript
+// src/mastra/workflows/definitions.ts
+export const WORKFLOW_DEFINITIONS = {
+  
+  // Code Analysis Workflow
+  CODE_ANALYSIS: {
+    name: 'Comprehensive Code Analysis',
+    description: 'Analyze repository structure, dependencies, and quality',
+    version: '1.0.0',
+    timeout: 300000, // 5 minutes
+    retryPolicy: {
+      maxRetries: 3,
+      backoffStrategy: 'exponential'
+    },
+    steps: [
+      {
+        id: 'clone_repository',
+        agent: 'git-agent',
+        action: 'clone',
+        inputs: ['repository_url', 'branch?'],
+        outputs: ['local_path', 'commit_hash'],
+        timeout: 60000
+      },
+      {
+        id: 'analyze_structure',
+        agent: 'code-agent',
+        action: 'analyze_file_structure',
+        inputs: ['local_path'],
+        outputs: ['file_tree', 'language_stats', 'complexity_metrics'],
+        dependsOn: ['clone_repository']
+      },
+      {
+        id: 'extract_dependencies',
+        agent: 'code-agent',
+        action: 'extract_dependencies',
+        inputs: ['local_path'],
+        outputs: ['package_dependencies', 'import_graph'],
+        dependsOn: ['clone_repository']
+      },
+      {
+        id: 'generate_visualization',
+        agent: 'graph-agent',
+        action: 'create_dependency_graph',
+        inputs: ['import_graph', 'package_dependencies'],
+        outputs: ['graph_svg', 'graph_data'],
+        dependsOn: ['extract_dependencies']
+      },
+      {
+        id: 'quality_assessment',
+        agent: 'quality-agent',
+        action: 'assess_code_quality',
+        inputs: ['local_path', 'complexity_metrics'],
+        outputs: ['quality_score', 'recommendations'],
+        dependsOn: ['analyze_structure']
+      },
+      {
+        id: 'generate_report',
+        agent: 'documentation-agent',
+        action: 'create_analysis_report',
+        inputs: ['file_tree', 'language_stats', 'quality_score', 'graph_data'],
+        outputs: ['analysis_report', 'summary'],
+        dependsOn: ['analyze_structure', 'quality_assessment', 'generate_visualization']
+      }
+    ]
+  },
+
+  // Research Workflow
+  RESEARCH_SYNTHESIS: {
+    name: 'Multi-Source Research Synthesis',
+    description: 'Gather and synthesize information from multiple sources',
+    version: '1.0.0',
+    steps: [
+      {
+        id: 'search_web',
+        agent: 'research-agent',
+        action: 'web_search',
+        inputs: ['query', 'max_results?'],
+        outputs: ['web_sources'],
+        parallel: true
+      },
+      {
+        id: 'search_academic',
+        agent: 'research-agent',
+        action: 'academic_search',
+        inputs: ['query'],
+        outputs: ['academic_sources'],
+        parallel: true
+      },
+      {
+        id: 'verify_facts',
+        agent: 'research-agent',
+        action: 'fact_verification',
+        inputs: ['web_sources', 'academic_sources'],
+        outputs: ['verified_facts', 'confidence_scores'],
+        dependsOn: ['search_web', 'search_academic']
+      },
+      {
+        id: 'synthesize_content',
+        agent: 'content-agent',
+        action: 'synthesize_research',
+        inputs: ['verified_facts', 'confidence_scores'],
+        outputs: ['research_summary', 'key_insights'],
+        dependsOn: ['verify_facts']
+      }
+    ]
+  }
+};
+```
+
+## Workflow Patterns
+
+### Error Recovery
+Implement **robust error handling** and recovery strategies:
+
+```typescript
+// Error recovery patterns
+const errorRecoveryStrategies = {
+  retry: {
+    maxAttempts: 3,
+    backoffMs: [1000, 2000, 4000],
+    retryableErrors: ['timeout', 'rate_limit', 'temporary_failure']
+  },
+  
+  fallback: {
+    'git-agent': 'backup-git-agent',
+    'api-failure': 'cached-data-source'
+  },
+  
+  compensation: {
+    'partial-failure': 'continue-with-available-data',
+    'critical-failure': 'rollback-and-notify'
+  }
+};
+```
+
+### Workflow Monitoring
+Track workflow execution and performance:
+
+```typescript
+// Workflow monitoring
+export class WorkflowMonitor {
+  async trackExecution(workflowId: string, metrics: {
+    startTime: Date;
+    endTime?: Date;
+    stepsCompleted: number;
+    totalSteps: number;
+    errors: any[];
+    performance: Record<string, number>;
+  }) {
+    await this.memory.remember({
+      type: 'workflow_execution',
+      content: {
+        workflowId,
+        ...metrics,
+        status: metrics.endTime ? 'completed' : 'running'
+      },
+      tags: ['workflow', 'monitoring', 'performance']
+    });
+  }
+}
+```
+
+## Best Practices
+
+### 1. **Modular Design**
+Design workflows as **composable modules** that can be reused and combined.
+
+### 2. **Idempotency**
+Ensure workflow steps are **idempotent** and can be safely retried.
+
+### 3. **Resource Management**
+Implement proper **resource cleanup** and timeout handling.
+
+### 4. **Monitoring and Observability**
+Add comprehensive **logging and metrics** for workflow debugging.
+
+### 5. **Testing**
+Create **unit and integration tests** for workflow components.
+
+## Next Steps
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+  <Button asChild className="glass-effect-strong electric-pulse">
+    <Link href="/docs/guides/multi-agent">
+      <Users className="w-4 h-4 mr-2" />
+      Multi-Agent Guide
+    </Link>
+  </Button>
+  <Button variant="outline" asChild className="lightning-trail">
+    <Link href="/docs/examples/code-analysis">
+      <Code className="w-4 h-4 mr-2" />
+      Code Analysis Example
+    </Link>
+  </Button>
+</div>

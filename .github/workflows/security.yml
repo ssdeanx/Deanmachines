@@ -1,0 +1,171 @@
+name: "🔒 Security & Compliance"
+
+on:
+  push:
+    branches: [main, develop, master]
+  pull_request:
+    branches: [main, develop, master]
+  schedule:
+    # Run security checks weekly
+    - cron: "0 2 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  # Secret scanning
+  secret-scan:
+    name: "🔍 Secret Detection"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run TruffleHog OSS
+        uses: trufflesecurity/trufflehog@main
+        with:
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --debug --only-verified
+  # Dependency security
+  dependency-security:
+    name: "📦 Dependency Security"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci      
+      - name: Run npm audit
+        run: npm audit --audit-level=moderate
+        continue-on-error: true      # Snyk scan disabled - using npm audit instead
+      # - name: Run Snyk vulnerability scan
+      #   uses: snyk/actions/node@master
+      #   continue-on-error: true
+      #   env:
+      #     SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      #   with:
+      #     args: --severity-threshold=high
+
+      - name: Generate security report
+        run: |
+          echo "# Security Report" > security-report.md
+          echo "Generated: $(date)" >> security-report.md
+          echo "" >> security-report.md
+          
+          echo "## NPM Audit Results" >> security-report.md
+          npm audit --audit-level=low --json | jq '.metadata' >> security-report.md || echo "No audit data" >> security-report.md
+          
+          echo "" >> security-report.md
+          echo "## Dependencies with Known Vulnerabilities" >> security-report.md
+          npm audit --json | jq '.vulnerabilities | keys[]' >> security-report.md || echo "None found" >> security-report.md
+
+      - name: Upload security report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report-${{ github.sha }}
+          path: security-report.md
+          retention-days: 30
+
+  # Code security analysis
+  codeql:
+    name: "🔬 CodeQL Analysis"
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+      actions: read
+    strategy:
+      fail-fast: false
+      matrix:
+        language: ["javascript-typescript"]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended,security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{matrix.language}}"
+
+  # OWASP security testing
+  owasp-scan:
+    name: "🛡️ OWASP Security Scan"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Run OWASP Dependency Check
+        uses: dependency-check/Dependency-Check_Action@main
+        id: depcheck
+        with:
+          project: "deanmachines-rsc"
+          path: "."
+          format: "ALL"
+          out: "reports"
+        continue-on-error: true
+
+      - name: Upload OWASP results
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-reports-${{ github.sha }}
+          path: reports/
+          retention-days: 30
+
+  # Security summary
+  security-summary:
+    name: "📋 Security Summary"
+    runs-on: ubuntu-latest
+    needs: [secret-scan, dependency-security, codeql, owasp-scan]
+    if: always()
+    steps:
+      - name: Security check summary
+        run: |
+          echo "## Security Scan Results"
+          echo "- Secret Scan: ${{ needs.secret-scan.result }}"
+          echo "- Dependency Security: ${{ needs.dependency-security.result }}"
+          echo "- CodeQL Analysis: ${{ needs.codeql.result }}"
+          echo "- OWASP Scan: ${{ needs.owasp-scan.result }}"
+          
+          if [[ "${{ needs.secret-scan.result }}" == "failure" ]]; then
+            echo "⚠️ Secret scanning found issues!"
+          fi
+          
+          if [[ "${{ needs.dependency-security.result }}" == "failure" ]]; then
+            echo "⚠️ Dependency vulnerabilities found!"
+          fi

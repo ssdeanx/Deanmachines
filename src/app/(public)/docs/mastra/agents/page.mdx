@@ -1,0 +1,334 @@
+"use client";
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Brain } from 'lucide-react';
+
+# Mastra Agents
+
+DeanMachines RSC features **22+ specialized AI agents** built on Mastra Core v0.10.5. Each agent is designed for specific tasks while maintaining the ability to coordinate with others for complex workflows.
+
+## Agent Architecture
+
+### Core Components
+
+Every agent in the system follows a consistent architecture pattern:
+
+<Card className="glass-effect border-primary/20 mb-6">
+  <CardHeader>
+    <CardTitle className="flex items-center gap-2">
+      <Brain className="w-5 h-5 text-primary" />
+      Agent Structure
+    </CardTitle>
+  </CardHeader>
+  <CardContent>
+    <div className="space-y-4">
+      <div className="flex items-center gap-3">
+        <Badge variant="secondary" className="glass-effect">Instructions</Badge>
+        <span className="text-sm text-muted-foreground">Defines agent behavior and capabilities</span>
+      </div>
+      <div className="flex items-center gap-3">
+        <Badge variant="secondary" className="glass-effect">Model</Badge>
+        <span className="text-sm text-muted-foreground">Google Gemini 2.5 Flash with tracing</span>
+      </div>
+      <div className="flex items-center gap-3">
+        <Badge variant="secondary" className="glass-effect">Tools</Badge>
+        <span className="text-sm text-muted-foreground">MCP-compatible tools for specific operations</span>
+      </div>
+      <div className="flex items-center gap-3">
+        <Badge variant="secondary" className="glass-effect">Memory</Badge>
+        <span className="text-sm text-muted-foreground">Shared memory system for context retention</span>
+      </div>
+      <div className="flex items-center gap-3">
+        <Badge variant="secondary" className="glass-effect">Runtime Context</Badge>
+        <span className="text-sm text-muted-foreground">Type-safe configuration and state management</span>
+      </div>
+    </div>
+  </CardContent>
+</Card>
+
+## Available Agents
+
+### Development Agents
+
+#### Master Agent
+**Central orchestrator managing all specialized agents**
+
+```typescript
+export const masterAgent = new Agent({
+  name: 'Master Agent',
+  instructions: `You are the Master Agent coordinator for DeanMachines RSC.
+  
+  You can:
+  - Coordinate multiple agents for complex tasks
+  - Route requests to appropriate specialized agents
+  - Manage multi-step workflows
+  - Provide system-wide insights and status
+  
+  Always be helpful and coordinate efficiently.`,
+  model: createTracedGoogleModel('gemini-2.5-flash-preview-05-20', {
+    name: 'master-agent',
+    tags: ['agent', 'coordination', 'orchestration'],
+    thinkingConfig: {
+      thinkingBudget: 0,
+      includeThoughts: false,
+    },
+  }),
+  tools: {
+    // Access to all available tools
+    ...await mcp.getTools(),
+  },
+  memory: agentMemory
+});
+```
+
+#### Code Agent
+**Code analysis, generation, and optimization**
+
+- **Capabilities**: Code review, refactoring, documentation generation
+- **Tools**: File system, Git operations, code analysis
+- **Use Cases**: Code quality assessment, automated documentation
+
+#### Git Agent
+**Version control operations and repository management**
+
+- **Capabilities**: Repository cloning, branch management, commit analysis
+- **Tools**: Git commands, file operations, diff analysis
+- **Use Cases**: Repository analysis, code history exploration
+
+#### Debug Agent
+**Error detection and debugging assistance**
+
+- **Capabilities**: Log analysis, error tracking, performance debugging
+- **Tools**: System monitoring, log parsing, diagnostic tools
+- **Use Cases**: Issue resolution, performance optimization
+
+### Data & Analysis Agents
+
+#### Weather Agent
+**Weather data and forecasting**
+
+```typescript
+export const weatherAgent = new Agent({
+  name: 'Weather Agent',
+  instructions: `You are a helpful weather assistant that provides accurate weather information.
+
+  You can:
+  - Get current weather conditions for any location
+  - Provide weather forecasts
+  - Give weather-related advice
+
+  Always be helpful and provide accurate information.`,
+  model: createTracedGoogleModel('gemini-2.5-flash-preview-05-20', {
+    name: 'weather-agent',
+    tags: ['agent', 'weather', 'data'],
+    thinkingConfig: {
+      thinkingBudget: 0,
+      includeThoughts: false,
+    },
+  }),
+  tools: {
+    weatherTool,
+    locationTool,
+    ...await mcp.getTools(),
+  },
+  memory: agentMemory
+});
+```
+
+#### Data Agent
+**Data processing and analysis**
+
+- **Capabilities**: Statistical analysis, data visualization, trend detection
+- **Tools**: Data processing, chart generation, statistical functions
+- **Use Cases**: Business intelligence, data insights, reporting
+
+#### Graph Agent
+**Knowledge graph operations and visualization**
+
+- **Capabilities**: Graph generation, relationship mapping, network analysis
+- **Tools**: Graph databases, visualization libraries, network tools
+- **Use Cases**: Dependency mapping, relationship analysis
+
+#### Research Agent
+**Information gathering and synthesis**
+
+- **Capabilities**: Web research, content aggregation, fact verification
+- **Tools**: Search APIs, web scraping, content analysis
+- **Use Cases**: Market research, competitive analysis, documentation
+
+### Management & Operations
+
+#### Manager Agent
+**Project management and coordination**
+
+- **Capabilities**: Task planning, resource allocation, progress tracking
+- **Tools**: Project management APIs, scheduling, reporting
+- **Use Cases**: Sprint planning, resource management, team coordination
+
+#### Marketing Agent
+**Content and marketing assistance**
+
+- **Capabilities**: Content creation, SEO optimization, campaign planning
+- **Tools**: Content analysis, social media APIs, analytics
+- **Use Cases**: Content strategy, social media management, SEO
+
+#### Sysadmin Agent
+**System administration and DevOps**
+
+- **Capabilities**: Server monitoring, deployment automation, security audits
+- **Tools**: System commands, monitoring APIs, deployment scripts
+- **Use Cases**: Infrastructure management, automated deployments
+
+### Creative & AI/ML
+
+#### Design Agent
+**UI/UX design and visual assets**
+
+- **Capabilities**: Design generation, color palette creation, layout optimization
+- **Tools**: Design APIs, image processing, style analysis
+- **Use Cases**: UI mockups, brand assets, design systems
+
+#### Content Agent
+**Content creation and editing**
+
+- **Capabilities**: Writing assistance, editing, content optimization
+- **Tools**: Language processing, grammar checking, style analysis
+- **Use Cases**: Blog posts, documentation, marketing copy
+
+#### ML Agent
+**Machine learning and model operations**
+
+- **Capabilities**: Model training, data preprocessing, performance analysis
+- **Tools**: ML frameworks, data processing, model evaluation
+- **Use Cases**: Predictive analytics, model optimization, data science
+
+## Creating Custom Agents
+
+### Basic Agent Template
+
+```typescript
+import { Agent } from '@mastra/core';
+import { createTracedGoogleModel } from '@/lib/google-ai';
+import { agentMemory } from '@/mastra/agentMemory';
+import { mcp } from '@/mastra/tools';
+
+export const customAgent = new Agent({
+  name: 'Custom Agent',
+  instructions: `You are a specialized agent for [specific purpose].
+  
+  You can:
+  - [Capability 1]
+  - [Capability 2]
+  - [Capability 3]
+  
+  Always be helpful and accurate.`,
+  model: createTracedGoogleModel('gemini-2.5-flash-preview-05-20', {
+    name: 'custom-agent',
+    tags: ['agent', 'custom', 'specialized'],
+    thinkingConfig: {
+      thinkingBudget: 0,
+      includeThoughts: false,
+    },
+  }),
+  tools: {
+    // Add specific tools for your agent
+    customTool,
+    ...await mcp.getTools(),
+  },
+  memory: agentMemory
+});
+
+// Define runtime context type
+export type CustomAgentRuntimeContext = {
+  "user-id": string;
+  "session-id": string;
+  "custom-setting": string;
+  // Add agent-specific context properties
+};
+```
+
+### Runtime Context Configuration
+
+Each agent requires a properly typed runtime context for CopilotKit integration:
+
+```typescript
+// In src/mastra/index.ts
+registerCopilotKit<CustomAgentRuntimeContext>({
+  actions: customAgent.actions,
+  runtime: "node",
+  runtimeContext: {
+    "user-id": "",
+    "session-id": "",
+    "custom-setting": "default-value"
+  }
+});
+```
+
+## Agent Coordination
+
+### Multi-Agent Workflows
+
+The Master Agent can coordinate multiple agents for complex tasks:
+
+```typescript
+// Example: Repository analysis workflow
+1. Master Agent receives request
+2. Routes to Git Agent for repository cloning
+3. Coordinates with Code Agent for analysis
+4. Uses Graph Agent for dependency mapping
+5. Compiles results and presents to user
+```
+
+### Memory Sharing
+
+All agents share a common memory system for context retention:
+
+```typescript
+// Agents can access shared memories
+const previousAnalysis = await agentMemory.recall({
+  type: 'repository_analysis',
+  repository: repositoryUrl
+});
+
+// And create new memories
+await agentMemory.remember({
+  type: 'code_review',
+  data: reviewResults,
+  timestamp: new Date()
+});
+```
+
+## Best Practices
+
+### 1. **Specific Instructions**
+Write clear, specific instructions for each agent's role and capabilities.
+
+### 2. **Tool Selection**
+Only include tools that are relevant to the agent's specific purpose.
+
+### 3. **Error Handling**
+Implement proper error handling and fallback strategies.
+
+### 4. **Performance Optimization**
+Use appropriate thinking budgets and model configurations.
+
+### 5. **Testing**
+Test agents individually and in coordination scenarios.
+
+## Next Steps
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+  <Button asChild className="glass-effect-strong electric-pulse">
+    <Link href="/docs/mastra/tools">
+      <Wrench className="w-4 h-4 mr-2" />
+      Explore Tools & MCP
+    </Link>
+  </Button>
+  <Button variant="outline" asChild className="lightning-trail">
+    <Link href="/docs/mastra/memory">
+      <Database className="w-4 h-4 mr-2" />
+      Memory Systems
+    </Link>
+  </Button>
+</div>

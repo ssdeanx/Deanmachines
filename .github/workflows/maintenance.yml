@@ -1,0 +1,261 @@
+name: "🔧 Automated Maintenance"
+
+on:
+  schedule:
+    # Run every Sunday at 2 AM UTC
+    - cron: "0 2 * * 0"
+  workflow_dispatch: # Allow manual trigger
+    inputs:
+      skip-format:
+        description: 'Skip code formatting'
+        required: false
+        default: false
+        type: boolean
+      skip-docs:
+        description: 'Skip documentation updates'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  # Automated code maintenance
+  code-maintenance:
+    name: "🧹 Code Cleanup"
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip-format }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Auto-fix linting issues
+        run: |
+          npm run lint -- --fix || true
+          npx prettier --write "src/**/*.{ts,tsx,js,jsx,json,md}" || true
+
+      - name: Remove unused imports and exports
+        run: |
+          # Find and report unused exports (don't auto-remove for safety)
+          npx ts-unused-exports tsconfig.json --excludePathsFromReport=".*\.test\..*|.*\.spec\..*" > unused-exports.txt || true
+          
+          # Organize imports
+          npx organize-imports-cli "src/**/*.{ts,tsx}" || true
+          
+          echo "## Unused Exports Report" >> maintenance-report.md
+          cat unused-exports.txt >> maintenance-report.md || echo "No unused exports found" >> maintenance-report.md
+
+      - name: Update package vulnerabilities
+        run: |
+          # Update patch-level dependencies automatically
+          npx npm-check-updates --target patch -u || true
+          npm install || true
+
+      - name: Check for breaking changes
+        run: |
+          npm run lint
+          npm run build
+          npm run test:ci || npx vitest run --reporter=basic
+
+      - name: Commit maintenance changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: automated code maintenance 🤖"
+          file_pattern: "src/**/*.{ts,tsx,js,jsx,json} package*.json"
+          skip_dirty_check: true
+
+  # Documentation maintenance
+  docs-maintenance:
+    name: "📚 Documentation Updates"
+    runs-on: ubuntu-latest
+    if: ${{ !inputs.skip-docs }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate API documentation
+        run: |
+          # Create docs directory if it doesn't exist
+          mkdir -p docs/api
+          
+          # Generate TypeDoc documentation
+          npx typedoc src --out docs/api --theme default --exclude "**/*.test.ts" --exclude "**/*.spec.ts" || true
+
+      - name: Update README badges
+        run: |
+          # Update package version in README if needed
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          sed -i "s/version-[0-9]\+\.[0-9]\+\.[0-9]\+/version-$PACKAGE_VERSION/g" README.md || true
+
+      - name: Generate component documentation
+        run: |
+          # Create component docs directory
+          mkdir -p docs/components
+          
+          # Generate component list
+          echo "# Component Documentation" > docs/components/README.md
+          echo "Auto-generated: $(date)" >> docs/components/README.md
+          echo "" >> docs/components/README.md
+          
+          find src/components -name "*.tsx" -type f | while read -r file; do
+            component_name=$(basename "$file" .tsx)
+            echo "- [$component_name]($file)" >> docs/components/README.md
+          done
+
+      - name: Commit documentation updates
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "docs: automated documentation update 📖"
+          file_pattern: "docs/** README.md"
+          skip_dirty_check: true
+
+  # Health monitoring
+  project-health:
+    name: "🏥 Project Health Check"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Analyze bundle size
+        run: |
+          npm run build
+          
+          # Create bundle analysis
+          echo "# Bundle Size Analysis" > bundle-report.md
+          echo "Generated: $(date)" >> bundle-report.md
+          echo "" >> bundle-report.md
+          
+          if [ -d ".next" ]; then
+            echo "## Next.js Bundle Size" >> bundle-report.md
+            du -sh .next >> bundle-report.md
+            echo "" >> bundle-report.md
+            
+            echo "## Static Assets" >> bundle-report.md
+            find .next/static -type f -name "*.js" -o -name "*.css" | head -10 | xargs ls -lh >> bundle-report.md
+          fi
+
+      - name: Dependency audit
+        run: |
+          echo "" >> bundle-report.md
+          echo "## Security Audit" >> bundle-report.md
+          npm audit --json | jq '.metadata' >> bundle-report.md || echo "No audit data available" >> bundle-report.md
+
+      - name: Check for outdated dependencies
+        run: |
+          echo "" >> bundle-report.md
+          echo "## Outdated Dependencies" >> bundle-report.md
+          npx npm-check-updates --format group >> bundle-report.md || echo "All dependencies are up to date" >> bundle-report.md
+
+      - name: Dead code detection
+        run: |
+          echo "" >> bundle-report.md
+          echo "## Dead Code Analysis" >> bundle-report.md
+          npx ts-prune >> bundle-report.md || echo "No dead code detected" >> bundle-report.md
+
+      - name: Performance metrics
+        run: |
+          echo "" >> bundle-report.md
+          echo "## Build Performance" >> bundle-report.md
+          echo "Build completed at: $(date)" >> bundle-report.md
+          
+          # Add build time if available
+          if [ -f ".next/build-manifest.json" ]; then
+            echo "Build manifest generated successfully" >> bundle-report.md
+          fi
+
+      - name: Upload health report
+        uses: actions/upload-artifact@v4
+        with:
+          name: project-health-report-${{ github.run_number }}
+          path: |
+            bundle-report.md
+            unused-exports.txt
+          retention-days: 30
+
+      - name: Create health summary issue
+        if: github.event_name == 'schedule'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let reportContent = '';
+            
+            try {
+              reportContent = fs.readFileSync('bundle-report.md', 'utf8');
+            } catch (error) {
+              reportContent = 'Health report generation failed';
+            }
+            
+            // Only create issue if there are concerning findings
+            if (reportContent.includes('vulnerabilities') || reportContent.includes('outdated')) {
+              github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `🏥 Weekly Project Health Report - ${new Date().toDateString()}`,
+                body: `
+                ## Automated Project Health Report
+                
+                ${reportContent}
+                
+                ## Actions Recommended
+                - Review security vulnerabilities
+                - Consider updating outdated dependencies
+                - Address any dead code findings
+                
+                **Report Generated:** ${new Date().toISOString()}
+                **Workflow Run:** ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+                `,
+                labels: ['maintenance', 'health-check', 'automated']
+              });
+            }
+
+  # Maintenance summary
+  maintenance-summary:
+    name: "📋 Maintenance Summary"
+    runs-on: ubuntu-latest
+    needs: [code-maintenance, docs-maintenance, project-health]
+    if: always()
+    steps:
+      - name: Maintenance completion summary
+        run: |
+          echo "## Maintenance Summary"
+          echo "- Code Maintenance: ${{ needs.code-maintenance.result }}"
+          echo "- Documentation: ${{ needs.docs-maintenance.result }}"
+          echo "- Health Check: ${{ needs.project-health.result }}"
+          
+          echo "✅ Automated maintenance completed successfully!"

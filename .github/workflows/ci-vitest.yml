@@ -1,0 +1,51 @@
+# .github/workflows/ci-vitest.yml
+name: CI Vitest Tests & Lint
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    name: Build, Lint & Vitest
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]   # test against multiple Node.js versions if you like
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint & Prettier check
+        run: |
+          npm run lint       # ensure your package.json has a "lint" script
+          npm run format:check  # e.g. "prettier --check ."
+
+      - name: Run Vitest suite
+        run: npx vitest run --coverage
+
+      - name: Upload coverage report
+        if: success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: vitest-coverage
+          path: coverage/
+
+      - name: Annotate coverage on PR (optional)
+        if: github.event_name == 'pull_request'
+        uses: codecov/codecov-action@v3
+        with:
+          files: coverage/**/*.xml
+          fail_ci_if_error: true

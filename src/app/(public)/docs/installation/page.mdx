@@ -1,0 +1,165 @@
+# Installation Guide
+
+Get started with **DeanMachines RSC** in under 15 minutes. This guide will walk you through setting up your development environment with all the necessary dependencies and configurations.
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed on your system:
+
+- **Node.js** 18.17 or later
+- **npm** (comes with Node.js)
+- **Git** for version control
+- A **Google AI API key** for Gemini integration
+- A **GitHub token** for repository access
+
+## Quick Start
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/ssdeanx/deanmachines-rsc.git
+cd deanmachines-rsc
+```
+
+### 2. Install Dependencies
+
+```bash
+npm install
+```
+
+This will install all required packages including:
+- Next.js 15 with App Router
+- Mastra Core v0.10.5
+- CopilotKit v1.8.14
+- Tailwind CSS v4
+- TypeScript 5.8
+
+### 3. Environment Configuration
+
+Copy the example environment file and configure your API keys:
+
+```bash
+cp .env.example .env
+```
+
+Edit the `.env` file with your actual values:
+
+```bash
+# AI & LLM Configuration
+GOOGLE_GENERATIVE_AI_API_KEY=your_gemini_key_here
+
+# Database Configuration (LibSQL/Turso)
+DATABASE_URL=your_libsql_url
+DATABASE_AUTH_TOKEN=your_auth_token
+
+# Authentication (Supabase)
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_key
+
+# Observability
+LANGSMITH_API_KEY=your_langsmith_key
+LANGSMITH_PROJECT=deanmachines-rsc
+
+# External Integrations
+GITHUB_TOKEN=your_github_token
+SERPER_API_KEY=your_serper_key
+
+# Runtime Configuration
+NEXT_PUBLIC_COPILOTKIT_RUNTIME_URL=http://localhost:4111/copilotkit
+MASTRA_PORT=4111
+NODE_ENV=development
+```
+
+### 4. Start Development Servers
+
+You need to run both the Next.js frontend and Mastra backend:
+
+**Terminal 1 - Frontend:**
+```bash
+npm run dev
+```
+
+**Terminal 2 - Backend:**
+```bash
+npm run dev:mastra
+```
+
+### 5. Access the Application
+
+- **Frontend**: http://localhost:3000
+- **Mastra Backend**: http://localhost:4111
+- **Playground**: http://localhost:3000/playground
+
+## Verification
+
+To verify your installation is working correctly:
+
+1. **Frontend Check**: Visit http://localhost:3000 - you should see the landing page
+2. **Backend Check**: Visit http://localhost:4111/health - should return status OK
+3. **Agent Check**: Go to the playground and try interacting with an agent
+
+## Troubleshooting
+
+### Common Issues
+
+**Port Already in Use**
+```bash
+# Kill processes on ports 3000 and 4111
+npx kill-port 3000 4111
+```
+
+**Missing API Keys**
+- Ensure all required environment variables are set
+- Check that API keys are valid and have proper permissions
+
+**Build Errors**
+```bash
+# Clear Next.js cache
+rm -rf .next
+npm run build
+```
+
+**TypeScript Errors**
+```bash
+# Check TypeScript configuration
+npx tsc --noEmit
+```
+
+## Next Steps
+
+Once installation is complete:
+
+1. **Explore the Playground** - Test different AI agents
+2. **Read the Architecture Guide** - Understand the system design
+3. **Try the Examples** - Follow step-by-step tutorials
+4. **Join the Community** - Get help and share your projects
+
+<Alert variant="success">
+  <CheckCircle className="h-4 w-4" />
+  <AlertTitle>Installation Complete!</AlertTitle>
+  <AlertDescription>
+    You're now ready to build intelligent applications with DeanMachines RSC.
+  </AlertDescription>
+</Alert>
+
+## What's Next?
+
+<Card>
+  <CardHeader>
+    <CardTitle>Ready to Build?</CardTitle>
+    <CardDescription>
+      Explore our comprehensive guides and start building with AI agents.
+    </CardDescription>
+  </CardHeader>
+  <CardContent>
+    <div className="flex gap-4">
+      <Button asChild>
+        <Link href="/docs/architecture">Architecture Guide</Link>
+      </Button>
+      <Button variant="outline" asChild>
+        <Link href="/playground">Try Playground</Link>
+      </Button>
+    </div>
+  </CardContent>
+</Card>

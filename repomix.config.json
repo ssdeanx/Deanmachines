@@ -1,0 +1,4 @@
+{
+    "include": ["src/**/*", "README.md", "package.json"],
+    "output": {"compress": true}
+}

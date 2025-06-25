@@ -1,0 +1,371 @@
+"use client";
+
+# Mastra Tools & MCP
+
+DeanMachines RSC integrates **67+ tools** through the Model Context Protocol (MCP), providing agents with powerful capabilities for file operations, web interactions, data processing, and external API integrations.
+
+## Tool Architecture
+
+### MCP Integration
+
+The Model Context Protocol enables standardized tool integration:
+
+<Card className="glass-effect border-primary/20 mb-6">
+  <CardHeader>
+    <CardTitle className="flex items-center gap-2">
+      <Wrench className="w-5 h-5 text-primary" />
+      Tool Categories
+    </CardTitle>
+  </CardHeader>
+  <CardContent>
+    <div className="grid md:grid-cols-3 gap-6">
+      <div className="text-center p-4 glass-effect rounded-lg">
+        <Code className="w-8 h-8 text-primary mx-auto mb-3" />
+        <h4 className="font-semibold mb-2">Custom Tools</h4>
+        <p className="text-sm text-muted-foreground">Project-specific tools built for DeanMachines RSC</p>
+      </div>
+      <div className="text-center p-4 glass-effect rounded-lg">
+        <Database className="w-8 h-8 text-primary mx-auto mb-3" />
+        <h4 className="font-semibold mb-2">MCP Servers</h4>
+        <p className="text-sm text-muted-foreground">External MCP servers for specialized operations</p>
+      </div>
+      <div className="text-center p-4 glass-effect rounded-lg">
+        <Globe className="w-8 h-8 text-primary mx-auto mb-3" />
+        <h4 className="font-semibold mb-2">API Integrations</h4>
+        <p className="text-sm text-muted-foreground">Third-party APIs and web services</p>
+      </div>
+    </div>
+  </CardContent>
+</Card>
+
+## Available Tool Categories
+
+### File System Operations
+**67+ tools for comprehensive file management**
+
+- **File Operations**: Read, write, create, delete files and directories
+- **Directory Management**: List, create, navigate directory structures  
+- **File Analysis**: Content analysis, metadata extraction, type detection
+- **Batch Operations**: Bulk file processing and transformations
+
+```typescript
+// Example: File system tool usage
+const fileContent = await mcp.filesystem.readFile('/path/to/file.txt');
+const directoryListing = await mcp.filesystem.listDirectory('/project');
+await mcp.filesystem.writeFile('/output/result.json', JSON.stringify(data));
+```
+
+### Git Operations
+**Version control and repository management**
+
+- **Repository Management**: Clone, pull, push, branch operations
+- **Commit Analysis**: History analysis, diff generation, blame tracking
+- **Branch Operations**: Create, merge, delete branches
+- **Remote Operations**: Fetch, push, remote repository management
+
+```typescript
+// Example: Git tool usage
+await mcp.git.clone('https://github.com/user/repo.git', '/local/path');
+const commits = await mcp.git.getCommitHistory('/repo/path', { limit: 10 });
+const diff = await mcp.git.getDiff('/repo/path', 'main', 'feature-branch');
+```
+
+### Web & Search Operations
+**Internet access and data gathering**
+
+- **Web Scraping**: Extract content from web pages
+- **Search APIs**: Google, DuckDuckGo, specialized search engines
+- **HTTP Requests**: GET, POST, PUT, DELETE operations
+- **Content Processing**: HTML parsing, data extraction, format conversion
+
+```typescript
+// Example: Web tool usage
+const searchResults = await mcp.search.duckduckgo('AI agent frameworks');
+const pageContent = await mcp.web.fetchContent('https://example.com');
+const extractedData = await mcp.web.scrapeData(url, selectors);
+```
+
+### Data Processing
+**Analysis and transformation tools**
+
+- **Data Analysis**: Statistical analysis, trend detection, correlation
+- **Format Conversion**: JSON, CSV, XML, YAML transformations
+- **Visualization**: Chart generation, graph creation, data plotting
+- **Validation**: Schema validation, data quality checks
+
+```typescript
+// Example: Data tool usage
+const analysis = await mcp.data.analyzeDataset(csvData);
+const chart = await mcp.data.generateChart(data, 'line', options);
+const validated = await mcp.data.validateSchema(data, schema);
+```
+
+### Memory & Graph Operations
+**Knowledge management and relationships**
+
+- **Memory Storage**: Persistent memory for agent context
+- **Graph Operations**: Create, query, update knowledge graphs
+- **Vector Search**: Semantic search and similarity matching
+- **Relationship Mapping**: Entity relationships and connections
+
+```typescript
+// Example: Memory tool usage
+await mcp.memory.store('user_preference', { theme: 'dark', language: 'en' });
+const memories = await mcp.memory.search('project requirements');
+await mcp.graph.addNode({ id: 'user1', type: 'person', name: 'John' });
+```
+
+## Creating Custom Tools
+
+### Basic Tool Structure
+
+```typescript
+import { tool } from '@mastra/core';
+import { z } from 'zod';
+
+export const customTool = tool({
+  description: 'Description of what this tool does',
+  parameters: z.object({
+    input: z.string().describe('Input parameter description'),
+    options: z.object({
+      format: z.enum(['json', 'text']).optional(),
+      verbose: z.boolean().optional()
+    }).optional()
+  }),
+  execute: async ({ input, options }) => {
+    try {
+      // Tool implementation
+      const result = await processInput(input, options);
+      
+      return {
+        success: true,
+        data: result,
+        message: 'Operation completed successfully'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message,
+        message: 'Operation failed'
+      };
+    }
+  }
+});
+```
+
+### Advanced Tool Example
+
+```typescript
+export const repositoryAnalysisTool = tool({
+  description: 'Analyze a Git repository structure and dependencies',
+  parameters: z.object({
+    repositoryUrl: z.string().url().describe('Git repository URL'),
+    branch: z.string().optional().describe('Branch to analyze (default: main)'),
+    includeTests: z.boolean().optional().describe('Include test files in analysis'),
+    maxDepth: z.number().optional().describe('Maximum directory depth to analyze')
+  }),
+  execute: async ({ repositoryUrl, branch = 'main', includeTests = true, maxDepth = 10 }) => {
+    try {
+      // Clone repository
+      const localPath = await mcp.git.clone(repositoryUrl, { branch });
+      
+      // Analyze file structure
+      const fileStructure = await mcp.filesystem.analyzeDirectory(localPath, {
+        maxDepth,
+        includeTests
+      });
+      
+      // Extract dependencies
+      const dependencies = await extractDependencies(localPath);
+      
+      // Generate insights
+      const insights = await generateInsights(fileStructure, dependencies);
+      
+      return {
+        success: true,
+        data: {
+          repository: repositoryUrl,
+          branch,
+          fileStructure,
+          dependencies,
+          insights,
+          analyzedAt: new Date().toISOString()
+        }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+});
+```
+
+### Tool Registration
+
+Add custom tools to agents:
+
+```typescript
+// In agent definition
+export const customAgent = new Agent({
+  name: 'Custom Agent',
+  instructions: 'Agent instructions...',
+  model: createTracedGoogleModel('gemini-2.5-flash-preview-05-20', {
+    name: 'custom-agent',
+    tags: ['agent', 'custom']
+  }),
+  tools: {
+    // Custom tools
+    customTool,
+    repositoryAnalysisTool,
+    
+    // MCP tools
+    ...await mcp.getTools(),
+  },
+  memory: agentMemory
+});
+```
+
+## MCP Server Configuration
+
+### Available MCP Servers
+
+DeanMachines RSC integrates with multiple MCP servers:
+
+<Card className="glass-effect border-primary/20 mb-6">
+  <CardContent className="pt-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-2">
+        <Badge variant="secondary" className="glass-effect">Filesystem Server</Badge>
+        <p className="text-sm text-muted-foreground">File and directory operations</p>
+      </div>
+      <div className="space-y-2">
+        <Badge variant="secondary" className="glass-effect">Git Server</Badge>
+        <p className="text-sm text-muted-foreground">Version control operations</p>
+      </div>
+      <div className="space-y-2">
+        <Badge variant="secondary" className="glass-effect">GitHub Server</Badge>
+        <p className="text-sm text-muted-foreground">GitHub API integration</p>
+      </div>
+      <div className="space-y-2">
+        <Badge variant="secondary" className="glass-effect">Search Server</Badge>
+        <p className="text-sm text-muted-foreground">Web search and content fetching</p>
+      </div>
+      <div className="space-y-2">
+        <Badge variant="secondary" className="glass-effect">Memory Server</Badge>
+        <p className="text-sm text-muted-foreground">Knowledge graph operations</p>
+      </div>
+      <div className="space-y-2">
+        <Badge variant="secondary" className="glass-effect">Puppeteer Server</Badge>
+        <p className="text-sm text-muted-foreground">Browser automation</p>
+      </div>
+    </div>
+  </CardContent>
+</Card>
+
+### MCP Configuration
+
+```typescript
+// src/mastra/tools/index.ts
+import { MCPClient } from '@mastra/core';
+
+export const mcp = new MCPClient({
+  servers: [
+    {
+      name: 'filesystem',
+      command: 'npx',
+      args: ['@modelcontextprotocol/server-filesystem', '/workspace'],
+      env: {}
+    },
+    {
+      name: 'git',
+      command: 'npx', 
+      args: ['@modelcontextprotocol/server-git'],
+      env: {}
+    },
+    {
+      name: 'github',
+      command: 'npx',
+      args: ['@modelcontextprotocol/server-github'],
+      env: {
+        GITHUB_PERSONAL_ACCESS_TOKEN: process.env.GITHUB_TOKEN
+      }
+    },
+    {
+      name: 'search',
+      command: 'npx',
+      args: ['@modelcontextprotocol/server-brave-search'],
+      env: {
+        BRAVE_API_KEY: process.env.BRAVE_API_KEY
+      }
+    }
+  ]
+});
+```
+
+## Tool Best Practices
+
+### 1. **Error Handling**
+Always implement comprehensive error handling:
+
+```typescript
+execute: async (params) => {
+  try {
+    const result = await operation(params);
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('Tool error:', error);
+    return { 
+      success: false, 
+      error: error.message,
+      code: error.code 
+    };
+  }
+}
+```
+
+### 2. **Input Validation**
+Use Zod schemas for robust input validation:
+
+```typescript
+parameters: z.object({
+  url: z.string().url('Must be a valid URL'),
+  timeout: z.number().min(1000).max(30000).optional(),
+  retries: z.number().min(0).max(5).default(3)
+})
+```
+
+### 3. **Performance Optimization**
+- Implement caching for expensive operations
+- Use streaming for large data transfers
+- Set appropriate timeouts
+- Implement retry logic with exponential backoff
+
+### 4. **Documentation**
+Provide clear descriptions for tools and parameters:
+
+```typescript
+description: 'Analyzes code quality and generates improvement suggestions',
+parameters: z.object({
+  filePath: z.string().describe('Path to the file to analyze'),
+  rules: z.array(z.string()).optional().describe('Specific rules to check')
+})
+```
+
+## Next Steps
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">
+  <Button asChild className="glass-effect-strong electric-pulse">
+    <Link href="/docs/mastra/memory">
+      <Database className="w-4 h-4 mr-2" />
+      Memory Systems
+    </Link>
+  </Button>
+  <Button variant="outline" asChild className="lightning-trail">
+    <Link href="/docs/mastra/workflows">
+      <Workflow className="w-4 h-4 mr-2" />
+      Workflows
+    </Link>
+  </Button>
+</div>
