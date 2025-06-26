@@ -7,9 +7,10 @@ import { vectorQueryTool } from "../tools/vectorQueryTool";
 import { chunkerTool } from "../tools/chunker-tool";
 import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
-import { getMCPToolsByServer } from '../tools/mcp';
+import { mcpTools } from '../tools/mcp';
 
 import { z } from 'zod';
+import { UPSTASH_PROMPT } from "@mastra/upstash";
 
 
 /**
@@ -131,7 +132,9 @@ When responding:
 - Synthesize complex information into actionable insights
 - Consider both quantitative and qualitative research methods
 
-Use available tools to access knowledge graphs and perform comprehensive searches.`;
+Use available tools to access knowledge graphs and perform comprehensive searches.
+${UPSTASH_PROMPT}
+`;
   },
   model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17',  {
     responseModalities: ["TEXT"],
@@ -144,13 +147,13 @@ Use available tools to access knowledge graphs and perform comprehensive searche
     graphRAGTool,
     vectorQueryTool,
     chunkerTool,
-    ...await getMCPToolsByServer('filesystem'),
-    ...await getMCPToolsByServer('memgraph'),
-    ...await getMCPToolsByServer('sequentialThinking'),
-    ...await getMCPToolsByServer('github'),
-    ...await getMCPToolsByServer('puppeteer'),
-    ...await getMCPToolsByServer('fetch'),
-    ...await getMCPToolsByServer('tavily'),
+    ...mcpTools.filesystem,
+    ...mcpTools.memgraph,
+    ...mcpTools.sequentialThinking,
+    ...mcpTools.github,
+    ...mcpTools.puppeteer,
+    ...mcpTools.fetch,
+    ...mcpTools.tavily,
 
   }, 
   memory: upstashMemory,

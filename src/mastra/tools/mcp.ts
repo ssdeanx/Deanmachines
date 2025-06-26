@@ -746,7 +746,7 @@ export async function getMCPToolsByServer(serverName: string): Promise<Record<st
  */
 export async function getAllMCPTools(): Promise<Record<string, unknown>> {
   try {
-    const allTools = await mcp.getTools();
+    const allTools = mcp.getTools();
     logger.info(`Loaded ${Object.keys(allTools).length} total MCP tools from all servers`);
     return allTools;
   } catch (error) {
@@ -761,7 +761,7 @@ export async function getAllMCPTools(): Promise<Record<string, unknown>> {
  */
 export async function getMCPToolsets(): Promise<Record<string, unknown>> {
   try {
-    const toolsets = await mcp.getToolsets();
+    const toolsets = mcp.getToolsets();
     logger.info(`Loaded MCP toolsets from ${Object.keys(toolsets).length} servers`);
     return toolsets;
   } catch (error) {
@@ -1023,6 +1023,21 @@ export function clearMCPAnalytics() {
  *
  * @returns Health status of all servers
  */
+/**
+ * Synchronous proxy for MCP tools.
+ * Allows using MCP tools without top-level await.
+ */
+export const mcpTools: Record<string, Record<string, (args?: Record<string, unknown>) => Promise<unknown>>> = new Proxy({}, {
+  get(_, serverName: string) {
+    if (typeof serverName !== 'string') return undefined;
+    return new Proxy({}, {
+      get(_, toolName: string) {
+        return (args: Record<string, unknown> = {}) => executeTracedMCPTool(serverName, toolName, args);
+      }
+    });
+  }
+});
+
 //export const checkMCPServersHealth = createTraceableAgent(
 //  'mcp-health-check',
 //  async (): Promise<Record<string, { status: string; tools?: number; error?: string }>> => {

@@ -10,9 +10,9 @@ import {
   graphRAGTool,
   vectorQueryTool,
   chunkerTool,
-  rerankTool
 } from '../tools';
-import { getMCPToolsByServer } from '../tools/mcp';
+import { mcpTools } from '../tools/mcp';
+import { UPSTASH_PROMPT } from '@mastra/upstash';
 
 const logger = createAgentDualLogger('LangGraphAgent');
 
@@ -158,11 +158,13 @@ When responding:
 6. Format output according to the specified style
 7. Handle errors gracefully and suggest recovery options
 
-Always leverage LangGraph's capabilities for complex multi-step reasoning while maintaining integration with the broader Mastra ecosystem.`;
+Always leverage LangGraph's capabilities for complex multi-step reasoning while maintaining integration with the broader Mastra ecosystem.
+${UPSTASH_PROMPT}
+`;
   },
   model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
     thinkingConfig: {
-      thinkingBudget: 30000, // Higher budget for complex reasoning
+      thinkingBudget: 1024, // Higher budget for complex reasoning
       includeThoughts: true, // Show reasoning process
     },
   }),
@@ -170,13 +172,11 @@ Always leverage LangGraph's capabilities for complex multi-step reasoning while 
     graphRAGTool,
     vectorQueryTool,
     chunkerTool,
-    rerankTool,
-    ...await getMCPToolsByServer('filesystem'),
-    ...await getMCPToolsByServer('git'),
-    ...await getMCPToolsByServer('fetch'),
-    ...await getMCPToolsByServer('sequentialThinking'),
-    ...await getMCPToolsByServer('tavily'),
-    ...await getMCPToolsByServer('memoryGraph'),
+    ...mcpTools.filesystem,
+    ...mcpTools.git,
+    ...mcpTools.fetch,
+    ...mcpTools.tavily,
+    ...mcpTools.memoryGraph,
   },
   memory: upstashMemory,
 });

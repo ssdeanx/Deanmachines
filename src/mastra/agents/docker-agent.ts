@@ -1,9 +1,9 @@
 import { Agent } from "@mastra/core/agent";
 import { upstashMemory } from '../upstashMemory';
-import { vectorQueryTool, hybridVectorSearchTool, enhancedVectorQueryTool } from "../tools/vectorQueryTool";
+import { vectorQueryTool, hybridVectorSearchTool } from "../tools/vectorQueryTool";
 import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
-import { getMCPToolsByServer } from '../tools/mcp';
+import { mcpTools } from '../tools/mcp';
 import { chunkerTool } from "../tools/chunker-tool";
 import { rerankTool } from "../tools/rerank-tool";
 
@@ -97,17 +97,15 @@ Use available tools to query containerization patterns and deployment strategies
     chunkerTool,
     rerankTool,
     hybridVectorSearchTool,
-    enhancedVectorQueryTool,
     vectorQueryTool,
-    ...await getMCPToolsByServer('sequentialThinking'),
-    ...await getMCPToolsByServer('tavily'),
-    ...await getMCPToolsByServer('nodeCodeSandbox'),
-    ...await getMCPToolsByServer('filesystem'),
-    ...await getMCPToolsByServer('git'),
-    ...await getMCPToolsByServer('fetch'),
-    ...await getMCPToolsByServer('puppeteer'),
-    ...await getMCPToolsByServer('github'),
-    ...await getMCPToolsByServer('docker'),
+    ...mcpTools.tavily,
+    ...mcpTools.nodeCodeSandbox,
+    ...mcpTools.filesystem,
+    ...mcpTools.git,
+    ...mcpTools.fetch,
+    ...mcpTools.puppeteer,
+    ...mcpTools.github,
+    ...mcpTools.docker,
   },
   memory: upstashMemory,
 });

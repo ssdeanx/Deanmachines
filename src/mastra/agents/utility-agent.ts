@@ -1,11 +1,10 @@
 import { Agent } from "@mastra/core/agent";
 import { upstashMemory } from '../upstashMemory';
-import { enhancedVectorQueryTool, hybridVectorSearchTool, vectorQueryTool } from "../tools/vectorQueryTool";
+import { hybridVectorSearchTool, vectorQueryTool } from "../tools/vectorQueryTool";
 import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
-import { getMCPToolsByServer } from '../tools/mcp';
+import { mcpTools } from '../tools/mcp';
 import { chunkerTool } from "../tools/chunker-tool";
-import { rerankTool } from "../tools/rerank-tool";
 import { graphRAGTool, graphRAGUpsertTool } from "../tools/graphRAG";
 import { mem0RememberTool, mem0MemorizeTool } from "../tools/mem0-tool";
 
@@ -98,23 +97,15 @@ Use available tools to query relevant information and patterns.`;
       }),  tools: {
     vectorQueryTool,
     hybridVectorSearchTool,
-    enhancedVectorQueryTool,
     graphRAGTool,
     graphRAGUpsertTool,
     chunkerTool,
-    rerankTool,
     mem0RememberTool,
     mem0MemorizeTool,
-    ...await getMCPToolsByServer('filesystem'),
-    ...await getMCPToolsByServer('git'),
-    ...await getMCPToolsByServer('fetch'),
-    ...await getMCPToolsByServer('puppeteer'),
-    ...await getMCPToolsByServer('github'),
-    ...await getMCPToolsByServer('memoryGraph'),
-    ...await getMCPToolsByServer('neo4j'),
-    ...await getMCPToolsByServer('sequentialThinking'),
-    ...await getMCPToolsByServer('tavily'),
-    ...await getMCPToolsByServer('nodeCodeSandbox'),
+    ...mcpTools.filesystem,
+    ...mcpTools.git,
+    ...mcpTools.fetch,
+    ...mcpTools.tavily,
   },
   memory: upstashMemory,
 });

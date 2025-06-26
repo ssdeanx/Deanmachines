@@ -3,10 +3,9 @@ import { upstashMemory } from '../upstashMemory';
 import { graphRAGTool } from '../tools/graphRAG';
 import { vectorQueryTool } from "../tools/vectorQueryTool";
 import { chunkerTool } from "../tools/chunker-tool";
-import { rerankTool } from "../tools/rerank-tool";
 import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
-import { getMCPToolsByServer } from '../tools/mcp';
+import { mcpTools } from '../tools/mcp';
 
 const logger = createAgentDualLogger('EvolveAgent');
 logger.info('Initializing EvolveAgent');
@@ -88,13 +87,10 @@ Use available tools for data querying, graph analysis, and financial data.`;
     graphRAGTool,
     vectorQueryTool,
     chunkerTool,
-    rerankTool,
-    ...await getMCPToolsByServer('filesystem'),
-    ...await getMCPToolsByServer('git'),
-    ...await getMCPToolsByServer('fetch'),
-    ...await getMCPToolsByServer('sequentialThinking'),
-    ...await getMCPToolsByServer('tavily'),
-    ...await getMCPToolsByServer('memoryGraph'),
+    ...mcpTools.filesystem,
+    ...mcpTools.git,
+    ...mcpTools.tavily,
+    ...mcpTools.memoryGraph,
   },
   memory: upstashMemory,
 });

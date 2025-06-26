@@ -43,6 +43,8 @@ const AgentContext = createContext<{
  */
 export const useAgent = () => useContext(AgentContext);
 
+import { CodeGraphProvider } from "@/components/copilotkit/CodeGraphContext";
+
 /**
  * Playground layout component that provides CopilotKit context and agent management
  *
@@ -80,14 +82,16 @@ export default function PlaygroundLayout({ children }: { children: React.ReactNo
                         'X-Debug-Mode': 'true',
                     }}
                 >
-                    <CopilotSidebar
-                        labels={{
-                            title: "Playground AI Assistant",
-                            initial: "Welcome to the Dean Machines Playground! How can I help you today?",
-                        }}
-                    >
-                        {children}
-                    </CopilotSidebar>
+                    <CodeGraphProvider>
+                        <CopilotSidebar
+                            labels={{
+                                title: "Playground AI Assistant",
+                                initial: "Welcome to the Dean Machines Playground! How can I help you today?",
+                            }}
+                        >
+                            {children}
+                        </CopilotSidebar>
+                    </CodeGraphProvider>
                 </CopilotKit>
             </div>
         </AgentContext.Provider>

@@ -1,102 +1,19 @@
-INFO [2025-06-21 06:19:13.237 -0400] (mcp): Loaded 0 tools from MCP server 'filesystem'
-DEBUG [2025-06-21 06:19:13.237 -0400] (mcp): [MCP:filesystem] [filesystem] Requesting tools from MCP server
-DEBUG [2025-06-21 06:19:13.237 -0400] (mcp): [MCP:git] [git] Requesting tools from MCP server
-DEBUG [2025-06-21 06:19:13.237 -0400] (mcp): [MCP:fetch] [fetch] Requesting tools from MCP server
-DEBUG [2025-06-21 06:19:13.237 -0400] (mcp): [MCP:puppeteer] [puppeteer] Requesting tools from MCP server
-DEBUG [2025-06-21 06:19:13.237 -0400] (mcp): [MCP:github] [github] Requesting tools from MCP server
-DEBUG [2025-06-21 06:19:13.237 -0400] (mcp): [MCP:memoryGraph] [memoryGraph] Requesting tools from MCP server
-DEBUG [2025-06-21 06:19:13.237 -0400] (mcp): [MCP:ddgsearch] [ddgsearch] Requesting tools from MCP server
-DEBUG [2025-06-21 06:19:13.237 -0400] (mcp): [MCP:neo4j] [neo4j] Requesting tools from MCP server
-DEBUG [2025-06-21 06:19:13.237 -0400] (mcp): [MCP:sequentialThinking] [sequentialThinking] Requesting tools from MCP server
-DEBUG [2025-06-21 06:19:13.237 -0400] (mcp): [MCP:tavily] [tavily] Requesting tools from MCP server
-DEBUG [2025-06-21 06:19:13.237 -0400] (mcp): [MCP:nodeCodeSandbox] [nodeCodeSandbox] Requesting tools from MCP server
-DEBUG [2025-06-21 06:19:13.241 -0400] (mcp): [MCP:puppeteer] [puppeteer] Processing tool: puppeteer_navigate
-DEBUG [2025-06-21 06:19:13.241 -0400] (mcp): [MCP:puppeteer] [puppeteer] Processing tool: puppeteer_screenshot
-DEBUG [2025-06-21 06:19:13.241 -0400] (mcp): [MCP:puppeteer] [puppeteer] Processing tool: puppeteer_click
-DEBUG [2025-06-21 06:19:13.241 -0400] (mcp): [MCP:puppeteer] [puppeteer] Processing tool: puppeteer_fill
-DEBUG [2025-06-21 06:19:13.241 -0400] (mcp): [MCP:puppeteer] [puppeteer] Processing tool: puppeteer_select
-DEBUG [2025-06-21 06:19:13.241 -0400] (mcp): [MCP:puppeteer] [puppeteer] Processing tool: puppeteer_hover
-DEBUG [2025-06-21 06:19:13.241 -0400] (mcp): [MCP:puppeteer] [puppeteer] Processing tool: puppeteer_evaluate
-DEBUG [2025-06-21 06:19:13.242 -0400] (mcp): [MCP:filesystem] [filesystem] Processing tool: read_file
-DEBUG [2025-06-21 06:19:13.242 -0400] (mcp): [MCP:filesystem] [filesystem] Processing tool: read_multiple_files
-DEBUG [2025-06-21 06:19:13.242 -0400] (mcp): [MCP:filesystem] [filesystem] Processing tool: write_file
-DEBUG [2025-06-21 06:19:13.242 -0400] (mcp): [MCP:filesystem] [filesystem] Processing tool: edit_file
-DEBUG [2025-06-21 06:19:13.242 -0400] (mcp): [MCP:filesystem] [filesystem] Processing tool: create_directory
-DEBUG [2025-06-21 06:19:13.242 -0400] (mcp): [MCP:filesystem] [filesystem] Processing tool: list_directory
-DEBUG [2025-06-21 06:19:13.242 -0400] (mcp): [MCP:filesystem] [filesystem] Processing tool: directory_tree
-DEBUG [2025-06-21 06:19:13.242 -0400] (mcp): [MCP:filesystem] [filesystem] Processing tool: move_file
-DEBUG [2025-06-21 06:19:13.242 -0400] (mcp): [MCP:filesystem] [filesystem] Processing tool: search_files
-DEBUG [2025-06-21 06:19:13.242 -0400] (mcp): [MCP:filesystem] [filesystem] Processing tool: get_file_info
-DEBUG [2025-06-21 06:19:13.242 -0400] (mcp): [MCP:filesystem] [filesystem] Processing tool: list_allowed_directories
-DEBUG [2025-06-21 06:19:13.242 -0400] (mcp): [MCP:memoryGraph] [memoryGraph] Processing tool: create_entities
-DEBUG [2025-06-21 06:19:13.242 -0400] (mcp): [MCP:memoryGraph] [memoryGraph] Processing tool: create_relations
-DEBUG [2025-06-21 06:19:13.242 -0400] (mcp): [MCP:memoryGraph] [memoryGraph] Processing tool: add_observations
-DEBUG [2025-06-21 06:19:13.242 -0400] (mcp): [MCP:memoryGraph] [memoryGraph] Processing tool: delete_entities
-DEBUG [2025-06-21 06:19:13.242 -0400] (mcp): [MCP:memoryGraph] [memoryGraph] Processing tool: delete_observations
-DEBUG [2025-06-21 06:19:13.242 -0400] (mcp): [MCP:memoryGraph] [memoryGraph] Processing tool: delete_relations
-DEBUG [2025-06-21 06:19:13.242 -0400] (mcp): [MCP:memoryGraph] [memoryGraph] Processing tool: read_graph
-DEBUG [2025-06-21 06:19:13.242 -0400] (mcp): [MCP:memoryGraph] [memoryGraph] Processing tool: search_nodes
-DEBUG [2025-06-21 06:19:13.242 -0400] (mcp): [MCP:memoryGraph] [memoryGraph] Processing tool: open_nodes
-DEBUG [2025-06-21 06:19:13.243 -0400] (mcp): [MCP:sequentialThinking] [sequentialThinking] Processing tool: sequentialthinking
-DEBUG [2025-06-21 06:19:13.243 -0400] (mcp): [MCP:tavily] [tavily] Processing tool: tavily-search
-DEBUG [2025-06-21 06:19:13.243 -0400] (mcp): [MCP:tavily] [tavily] Processing tool: tavily-extract
-DEBUG [2025-06-21 06:19:13.243 -0400] (mcp): [MCP:tavily] [tavily] Processing tool: tavily-crawl
-DEBUG [2025-06-21 06:19:13.243 -0400] (mcp): [MCP:tavily] [tavily] Processing tool: tavily-map
-DEBUG [2025-06-21 06:19:13.244 -0400] (mcp): [MCP:neo4j] [neo4j] Processing tool: create_entities
-DEBUG [2025-06-21 06:19:13.244 -0400] (mcp): [MCP:neo4j] [neo4j] Processing tool: create_relations
-DEBUG [2025-06-21 06:19:13.244 -0400] (mcp): [MCP:neo4j] [neo4j] Processing tool: add_observations
-DEBUG [2025-06-21 06:19:13.244 -0400] (mcp): [MCP:neo4j] [neo4j] Processing tool: delete_entities
-DEBUG [2025-06-21 06:19:13.244 -0400] (mcp): [MCP:neo4j] [neo4j] Processing tool: delete_observations
-DEBUG [2025-06-21 06:19:13.244 -0400] (mcp): [MCP:neo4j] [neo4j] Processing tool: delete_relations
-DEBUG [2025-06-21 06:19:13.244 -0400] (mcp): [MCP:neo4j] [neo4j] Processing tool: read_graph
-DEBUG [2025-06-21 06:19:13.244 -0400] (mcp): [MCP:neo4j] [neo4j] Processing tool: search_nodes
-DEBUG [2025-06-21 06:19:13.244 -0400] (mcp): [MCP:neo4j] [neo4j] Processing tool: find_nodes
-DEBUG [2025-06-21 06:19:13.244 -0400] (mcp): [MCP:neo4j] [neo4j] Processing tool: open_nodes
-DEBUG [2025-06-21 06:19:13.244 -0400] (mcp): [MCP:fetch] [fetch] Processing tool: fetch
-DEBUG [2025-06-21 06:19:13.244 -0400] (mcp): [MCP:github] [github] Processing tool: create_or_update_file
-DEBUG [2025-06-21 06:19:13.244 -0400] (mcp): [MCP:github] [github] Processing tool: search_repositories
-DEBUG [2025-06-21 06:19:13.245 -0400] (mcp): [MCP:github] [github] Processing tool: create_repository
-DEBUG [2025-06-21 06:19:13.245 -0400] (mcp): [MCP:github] [github] Processing tool: get_file_contents
-DEBUG [2025-06-21 06:19:13.245 -0400] (mcp): [MCP:github] [github] Processing tool: push_files
-DEBUG [2025-06-21 06:19:13.245 -0400] (mcp): [MCP:github] [github] Processing tool: create_issue
-DEBUG [2025-06-21 06:19:13.245 -0400] (mcp): [MCP:github] [github] Processing tool: create_pull_request
-DEBUG [2025-06-21 06:19:13.245 -0400] (mcp): [MCP:github] [github] Processing tool: fork_repository
-DEBUG [2025-06-21 06:19:13.245 -0400] (mcp): [MCP:github] [github] Processing tool: create_branch
-DEBUG [2025-06-21 06:19:13.245 -0400] (mcp): [MCP:github] [github] Processing tool: list_commits
-DEBUG [2025-06-21 06:19:13.245 -0400] (mcp): [MCP:github] [github] Processing tool: list_issues
-DEBUG [2025-06-21 06:19:13.245 -0400] (mcp): [MCP:github] [github] Processing tool: update_issue
-DEBUG [2025-06-21 06:19:13.245 -0400] (mcp): [MCP:github] [github] Processing tool: add_issue_comment
-DEBUG [2025-06-21 06:19:13.245 -0400] (mcp): [MCP:github] [github] Processing tool: search_code
-DEBUG [2025-06-21 06:19:13.245 -0400] (mcp): [MCP:github] [github] Processing tool: search_issues
-DEBUG [2025-06-21 06:19:13.245 -0400] (mcp): [MCP:github] [github] Processing tool: search_users
-DEBUG [2025-06-21 06:19:13.245 -0400] (mcp): [MCP:github] [github] Processing tool: get_issue
-DEBUG [2025-06-21 06:19:13.245 -0400] (mcp): [MCP:github] [github] Processing tool: get_pull_request
-DEBUG [2025-06-21 06:19:13.245 -0400] (mcp): [MCP:github] [github] Processing tool: list_pull_requests
-DEBUG [2025-06-21 06:19:13.245 -0400] (mcp): [MCP:github] [github] Processing tool: create_pull_request_review
-DEBUG [2025-06-21 06:19:13.245 -0400] (mcp): [MCP:github] [github] Processing tool: merge_pull_request
-DEBUG [2025-06-21 06:19:13.245 -0400] (mcp): [MCP:github] [github] Processing tool: get_pull_request_files
-DEBUG [2025-06-21 06:19:13.245 -0400] (mcp): [MCP:github] [github] Processing tool: get_pull_request_status
-DEBUG [2025-06-21 06:19:13.245 -0400] (mcp): [MCP:github] [github] Processing tool: update_pull_request_branch
-DEBUG [2025-06-21 06:19:13.246 -0400] (mcp): [MCP:github] [github] Processing tool: get_pull_request_comments
-DEBUG [2025-06-21 06:19:13.246 -0400] (mcp): [MCP:github] [github] Processing tool: get_pull_request_reviews
-DEBUG [2025-06-21 06:19:13.246 -0400] (mcp): [MCP:nodeCodeSandbox] [nodeCodeSandbox] Processing tool: sandbox_initialize
-DEBUG [2025-06-21 06:19:13.246 -0400] (mcp): [MCP:nodeCodeSandbox] [nodeCodeSandbox] Processing tool: sandbox_exec
-DEBUG [2025-06-21 06:19:13.246 -0400] (mcp): [MCP:nodeCodeSandbox] [nodeCodeSandbox] Processing tool: run_js
-DEBUG [2025-06-21 06:19:13.246 -0400] (mcp): [MCP:nodeCodeSandbox] [nodeCodeSandbox] Processing tool: sandbox_stop
-DEBUG [2025-06-21 06:19:13.246 -0400] (mcp): [MCP:nodeCodeSandbox] [nodeCodeSandbox] Processing tool: run_js_ephemeral
-DEBUG [2025-06-21 06:19:13.246 -0400] (mcp): [MCP:nodeCodeSandbox] [nodeCodeSandbox] Processing tool: get_dependency_types
-DEBUG [2025-06-21 06:19:13.246 -0400] (mcp): [MCP:nodeCodeSandbox] [nodeCodeSandbox] Processing tool: ai_generate
-DEBUG [2025-06-21 06:19:13.246 -0400] (mcp): [MCP:ddgsearch] [ddgsearch] Processing tool: search
-DEBUG [2025-06-21 06:19:13.246 -0400] (mcp): [MCP:ddgsearch] [ddgsearch] Processing tool: fetch_content
-DEBUG [2025-06-21 06:19:13.247 -0400] (mcp): [MCP:git] [git] Processing tool: git_status
-DEBUG [2025-06-21 06:19:13.247 -0400] (mcp): [MCP:git] [git] Processing tool: git_diff_unstaged
-DEBUG [2025-06-21 06:19:13.247 -0400] (mcp): [MCP:git] [git] Processing tool: git_diff_staged
-DEBUG [2025-06-21 06:19:13.247 -0400] (mcp): [MCP:git] [git] Processing tool: git_diff
-DEBUG [2025-06-21 06:19:13.247 -0400] (mcp): [MCP:git] [git] Processing tool: git_commit
-DEBUG [2025-06-21 06:19:13.247 -0400] (mcp): [MCP:git] [git] Processing tool: git_add
-DEBUG [2025-06-21 06:19:13.247 -0400] (mcp): [MCP:git] [git] Processing tool: git_reset
-DEBUG [2025-06-21 06:19:13.247 -0400] (mcp): [MCP:git] [git] Processing tool: git_log
-DEBUG [2025-06-21 06:19:13.247 -0400] (mcp): [MCP:git] [git] Processing tool: git_create_branch
-DEBUG [2025-06-21 06:19:13.247 -0400] (mcp): [MCP:git] [git] Processing tool: git_checkout
-DEBUG [2025-06-21 06:19:13.247 -0400] (mcp): [MCP:git] [git] Processing tool: git_show
-INFO [2025-06-21 06:19:13.247 -0400] (mcp): Loaded 0 tools from MCP server 'git'
+SYNCHRONOUS TERMINATION NOTICE: When explicitly exiting the process via process.exit or via a parent process, asynchronous tasks in your exitHooks will not run. Either remove these tasks, use gracefulExit() instead of process.exit(), or ensure your parent process sends a SIGINT to the process running this code.
+file:///C:/Users/dm/Documents/deanmachines-rsc/node_modules/@mastra/upstash/dist/index.js:676
+      throw new MastraError(
+            ^
+
+MastraError: Thread f75bf641-f866-475d-bdd9-c333be194e94 not found
+    at UpstashStore.saveMessages (file:///C:/Users/dm/Documents/deanmachines-rsc/node_modules/@mastra/upstash/dist/index.js:676:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  id: 'STORAGE_UPSTASH_STORAGE_SAVE_MESSAGES_INVALID_ARGS',
+  domain: 'STORAGE',
+  category: 'USER',
+  details: {},
+  [cause]: Error: Thread f75bf641-f866-475d-bdd9-c333be194e94 not found
+      at UpstashStore.saveMessages (file:///C:/Users/dm/Documents/deanmachines-rsc/node_modules/@mastra/upstash/dist/index.js:673:15)
+      at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+}
+
+Node.js v20.19.2
+Puppeteer MCP Server closed

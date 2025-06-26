@@ -1,11 +1,11 @@
 import { Agent } from "@mastra/core/agent";
 import { upstashMemory } from '../upstashMemory';
-import { vectorQueryTool, hybridVectorSearchTool, enhancedVectorQueryTool } from "../tools/vectorQueryTool";
+import { vectorQueryTool, hybridVectorSearchTool } from "../tools/vectorQueryTool";
 import { chunkerTool } from "../tools/chunker-tool";
 import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
-import { getMCPToolsByServer } from '../tools/mcp';
-
+import { mcpTools } from '../tools/mcp';
+import { UPSTASH_PROMPT } from "@mastra/upstash";
 const logger = createAgentDualLogger('DesignAgent');
 logger.info('Initializing DesignAgent');
 
@@ -88,7 +88,9 @@ When responding:
 - Apply ${colorTheme} theme considerations
 - Use ${animationStyle} animation approach
 
-Use available tools to query design patterns and best practices.`;
+Use available tools to query design patterns and best practices.
+${UPSTASH_PROMPT}
+`;
   },
   model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
     
@@ -101,11 +103,9 @@ Use available tools to query design patterns and best practices.`;
     chunkerTool,
     vectorQueryTool,
     hybridVectorSearchTool,
-    enhancedVectorQueryTool,
-    ...await getMCPToolsByServer('filesystem'),
-    ...await getMCPToolsByServer('sequentialThinking'),
-    ...await getMCPToolsByServer('tavily'),
-    ...await getMCPToolsByServer('nodeCodeSandbox')
+    ...mcpTools.filesystem,
+    ...mcpTools.tavily,
+    ...mcpTools.nodeCodeSandbox
   },
   memory: upstashMemory,
 });

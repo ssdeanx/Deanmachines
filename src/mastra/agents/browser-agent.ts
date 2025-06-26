@@ -3,8 +3,9 @@ import { upstashMemory } from '../upstashMemory';
 import { vectorQueryTool } from "../tools/vectorQueryTool";
 import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
-import { getMCPToolsByServer } from '../tools/mcp';
+import { mcpTools } from '../tools/mcp';
 import { chunkerTool } from "../tools/chunker-tool";
+import { UPSTASH_PROMPT } from "@mastra/upstash";
 
 const logger = createAgentDualLogger('BrowserAgent');
 logger.info('Initializing BrowserAgent');
@@ -76,7 +77,9 @@ When responding:
 - Set page timeouts to ${timeout}ms as specified
 - Use the configured user agent for requests
 
-Use available tools to perform web-related queries and analysis.`;
+Use available tools to perform web-related queries and analysis.
+${UPSTASH_PROMPT}
+`;
   },
   model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
         thinkingConfig: {
@@ -87,11 +90,10 @@ Use available tools to perform web-related queries and analysis.`;
   tools: {
     vectorQueryTool,
     chunkerTool,
-    ...await getMCPToolsByServer('puppeteer'),
-    ...await getMCPToolsByServer('fetch'),
-    ...await getMCPToolsByServer('sequentialThinking'),
-    ...await getMCPToolsByServer('tavily'),
-    ...await getMCPToolsByServer('nodeCodeSandbox'),
+    ...mcpTools.puppeteer,
+    ...mcpTools.fetch,
+    ...mcpTools.tavily,
+    ...mcpTools.nodeCodeSandbox,
 
   },
   memory: upstashMemory,

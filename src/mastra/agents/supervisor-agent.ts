@@ -5,8 +5,9 @@ import { chunkerTool } from "../tools/chunker-tool";
 import { graphRAGTool, graphRAGUpsertTool } from "../tools/graphRAG";
 import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
-import { getMCPToolsByServer } from '../tools/mcp';
+import { mcpTools } from '../tools/mcp';
 import { z } from 'zod';
+import { UPSTASH_PROMPT } from "@mastra/upstash";
 
 /**
  * Runtime context type for the Supervisor Agent
@@ -125,7 +126,9 @@ When responding:
 - Ensure quality standards are maintained
 - Provide clear coordination and communication protocols
 
-Use available tools to analyze agent relationships and coordination patterns.`;
+Use available tools to analyze agent relationships and coordination patterns.
+${UPSTASH_PROMPT}
+`;
   },
   model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
     responseModalities: ["TEXT"],
@@ -222,11 +225,10 @@ Use available tools to analyze agent relationships and coordination patterns.`;
     chunkerTool,
     graphRAGTool,
     graphRAGUpsertTool,
-    ...await getMCPToolsByServer('filesystem'),
-    ...await getMCPToolsByServer('git'),
-    ...await getMCPToolsByServer('fetch'),
-    ...await getMCPToolsByServer('sequentialThinking'),
-    ...await getMCPToolsByServer('tavily'),
+    ...mcpTools.filesystem,
+    ...mcpTools.git,
+    ...mcpTools.fetch,
+    ...mcpTools.tavily
   },
   memory: upstashMemory,
 });

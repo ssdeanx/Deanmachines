@@ -26,11 +26,11 @@ import {
 import { createGemini25Provider } from '../config/googleProvider';
 // Langfuse tracing is automatically enabled via Mastra's telemetry configuration
 // All agent operations will be traced with detailed metadata
-import { getMCPToolsByServer } from '../tools/mcp';
+import { mcpTools } from '../tools/mcp';
 import { z } from 'zod';
 //import { CustomEvalMetric } from "../evals/customEval";
 import { WordInclusionMetric } from "../evals/wordInclusion";
-
+import { UPSTASH_PROMPT } from "@mastra/upstash";
 
 /**
  * Runtime context type for the Master Agent
@@ -177,6 +177,7 @@ SUCCESS CRITERIA:
 - Actionability: Solutions and debugging steps are clear, practical, and lead to problem resolution or task completion.
 - Efficiency: Tasks are completed and problems are diagnosed in a timely and resource-effective manner.
 - User Satisfaction: The user's problem is resolved, their question is answered, and they feel effectively supported.
+${UPSTASH_PROMPT}
 `;
   },
   model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
@@ -308,16 +309,15 @@ SUCCESS CRITERIA:
     ...createMastraWikidataTools,
     ...diffbotTools,
     // MCP Tools by individual servers (selective assignment)
-    ...await getMCPToolsByServer('filesystem'),
-    ...await getMCPToolsByServer('git'),
-    ...await getMCPToolsByServer('fetch'),
-    ...await getMCPToolsByServer('puppeteer'),
-    ...await getMCPToolsByServer('github'),
-    ...await getMCPToolsByServer('memoryGraph'),
-    ...await getMCPToolsByServer('neo4j'),
-    ...await getMCPToolsByServer('sequentialThinking'),
-    ...await getMCPToolsByServer('tavily'),
-    ...await getMCPToolsByServer('nodeCodeSandbox'),
+    ...mcpTools.filesystem,
+    ...mcpTools.git,
+    ...mcpTools.fetch,
+    ...mcpTools.puppeteer,
+    ...mcpTools.github,
+    ...mcpTools.memoryGraph,
+    ...mcpTools.neo4j,
+    ...mcpTools.tavily,
+    ...mcpTools.nodeCodeSandbox,
   },
   memory: upstashMemory,
   evals: {

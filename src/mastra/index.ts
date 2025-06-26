@@ -38,7 +38,7 @@ UtilityAgentRuntimeContext,
 ReactAgentRuntimeContext,
 LangGraphAgentRuntimeContext
 } from './agents';
-import { LangfuseExporter } from "langfuse-vercel";
+//import { LangfuseExporter } from "langfuse-vercel";
 
 
 
@@ -125,21 +125,16 @@ export const mastra = new Mastra({
     agents: agentRegistry,
     logger: upstashLogger, // Mastra framework uses Upstash for distributed logging
     telemetry: {
-        serviceName: "ai",
+        serviceName: "my-app",
         enabled: true,
         sampling: {
             type: "always_on",
         },
         export: {
-            type: "custom",
-            tracerName: "ai",
-            exporter: new LangfuseExporter({
-            publicKey: process.env.LANGFUSE_PUBLIC_KEY,
-            secretKey: process.env.LANGFUSE_SECRET_KEY,
-            baseUrl: process.env.LANGFUSE_HOST,
-            }),
+            type: "otlp",
+            endpoint: "http://localhost:4318", // SigNoz local endpoint
+            },
         },
-    },
         server: {
             cors: {
                 origin: "*",

@@ -6,8 +6,9 @@ import { vectorQueryTool, hybridVectorSearchTool } from "../tools/vectorQueryToo
 import { chunkerTool } from "../tools/chunker-tool";
 import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
-import { getMCPToolsByServer } from '../tools/mcp';
+import { mcpTools } from '../tools/mcp';
 import { mem0RememberTool, mem0MemorizeTool } from "../tools/mem0-tool";
+import { UPSTASH_PROMPT } from "@mastra/upstash";
 
 const logger = createAgentDualLogger('CodeAgent');
 logger.info('Initializing Code Agent');
@@ -148,7 +149,9 @@ Success Criteria:
 - Clarity and Actionability: Outputs are easy to understand and directly actionable by both human developers and other AI agents.
 - Adaptability: Demonstrates mastery across diverse programming contexts and effectively adapts to new challenges.
 - Efficiency: Provides solutions that are optimized for resource usage and execution speed where applicable.
-- Seamless Collaboration: Successfully integrates with and provides valuable input to multi-agent systems.`;
+- Seamless Collaboration: Successfully integrates with and provides valuable input to multi-agent systems.
+${UPSTASH_PROMPT}
+`;
   },
   model: createGemini25Provider('gemini-2.5-flash-preview-05-20', {
         thinkingConfig: {
@@ -168,14 +171,13 @@ Success Criteria:
     hybridVectorSearchTool,
     graphRAGUpsertTool,
     // MCP tools for external integrations
-    ...await getMCPToolsByServer('nodeCodeSandbox'),
-    ...await getMCPToolsByServer('sequentialThinking'),
-    ...await getMCPToolsByServer('tavily'),
-    ...await getMCPToolsByServer('filesystem'),
-    ...await getMCPToolsByServer('git'),
-    ...await getMCPToolsByServer('fetch'),
-    ...await getMCPToolsByServer('puppeteer'),
-    ...await getMCPToolsByServer('github')
+    ...mcpTools.nodeCodeSandbox,
+    ...mcpTools.tavily,
+    ...mcpTools.filesystem,
+    ...mcpTools.git,
+    ...mcpTools.fetch,
+    ...mcpTools.puppeteer,
+    ...mcpTools.github
   },
   memory: upstashMemory,
 });

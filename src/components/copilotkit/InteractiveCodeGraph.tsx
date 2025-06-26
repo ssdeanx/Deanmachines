@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
     ReactFlow,
     Node,
@@ -14,7 +14,7 @@ import {
     MiniMap
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { useCopilotReadable, useCopilotAction } from "@copilotkit/react-core";
+import { useCopilotReadable } from "@copilotkit/react-core";
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -57,11 +57,12 @@ interface CodeGraphNodeData extends Record<string, unknown> {
 type CodeGraphNode = Node<CodeGraphNodeData>;
 type CodeGraphEdge = Edge;
 
+import { useCodeGraph } from './CodeGraphContext';
+
 /**
  * Props for the InteractiveCodeGraph component
  *
  * @interface InteractiveCodeGraphProps
- * @property {string} graphData - Raw graph data from agents
  * @property {string} repoUrl - Repository URL being analyzed
  * @property {function} onNodeSelect - Callback when a node is selected
  *
@@ -69,7 +70,6 @@ type CodeGraphEdge = Edge;
  * @date 2025-06-13
  */
 interface InteractiveCodeGraphProps {
-    graphData: string;
     repoUrl: string;
     onNodeSelect: (nodeData: CodeGraphNodeData) => void;
 }
@@ -97,7 +97,6 @@ interface InteractiveCodeGraphProps {
  * @example
  * ```typescript
  * <InteractiveCodeGraph
- *   graphData={analysisResults}
  *   repoUrl="https://github.com/user/repo"
  *   onNodeSelect={(nodeData) => console.log('Selected:', nodeData)}
  * />
@@ -108,236 +107,34 @@ interface InteractiveCodeGraphProps {
  * @version 1.0.0
  * @model Claude Sonnet 4
  */
-export function InteractiveCodeGraph({ graphData, repoUrl, onNodeSelect }: InteractiveCodeGraphProps) {
+export function InteractiveCodeGraph({ repoUrl, onNodeSelect }: InteractiveCodeGraphProps) {
+    const { graphData, isGenerating, generateGraph, filterType, setFilterType, searchTerm, setSearchTerm, layoutType, setLayoutType } = useCodeGraph();
     const [nodes, setNodes, onNodesChange] = useNodesState<CodeGraphNode>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<CodeGraphEdge>([]);
     const [selectedNode, setSelectedNode] = useState<CodeGraphNode | null>(null);
-    const [filterType, setFilterType] = useState<string>('all');
-    const [searchTerm, setSearchTerm] = useState('');
-    const [isGenerating, setIsGenerating] = useState(false);
-    const [layoutType, setLayoutType] = useState<'hierarchical' | 'force' | 'circular'>('hierarchical');
 
-    // Generate sample nodes and edges for demonstration
-    const generateSampleGraph = useCallback(() => {
-        const sampleNodes: CodeGraphNode[] = [
-            {
-                id: '1',
-                type: 'default',
-                position: { x: 250, y: 50 },
-                data: {
-                    label: 'src/index.ts',
-                    type: 'file',
-                    path: 'src/index.ts',
-                    size: 150,
-                    dependencies: ['2', '3'],
-                    language: 'typescript',
-                    metadata: { lines: 150, complexity: 'medium' }
-                },
-                style: {
-                    background: '#1e40af',
-                    color: 'white',
-                    border: '2px solid #3b82f6',
-                    borderRadius: '8px'
-                }
-            },
-            {
-                id: '2',
-                type: 'default',
-                position: { x: 100, y: 150 },
-                data: {
-                    label: 'src/utils.ts',
-                    type: 'file',
-                    path: 'src/utils.ts',
-                    size: 80,
-                    dependencies: [],
-                    language: 'typescript',
-                    metadata: { lines: 80, complexity: 'low' }
-                },
-                style: {
-                    background: '#059669',
-                    color: 'white',
-                    border: '2px solid #10b981',
-                    borderRadius: '8px'
-                }
-            },
-            {
-                id: '3',
-                type: 'default',
-                position: { x: 400, y: 150 },
-                data: {
-                    label: 'src/components/',
-                    type: 'folder',
-                    path: 'src/components/',
-                    size: 500,
-                    dependencies: ['4', '5'],
-                    language: 'typescript',
-                    metadata: { files: 12, complexity: 'high' }
-                },
-                style: {
-                    background: '#7c3aed',
-                    color: 'white',
-                    border: '2px solid #8b5cf6',
-                    borderRadius: '8px'
-                }
-            },
-            {
-                id: '4',
-                type: 'default',
-                position: { x: 300, y: 250 },
-                data: {
-                    label: 'Button.tsx',
-                    type: 'component',
-                    path: 'src/components/Button.tsx',
-                    size: 120,
-                    dependencies: [],
-                    language: 'typescript',
-                    metadata: { lines: 120, complexity: 'medium' }
-                },
-                style: {
-                    background: '#dc2626',
-                    color: 'white',
-                    border: '2px solid #ef4444',
-                    borderRadius: '8px'
-                }
-            },
-            {
-                id: '5',
-                type: 'default',
-                position: { x: 500, y: 250 },
-                data: {
-                    label: 'Modal.tsx',
-                    type: 'component',
-                    path: 'src/components/Modal.tsx',
-                    size: 200,
-                    dependencies: ['2'],
-                    language: 'typescript',
-                    metadata: { lines: 200, complexity: 'high' }
-                },
-                style: {
-                    background: '#ea580c',
-                    color: 'white',
-                    border: '2px solid #f97316',
-                    borderRadius: '8px'
-                }
-            }
-        ];
-
-        const sampleEdges: CodeGraphEdge[] = [
-            { id: 'e1-2', source: '1', target: '2', type: 'smoothstep', style: { stroke: '#3b82f6' } },
-            { id: 'e1-3', source: '1', target: '3', type: 'smoothstep', style: { stroke: '#3b82f6' } },
-            { id: 'e3-4', source: '3', target: '4', type: 'smoothstep', style: { stroke: '#8b5cf6' } },
-            { id: 'e3-5', source: '3', target: '5', type: 'smoothstep', style: { stroke: '#8b5cf6' } },
-            { id: 'e5-2', source: '5', target: '2', type: 'smoothstep', style: { stroke: '#f97316' } }
-        ];
-
-        setNodes(sampleNodes);
-        setEdges(sampleEdges);
-    }, [setNodes, setEdges]);
-
-    /**
-     * Convert raw JSON graph data (as produced by the Mastra workflows) to
-     * xyflow-compatible nodes and edges. Falls back gracefully if the data
-     * cannot be parsed.
-     */
-    const parseGraphData = useCallback((raw: string) => {
-        try {
-            const parsed = JSON.parse(raw);
-            if (!parsed || !Array.isArray(parsed.nodes) || !Array.isArray(parsed.edges)) {
-                console.warn('Invalid graph data format – falling back to sample graph.');
-                return false;
-            }
-
-            const total = parsed.nodes.length;
-
-            // Helper: assign a unique (x,y) position if absent
-            const getPosition = (index: number): { x: number; y: number } => {
-                // Simple radial layout – upgradeable later
-                const angle = (index / total) * Math.PI * 2;
-                const radius = 300;
-                return { x: radius * Math.cos(angle), y: radius * Math.sin(angle) };
-            };
-
-            const mapNodeColor = (type: string): { bg: string; border: string } => {
-                switch (type) {
-                    case 'file':
-                        return { bg: '#2563eb', border: '#3b82f6' }; // blue
-                    case 'folder':
-                        return { bg: '#7c3aed', border: '#8b5cf6' }; // purple
-                    case 'component':
-                        return { bg: '#dc2626', border: '#ef4444' }; // red
-                    case 'function':
-                        return { bg: '#059669', border: '#10b981' }; // green
-                    case 'class':
-                        return { bg: '#ca8a04', border: '#eab308' }; // yellow
-                    default:
-                        return { bg: '#334155', border: '#475569' }; // gray
-                }
-            };
-
-            interface RawGraphNode {
-                id?: string;
-                label?: string;
-                type?: string;
-                path?: string;
-                size?: number;
-                dependencies?: string[];
-                language?: string;
-                metadata?: Record<string, unknown>;
-                position?: { x: number; y: number };
-            }
-
-            interface RawGraphEdge {
-                id?: string;
-                source: string;
-                target: string;
-                type?: string;
-            }
-
-            const rawNodes: RawGraphNode[] = parsed.nodes;
-            const rawEdges: RawGraphEdge[] = parsed.edges;
-
-            const newNodes: CodeGraphNode[] = rawNodes.map((n, idx) => {
-                const { bg, border } = mapNodeColor(n.type ?? 'unknown');
-                const position = n.position ?? getPosition(idx);
-
-                return {
-                    id: n.id ?? `${idx}`,
-                    type: 'default',
-                    position,
-                    data: {
-                        label: n.label ?? n.path ?? n.id,
-                        type: n.type ?? 'unknown',
-                        path: n.path,
-                        size: n.size ?? 0,
-                        dependencies: n.dependencies ?? [],
-                        language: n.language ?? 'unknown',
-                        metadata: n.metadata ?? {}
-                    },
-                    style: {
-                        background: bg,
-                        color: 'white',
-                        border: `2px solid ${border}`,
-                        borderRadius: '8px'
-                    }
-                } as CodeGraphNode;
-            });
-
-            const newEdges: CodeGraphEdge[] = rawEdges.map((e, idx) => ({
-                id: e.id ?? `e-${idx}`,
-                source: e.source,
-                target: e.target,
-                type: 'smoothstep',
-                style: { stroke: '#6b7280' } // neutral edge color
-            }));
-
-            setNodes(newNodes);
-            setEdges(newEdges);
-            return true;
-        } catch (error) {
-            console.error('Failed to parse graph data:', error);
-            return false;
+    // Memoized filtered nodes and edges
+    const filteredNodes = useMemo(() => {
+        let filtered = nodes;
+        if (filterType !== 'all') {
+            filtered = filtered.filter(node => node.data.type === filterType);
         }
-    }, [setNodes, setEdges]);
+        if (searchTerm) {
+            const lowerCaseSearchTerm = searchTerm.toLowerCase();
+            filtered = filtered.filter(node =>
+                node.data.label.toLowerCase().includes(lowerCaseSearchTerm) ||
+                node.data.path.toLowerCase().includes(lowerCaseSearchTerm)
+            );
+        }
+        return filtered;
+    }, [nodes, filterType, searchTerm]);
+
+    const filteredEdges = useMemo(() => {
+        const filteredNodeIds = new Set(filteredNodes.map(node => node.id));
+        return edges.filter(edge =>
+            filteredNodeIds.has(edge.source) && filteredNodeIds.has(edge.target)
+        );
+    }, [edges, filteredNodes]);
 
     // Initialize or update graph when graphData changes
     useEffect(() => {
@@ -374,93 +171,11 @@ export function InteractiveCodeGraph({ graphData, repoUrl, onNodeSelect }: Inter
         }
     });
 
-    // Add action to generate graph from repository
-    useCopilotAction({
-        name: "generateCodeGraph",
-        description: "Generate an interactive code graph from a GitHub repository",
-        parameters: [
-            {
-                name: "repositoryUrl",
-                type: "string",
-                description: "GitHub repository URL to analyze"
-            },
-            {
-                name: "analysisType",
-                type: "string",
-                description: "Type of analysis to perform",
-                enum: ["dependencies", "structure", "components", "all"]
-            }
-        ],
-        handler: async ({ repositoryUrl, analysisType }) => {
-            setIsGenerating(true);
-            // This would integrate with your existing Mastra workflows
-            // For now, generate enhanced sample data
-            setTimeout(() => {
-                generateSampleGraph();
-                setIsGenerating(false);
-            }, 2000);
-            return `Generated ${analysisType} graph for ${repositoryUrl}`;
-        }
-    });
-
-    // Add action to filter nodes
-    useCopilotAction({
-        name: "filterGraphNodes",
-        description: "Filter graph nodes by type, language, or other criteria",
-        parameters: [
-            {
-                name: "filterCriteria",
-                type: "string",
-                description: "Filter criteria",
-                enum: ["file", "folder", "component", "function", "class", "all"]
-            }
-        ],
-        handler: async ({ filterCriteria }) => {
-            setFilterType(filterCriteria);
-            return `Filtered graph to show ${filterCriteria} nodes`;
-        }
-    });
-
-    // Add action to search nodes
-    useCopilotAction({
-        name: "searchGraphNodes",
-        description: "Search for specific nodes in the graph",
-        parameters: [
-            {
-                name: "searchQuery",
-                type: "string",
-                description: "Search query to find nodes"
-            }
-        ],
-        handler: async ({ searchQuery }) => {
-            setSearchTerm(searchQuery);
-            return `Searching for nodes matching: ${searchQuery}`;
-        }
-    });
-
-    // Add action to change layout type
-    useCopilotAction({
-        name: "changeGraphLayout",
-        description: "Change the layout style of the graph",
-        parameters: [
-            {
-                name: "layoutStyle",
-                type: "string",
-                description: "Layout style to apply",
-                enum: ["hierarchical", "force", "circular"]
-            }
-        ],
-        handler: async ({ layoutStyle }) => {
-            setLayoutType(layoutStyle as 'hierarchical' | 'force' | 'circular');
-            return `Changed graph layout to ${layoutStyle}`;
-        }
-    });
-
     return (
         <div className="w-full h-full relative">
             <ReactFlow
-                nodes={nodes}
-                edges={edges}
+                nodes={filteredNodes}
+                edges={filteredEdges}
                 onNodesChange={onNodesChange}
                 onEdgesChange={onEdgesChange}
                 onNodeClick={onNodeClick}
@@ -490,7 +205,7 @@ export function InteractiveCodeGraph({ graphData, repoUrl, onNodeSelect }: Inter
                             <div className="flex gap-2">
                                 <Button
                                     size="sm"
-                                    onClick={generateSampleGraph}
+                                    onClick={() => generateGraph(repoUrl, 'dependencies', 'detailed')}
                                     disabled={isGenerating}
                                     className="flex-1"
                                 >
@@ -579,5 +294,3 @@ export function InteractiveCodeGraph({ graphData, repoUrl, onNodeSelect }: Inter
                 )}
             </ReactFlow>
         </div>
-    );
-}

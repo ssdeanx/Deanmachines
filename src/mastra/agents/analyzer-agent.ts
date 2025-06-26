@@ -5,11 +5,12 @@ import { upstashMemory } from '../upstashMemory';
 import { vectorQueryTool } from "../tools/vectorQueryTool";
 import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
-import { getMCPToolsByServer } from '../tools/mcp';
+import { mcpTools } from '../tools/mcp';
 import { chunkerTool } from "../tools/chunker-tool";
 
 
 import { z } from "zod";
+import { UPSTASH_PROMPT } from "@mastra/upstash";
 
 const logger = createAgentDualLogger('AnalyzerAgent');
 logger.info('Initializing AnalyzerAgent');
@@ -120,7 +121,9 @@ When responding:
 - Suggest appropriate statistical methods and models.
 - Consider data privacy and security implications.
 - Provide clear explanations of analytical results.
-- Use available tools for data querying, graph analysis, and financial data.`;
+- Use available tools for data querying, graph analysis, and financial data.
+${UPSTASH_PROMPT}
+`;
   },
   model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
     responseModalities: ["TEXT"],
@@ -223,11 +226,10 @@ When responding:
   tools: {
     vectorQueryTool,
     chunkerTool,
-    ...await getMCPToolsByServer('filesystem'),
-    ...await getMCPToolsByServer('git'),
-    ...await getMCPToolsByServer('fetch'),
-    ...await getMCPToolsByServer('sequentialThinking'),
-    ...await getMCPToolsByServer('tavily'),
+    ...mcpTools.filesystem,
+    ...mcpTools.git,
+    ...mcpTools.fetch,
+    ...mcpTools.tavily,
   },
   memory: upstashMemory,
 });

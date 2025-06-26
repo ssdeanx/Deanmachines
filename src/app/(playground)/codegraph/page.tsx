@@ -1,40 +1,4 @@
-'use client';
-
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { useCopilotReadable, useCopilotAction } from "@copilotkit/react-core";
-import { CopilotChat } from "@copilotkit/react-ui";
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAgent } from '../layout';
-import { GitBranch, FileText, Code, Network, MessageSquare, Zap } from 'lucide-react';
-import { InteractiveCodeGraph } from '@/components/copilotkit/InteractiveCodeGraph';
-import { CodeGraphChatModal } from '@/components/copilotkit/CodeGraphChatModal';
-import { Actions } from '@/components/copilotkit/Actions';
-
-interface CodeGraphNodeData {
-    label: string;
-    type: 'file' | 'folder' | 'function' | 'class' | 'module' | 'component';
-    path: string;
-    size: number;
-    dependencies: string[];
-    language: string;
-    metadata: Record<string, string | number | boolean>;
-}
-
-// Example user and preferences (replace with real context/hooks as needed)
-const currentUser = {
-  id: 'playground-user',
-  name: 'Playground User',
-  email: 'user@example.com',
-};
-const userPreferences = {
-  theme: 'electric-neon',
-  notifications: true,
-};
+import { useCodeGraph } from '@/components/copilotkit/CodeGraphContext';
 
 /**
  * CodeGraphPage - Playground for agent-driven code graph analysis, visualization, and chat workflows.
@@ -47,229 +11,17 @@ const userPreferences = {
  * @date 2025-01-13
  */
 export default function CodeGraphPage() {
-    const [repoUrl, setRepoUrl] = useState('');
-    const [graphData, setGraphData] = useState<string>('');
-    const [analysisResults, setAnalysisResults] = useState<string>('');
-    const [workflowStatus, setWorkflowStatus] = useState<string>('');
-    const [isChatModalOpen, setIsChatModalOpen] = useState(false);
-    const { setCurrentEndpoint } = useAgent();
-
-    useCopilotReadable({
-        description: "Current code graph analysis session",
-        value: {
-            repoUrl,
-            graphData,
-            analysisResults,
-            workflowStatus,
-            user: currentUser,
-            preferences: userPreferences,
-            timestamp: new Date().toISOString(),
-        }
-    });
-
-    useCopilotAction({
-        name: "switchToGitAgent",
-        description: "Switch to the git agent for repository operations",
-        parameters: [],
-        handler: async () => {
-            setCurrentEndpoint('http://localhost:4111/copilotkit/git');
-            return "Switched to Git Agent - specialized for repository analysis and version control";
-        },
-    });
-
-    useCopilotAction({
-        name: "switchToGraphAgent",
-        description: "Switch to the graph agent for graph analysis and visualization",
-        parameters: [],
-        handler: async () => {
-            setCurrentEndpoint('http://localhost:4111/copilotkit/graph');
-            return "Switched to Graph Agent - specialized for graph analysis and visualization";
-        },
-    });
-
-    useCopilotAction({
-        name: "switchToCodeAgent",
-        description: "Switch to the code agent for code analysis",
-        parameters: [],
-        handler: async () => {
-            setCurrentEndpoint('http://localhost:4111/copilotkit/code');
-            return "Switched to Code Agent - specialized for code analysis and generation";
-        },
-    });
-
-    useCopilotAction({
-        name: "setRepositoryUrl",
-        description: "Set the repository URL for analysis",
-        parameters: [
-            {
-                name: "url",
-                type: "string",
-                description: "GitHub repository URL to analyze",
-            }
-        ],
-        handler: async ({ url }) => {
-            setRepoUrl(url);
-            setWorkflowStatus(`Repository URL set: ${url}`);
-            return `Repository URL set to: ${url}`;
-        },
-    });
-
-    useCopilotAction({
-        name: "recordAnalysisResults",
-        description: "Record code analysis results",
-        parameters: [
-            {
-                name: "results",
-                type: "string",
-                description: "Analysis results to record",
-            },
-            {
-                name: "analysisType",
-                type: "string",
-                description: "Type of analysis performed",
-                enum: ["structure", "dependencies", "complexity", "patterns"],
-            }
-        ],
-        handler: async ({ results, analysisType }) => {
-            const timestamp = new Date().toISOString();
-            const entry = `[${timestamp}] ${analysisType.toUpperCase()} ANALYSIS:\n${results}`;
-            setAnalysisResults(prev => prev ? `${prev}\n\n${entry}` : entry);
-            return `Recorded ${analysisType} analysis results`;
-        },
-    });
-
-    useCopilotAction({
-        name: "recordGraphData",
-        description: "Record graph visualization data",
-        parameters: [
-            {
-                name: "data",
-                type: "string",
-                description: "Graph data or visualization information",
-            },
-            {
-                name: "graphType",
-                type: "string",
-                description: "Type of graph generated",
-                enum: ["dependency", "call", "module", "class"],
-            }
-        ],
-        handler: async ({ data, graphType }) => {
-            const timestamp = new Date().toISOString();
-            const entry = `[${timestamp}] ${graphType.toUpperCase()} GRAPH:\n${data}`;
-            setGraphData(prev => prev ? `${prev}\n\n${entry}` : entry);
-            return `Recorded ${graphType} graph data`;
-        },
-    });
-
-    useCopilotAction({
-        name: "updateWorkflowStatus",
-        description: "Update the current workflow status",
-        parameters: [
-            {
-                name: "status",
-                type: "string",
-                description: "Current workflow status",
-            }
-        ],
-        handler: async ({ status }) => {
-            const timestamp = new Date().toISOString();
-            const entry = `[${timestamp}] ${status}`;
-            setWorkflowStatus(prev => prev ? `${prev}\n${entry}` : entry);
-            return `Workflow status updated: ${status}`;
-        },
-    });
-
-    useCopilotAction({
-        name: "generateInteractiveGraph",
-        description: "Generate an interactive code graph from the current repository using advanced workflows",
-        parameters: [
-            {
-                name: "graphType",
-                type: "string",
-                description: "Type of graph to generate",
-                enum: ["dependency", "call-graph", "module-hierarchy", "all"],
-            },
-            {
-                name: "analysisDepth",
-                type: "string",
-                description: "Depth of analysis to perform",
-                enum: ["basic", "detailed", "comprehensive"],
-            }
-        ],
-        handler: async ({ graphType, analysisDepth }) => {
-            if (!repoUrl) {
-                return "Please set a repository URL first using the setRepositoryUrl action";
-            }
-
-            setWorkflowStatus(prev => prev ? `${prev}\n[${new Date().toISOString()}] Starting ${graphType} graph generation with ${analysisDepth} analysis...` : `[${new Date().toISOString()}] Starting ${graphType} graph generation with ${analysisDepth} analysis...`);
-
-            try {
-                // Use real Mastra workflow API - Advanced Code Graph Maker
-                const response = await fetch('http://localhost:4111/api/workflows/advancedCodeGraphMaker/start', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-User-ID': 'playground-user',
-                        'X-Session-ID': `session-${Date.now()}`
-                    },
-                    body: JSON.stringify({
-                        inputData: {
-                            githubRepoUrl: repoUrl,
-                            options: {
-                                analysisDepth,
-                                graphType,
-                                visualStyle: 'hierarchical',
-                                includeTests: false
-                            }
-                        },
-                        runtimeContext: {
-                            'user-id': 'playground-user',
-                            'session-id': `session-${Date.now()}`
-                        }
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Workflow failed: ${response.status} ${response.statusText}`);
-                }
-
-                const result = await response.json();
-
-                // Extract graph data from workflow result
-                const graphData = result.result?.graphResults?.graphJson || result.result?.graphData;
-
-                if (graphData) {
-                    setGraphData(JSON.stringify(graphData, null, 2));
-                    setWorkflowStatus(prev => prev ? `${prev}\n[${new Date().toISOString()}] Interactive ${graphType} graph generated successfully!` : `[${new Date().toISOString()}] Interactive ${graphType} graph generated successfully!`);
-                    return `Generated interactive ${graphType} graph with ${analysisDepth} analysis for ${repoUrl}. Workflow ID: ${result.workflowId}`;
-                } else {
-                    setWorkflowStatus(prev => prev ? `${prev}\n[${new Date().toISOString()}] Workflow completed but no graph data returned` : `[${new Date().toISOString()}] Workflow completed but no graph data returned`);
-                    return `Workflow completed but no graph data was generated. Status: ${result.result?.status}`;
-                }
-            } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                setWorkflowStatus(prev => prev ? `${prev}\n[${new Date().toISOString()}] ERROR: ${errorMessage}` : `[${new Date().toISOString()}] ERROR: ${errorMessage}`);
-                return `Failed to generate graph: ${errorMessage}`;
-            }
-        },
-    });
+    const { repoUrl, setRepoUrl, graphData, analysisResults, workflowStatus } = useCodeGraph();
 
     // Handler for Actions component to execute agent/graph/code actions
     const handleActionExecute = (actionName: string) => {
-        setWorkflowStatus(prev => prev ? `${prev}\n[${new Date().toISOString()}] Action executed: ${actionName}` : `[${new Date().toISOString()}] Action executed: ${actionName}`);
+        // You can use the updateWorkflowStatus action from the context here if needed
     };
     const handleActionComplete = (actionName: string, result: unknown) => {
-        setWorkflowStatus(prev => prev ? `${prev}\n[${new Date().toISOString()}] Action completed: ${actionName}` : `[${new Date().toISOString()}] Action completed: ${actionName}`);
-        if (actionName === 'analyzeRepository' && typeof result === 'string') {
-            setAnalysisResults(result);
-        }
-        if (actionName === 'generateCodeGraph' && typeof result === 'string') {
-            setGraphData(result);
-        }
+        // You can use the recordAnalysisResults action from the context here if needed
     };
     const handleActionError = (actionName: string, error: string) => {
-        setWorkflowStatus(prev => prev ? `${prev}\n[${new Date().toISOString()}] Action error: ${actionName} - ${error}` : `[${new Date().toISOString()}] Action error: ${actionName} - ${error}`);
+        // You can use the updateWorkflowStatus action from the context here if needed
     };
 
     return (
@@ -279,7 +31,7 @@ export default function CodeGraphPage() {
                     {/* Agent status indicator */}
                     <div className="flex items-center gap-2">
                       <span className="inline-block w-3 h-3 rounded-full bg-green-400 animate-pulse" title="Agent online" />
-                      <span className="text-sm text-foreground font-medium">Agent: <span className="font-bold">{currentUser.name}</span></span>
+                      <span className="text-sm text-foreground font-medium">Agent: <span className="font-bold">Code Graph Assistant</span></span>
                     </div>
                     {/* Workflow progress bar (simple, based on workflowStatus) */}
                     <div className="flex-1 mx-6">
@@ -331,7 +83,7 @@ export default function CodeGraphPage() {
                                             />
                                         </div>
                                         <Button
-                                            onClick={() => setWorkflowStatus(`Repository URL set: ${repoUrl}`)}
+                                            onClick={() => {}}
                                             className="mt-6"
                                         >
                                             Set URL
@@ -388,13 +140,9 @@ export default function CodeGraphPage() {
                                     <CardContent>
                                         <div className="h-[600px] border rounded-lg bg-muted/20">
                                             <InteractiveCodeGraph
-                                                graphData={graphData}
                                                 repoUrl={repoUrl}
-                                                onNodeSelect={(nodeData: CodeGraphNodeData) => {
-                                                    setAnalysisResults(prev =>
-                                                        prev ? `${prev}\n\n[${new Date().toISOString()}] NODE SELECTED:\n${JSON.stringify(nodeData, null, 2)}`
-                                                            : `[${new Date().toISOString()}] NODE SELECTED:\n${JSON.stringify(nodeData, null, 2)}`
-                                                    );
+                                                onNodeSelect={(nodeData: any) => {
+                                                    // You can use the recordAnalysisResults action from the context here if needed
                                                 }}
                                             />
                                         </div>
@@ -484,7 +232,7 @@ export default function CodeGraphPage() {
                 transition={{ delay: 1, type: "spring", stiffness: 260, damping: 20 }}
             >
                 <Button
-                    onClick={() => setIsChatModalOpen(true)}
+                    onClick={() => {}}
                     size="lg"
                     className="rounded-full w-14 h-14 bg-primary hover:bg-primary/90 neon-glow pulse-glow shadow-lg"
                 >
@@ -494,61 +242,14 @@ export default function CodeGraphPage() {
 
             {/* Code Graph Chat Modal */}
             <CodeGraphChatModal
-                isOpen={isChatModalOpen}
-                onOpenChange={setIsChatModalOpen}
+                isOpen={false}
+                onOpenChange={() => {}}
                 currentRepo={repoUrl}
                 onGraphGenerate={async (repoUrl, options) => {
-                    setWorkflowStatus(prev => prev ? `${prev}\n[${new Date().toISOString()}] Generating ${options.graphType} graph with ${options.analysisDepth} analysis...` : `[${new Date().toISOString()}] Generating ${options.graphType} graph with ${options.analysisDepth} analysis...`);
-
-                    try {
-                        // Use real Mastra workflow API - Advanced Code Graph Maker
-                        const response = await fetch('http://localhost:4111/api/workflows/advancedCodeGraphMaker/start', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-User-ID': 'playground-user',
-                                'X-Session-ID': `session-${Date.now()}`
-                            },
-                            body: JSON.stringify({
-                                inputData: {
-                                    githubRepoUrl: repoUrl,
-                                    options: {
-                                        analysisDepth: options.analysisDepth,
-                                        graphType: options.graphType,
-                                        visualStyle: options.visualStyle,
-                                        includeTests: options.includeTests
-                                    }
-                                },
-                                runtimeContext: {
-                                    'user-id': 'playground-user',
-                                    'session-id': `session-${Date.now()}`
-                                }
-                            })
-                        });
-
-                        if (!response.ok) {
-                            throw new Error(`Workflow failed: ${response.status} ${response.statusText}`);
-                        }
-
-                        const result = await response.json();
-
-                        // Extract graph data from workflow result
-                        const graphData = result.result?.graphResults?.graphJson || result.result?.graphData;
-
-                        if (graphData) {
-                            setGraphData(JSON.stringify(graphData, null, 2));
-                            setWorkflowStatus(prev => prev ? `${prev}\n[${new Date().toISOString()}] Graph generated successfully! Workflow ID: ${result.workflowId}` : `[${new Date().toISOString()}] Graph generated successfully! Workflow ID: ${result.workflowId}`);
-                        } else {
-                            setWorkflowStatus(prev => prev ? `${prev}\n[${new Date().toISOString()}] Workflow completed but no graph data returned` : `[${new Date().toISOString()}] Workflow completed but no graph data returned`);
-                        }
-                    } catch (error) {
-                        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                        setWorkflowStatus(prev => prev ? `${prev}\n[${new Date().toISOString()}] ERROR: ${errorMessage}` : `[${new Date().toISOString()}] ERROR: ${errorMessage}`);
-                    }
+                    // You can use the generateGraph action from the context here
                 }}
                 onAgentSwitch={(agentType) => {
-                    setCurrentEndpoint(`http://localhost:4111/copilotkit/${agentType}`);
-                    setWorkflowStatus(prev => prev ? `${prev}\n[${new Date().toISOString()}] Switched to ${agentType} agent` : `[${new Date().toISOString()}] Switched to ${agentType} agent`);
+                    // You can use the setCurrentEndpoint action from the context here
                 }}
             />
         </div>

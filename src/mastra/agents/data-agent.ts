@@ -6,9 +6,10 @@ import { chunkerTool } from "../tools/chunker-tool";
 import { rerankTool } from "../tools/rerank-tool";
 import { stockPriceTool } from "../tools/stock-tools";
 import { createGemini25Provider } from '../config/googleProvider';
-import { getMCPToolsByServer } from '../tools/mcp';
+import { mcpTools } from '../tools/mcp';
 import { z } from "zod";
 import { createAgentDualLogger } from "../config/upstashLogger";
+import { UPSTASH_PROMPT } from "@mastra/upstash";
 
 const logger = createAgentDualLogger('DataAgent');
 logger.info('Initializing DataAgent');
@@ -138,7 +139,9 @@ When responding:
 - Follow data science best practices
 ${includeStats ? "- Include statistical tests and confidence intervals" : ""}
 
-Use available tools for data querying, graph analysis, and financial data.`;
+Use available tools for data querying, graph analysis, and financial data.
+${UPSTASH_PROMPT}
+`;
   },
   model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
         thinkingConfig: {
@@ -155,9 +158,8 @@ Use available tools for data querying, graph analysis, and financial data.`;
     enhancedVectorQueryTool,
     graphRAGUpsertTool,
     hybridVectorSearchTool,
-    ...await getMCPToolsByServer('sequentialThinking'),
-    ...await getMCPToolsByServer('tavily'),
-    ...await getMCPToolsByServer('filesystem'),
+    ...mcpTools.tavily,
+    ...mcpTools.filesystem,
   },  
   memory: upstashMemory,
 });

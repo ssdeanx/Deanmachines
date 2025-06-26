@@ -3,7 +3,7 @@ import { createGemini25Provider } from '../config/googleProvider';
 import { weatherTool } from '../tools/weather-tool';
 import { chunkerTool } from "../tools/chunker-tool";
 import { upstashMemory } from '../upstashMemory';
-import { getMCPToolsByServer } from '../tools/mcp';
+import { mcpTools } from '../tools/mcp';
 import { vectorQueryTool, hybridVectorSearchTool } from "../tools/vectorQueryTool";
 import { graphRAGTool, graphRAGUpsertTool } from "../tools/graphRAG";
 import { createAgentDualLogger } from '../config/upstashLogger';
@@ -86,11 +86,9 @@ Use the weatherTool to fetch current weather data.`;
     hybridVectorSearchTool,
     graphRAGTool,
     graphRAGUpsertTool,
-    ...await getMCPToolsByServer('filesystem'),
-    ...await getMCPToolsByServer('fetch'),
-    ...await getMCPToolsByServer('puppeteer'),
-    ...await getMCPToolsByServer('sequentialThinking'),
-    ...await getMCPToolsByServer('tavily')
+    ...mcpTools.filesystem,
+    ...mcpTools.fetch,
+    ...mcpTools.tavily
   },
   memory: upstashMemory,
 });

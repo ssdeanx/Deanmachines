@@ -5,7 +5,7 @@ import { chunkerTool } from "../tools/chunker-tool";
 import { graphRAGTool, graphRAGUpsertTool } from "../tools/graphRAG";
 import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
-import { getMCPToolsByServer } from '../tools/mcp';
+import { mcpTools } from '../tools/mcp';
 
 const logger = createAgentDualLogger('sysadminAgent');
 logger.info('Initializing sysadminAgent');
@@ -99,12 +99,10 @@ Use available tools to query system administration patterns and best practices.`
     graphRAGTool,
     graphRAGUpsertTool,
     hybridVectorSearchTool,
-    ...await getMCPToolsByServer('filesystem'),
-    ...await getMCPToolsByServer('git'),
-    ...await getMCPToolsByServer('fetch'),
-    ...await getMCPToolsByServer('sequentialThinking'),
-    ...await getMCPToolsByServer('tavily'),
-    ...await getMCPToolsByServer('nodeCodeSandbox'),
+    ...mcpTools.filesystem,
+    ...mcpTools.git,
+    ...mcpTools.fetch,
+    ...mcpTools.tavily
   },
   memory: upstashMemory,
 });

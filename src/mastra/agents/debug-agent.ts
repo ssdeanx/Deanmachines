@@ -6,7 +6,8 @@ import { chunkerTool } from "../tools/chunker-tool";
 import { rerankTool } from "../tools/rerank-tool";
 import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
-import { getMCPToolsByServer } from '../tools/mcp';
+import { mcpTools } from '../tools/mcp';
+import { UPSTASH_PROMPT } from "@mastra/upstash";
 
 const logger = createAgentDualLogger('DebugAgent');
 logger.info('Initializing DebugAgent');
@@ -92,7 +93,9 @@ When responding:
 ${includeStack ? "- Always include stack trace analysis when available" : ""}
 ${monitorPerformance ? "- Include performance metrics in debugging analysis" : ""}
 
-Use available tools to analyze system relationships and query relevant information.`;
+Use available tools to analyze system relationships and query relevant information.
+${UPSTASH_PROMPT}
+`;
   },
   model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
         thinkingConfig: {
@@ -102,20 +105,18 @@ Use available tools to analyze system relationships and query relevant informati
       }),  
   tools: {
     graphRAGTool,
+    graphRAGUpsertTool,
     vectorQueryTool,
     chunkerTool,
     rerankTool,
     hybridVectorSearchTool,
     enhancedVectorQueryTool,
-    graphRAGUpsertTool,
-    ...await getMCPToolsByServer('sequentialThinking'),
-    ...await getMCPToolsByServer('tavily'),
-    ...await getMCPToolsByServer('nodeCodeSandbox'),
-    ...await getMCPToolsByServer('filesystem'),
-    ...await getMCPToolsByServer('git'),
-    ...await getMCPToolsByServer('fetch'),
-    ...await getMCPToolsByServer('puppeteer'),
-    ...await getMCPToolsByServer('github')
+    ...mcpTools.tavily,
+    ...mcpTools.filesystem,
+    ...mcpTools.git,
+    ...mcpTools.fetch,
+    ...mcpTools.puppeteer,
+    ...mcpTools.github
   },
   memory: upstashMemory,
 });

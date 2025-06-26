@@ -6,11 +6,12 @@ import { graphRAGTool } from '../tools/graphRAG';
 import { vectorQueryTool } from "../tools/vectorQueryTool";
 import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
-import { getMCPToolsByServer } from '../tools/mcp';
+import { mcpTools } from '../tools/mcp';
 import { chunkerTool } from "../tools/chunker-tool";
 import { rerankTool } from "../tools/rerank-tool";
 
 import { z } from "zod";
+import { UPSTASH_PROMPT } from "@mastra/upstash";
 
 const logger = createAgentDualLogger('DocumentationAgent');
 logger.info('Initializing DocumentationAgent');
@@ -132,7 +133,9 @@ When responding:
 - Tailor content for ${docType} documentation type
 - Reference ${projectName} context appropriately
 
-Use available tools to analyze existing documentation and gather relevant information.`;
+Use available tools to analyze existing documentation and gather relevant information.
+${UPSTASH_PROMPT}
+`;
   },
   model: createGemini25Provider('gemini-2.5-flash-preview-05-20', {
         thinkingConfig: {
@@ -145,12 +148,11 @@ Use available tools to analyze existing documentation and gather relevant inform
     vectorQueryTool,
     chunkerTool,
     rerankTool,
-    ...await getMCPToolsByServer('filesystem'),
-    ...await getMCPToolsByServer('git'),
-    ...await getMCPToolsByServer('fetch'),
-    ...await getMCPToolsByServer('sequentialThinking'),
-    ...await getMCPToolsByServer('tavily'),
-    ...await getMCPToolsByServer('memoryGraph'),
+    ...mcpTools.filesystem,
+    ...mcpTools.git,
+    ...mcpTools.fetch,
+    ...mcpTools.tavily,
+    ...mcpTools.memoryGraph,
   },
   memory: upstashMemory,
 });

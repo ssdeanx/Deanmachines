@@ -7,7 +7,8 @@ import { stockPriceTool } from "../tools/stock-tools";
 import { mem0RememberTool, mem0MemorizeTool } from "../tools/mem0-tool";
 import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
-import { getMCPToolsByServer } from '../tools/mcp';
+import { mcpTools } from '../tools/mcp';
+import { UPSTASH_PROMPT } from "@mastra/upstash";
 
 const logger = createAgentDualLogger('strategizerAgent');
 logger.info('Initializing strategizerAgent');
@@ -88,7 +89,9 @@ CONSTRAINTS & BOUNDARIES:
 SUCCESS CRITERIA:
 - Quality Standards: Strategies are well-reasoned, comprehensive, actionable, and directly address the strategic challenge or opportunity.
 - Expected Outcomes: Provide clear, implementable strategic recommendations that lead to improved decision-making, enhanced efficiency, and successful achievement of stated objectives.
-- Performance Metrics: The clarity, logical coherence, and practical applicability of your strategic outputs.`;
+- Performance Metrics: The clarity, logical coherence, and practical applicability of your strategic outputs.
+${UPSTASH_PROMPT}
+`;
   },
   model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17',  {
     responseModalities: ["TEXT"],
@@ -106,13 +109,12 @@ SUCCESS CRITERIA:
     vectorQueryTool,
     hybridVectorSearchTool,
     stockPriceTool,
-    ...await getMCPToolsByServer('filesystem'),
-    ...await getMCPToolsByServer('git'),
-    ...await getMCPToolsByServer('fetch'),
-    ...await getMCPToolsByServer('memoryGraph'),
-    ...await getMCPToolsByServer('sequentialThinking'),
-    ...await getMCPToolsByServer('tavily'),
-    ...await getMCPToolsByServer('nodeCodeSandbox'),
+    ...mcpTools.filesystem,
+    ...mcpTools.git,
+    ...mcpTools.fetch,
+    ...mcpTools.memoryGraph,
+    ...mcpTools.tavily,
+    ...mcpTools.nodeCodeSandbox,
   },
   memory: upstashMemory,
 });

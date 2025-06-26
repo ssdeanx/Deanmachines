@@ -5,8 +5,9 @@ import { vectorQueryTool } from "../tools/vectorQueryTool";
 import { chunkerTool } from "../tools/chunker-tool";
 import { createGemini25Provider } from '../config/googleProvider';
 import { createAgentDualLogger } from '../config/upstashLogger';
-import { getMCPToolsByServer } from '../tools/mcp';
+import { mcpTools } from '../tools/mcp';
 import { z } from 'zod';
+import { UPSTASH_PROMPT } from "@mastra/upstash";
 
 const logger = createAgentDualLogger('ReactAgent');
 
@@ -181,7 +182,9 @@ User: "Find and fix the performance issue in our React application"
 
 ✅ **DECISION:** Continue with one more cycle to analyze bundle size and memory usage, then provide specific recommendations.
 
-Remember: Always be explicit about your reasoning process and use the available tools effectively to gather information and take actions.`;
+Remember: Always be explicit about your reasoning process and use the available tools effectively to gather information and take actions.
+${UPSTASH_PROMPT}
+`;
   },
   model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
     thinkingConfig: {
@@ -193,13 +196,12 @@ Remember: Always be explicit about your reasoning process and use the available 
     graphRAGTool,
     vectorQueryTool,
     chunkerTool,
-    ...await getMCPToolsByServer('filesystem'),
-    ...await getMCPToolsByServer('git'),
-    ...await getMCPToolsByServer('fetch'),
-    ...await getMCPToolsByServer('memoryGraph'),
-    ...await getMCPToolsByServer('sequentialThinking'),
-    ...await getMCPToolsByServer('tavily'),
-    ...await getMCPToolsByServer('nodeCodeSandbox'),
+    ...mcpTools.filesystem,
+    ...mcpTools.git,
+    ...mcpTools.fetch,
+    ...mcpTools.memoryGraph,
+    ...mcpTools.tavily,
+    ...mcpTools.nodeCodeSandbox,
   },
   memory: upstashMemory,
 });

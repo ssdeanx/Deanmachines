@@ -5,9 +5,10 @@ import { vectorQueryTool, hybridVectorSearchTool } from "../tools/vectorQueryToo
 import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
 import { chunkerTool } from "../tools/chunker-tool";
-import { getMCPToolsByServer } from '../tools/mcp';
+import { mcpTools } from '../tools/mcp';
 
 import { z } from "zod";
+import { UPSTASH_PROMPT } from "@mastra/upstash";
 
 const logger = createAgentDualLogger('ProcessingAgent');
 logger.info('Initializing ProcessingAgent');
@@ -157,7 +158,9 @@ When responding:
 - Recommend monitoring and observability solutions
 - Handle edge cases and data quality issues gracefully
 
-Use available tools to analyze data relationships and processing patterns.`;
+Use available tools to analyze data relationships and processing patterns.
+${UPSTASH_PROMPT}
+`;
   },
   model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
     responseModalities: ["TEXT"],
@@ -251,12 +254,11 @@ Use available tools to analyze data relationships and processing patterns.`;
     vectorQueryTool,
     hybridVectorSearchTool,
     chunkerTool,
-    ...await getMCPToolsByServer('filesystem'),
-    ...await getMCPToolsByServer('git'),
-    ...await getMCPToolsByServer('fetch'),
-    ...await getMCPToolsByServer('memoryGraph'),
-    ...await getMCPToolsByServer('sequentialThinking'),
-    ...await getMCPToolsByServer('tavily'),
+    ...mcpTools.filesystem,
+    ...mcpTools.git,
+    ...mcpTools.fetch,
+    ...mcpTools.memoryGraph,
+    ...mcpTools.tavily,
 
   },
   memory: upstashMemory,

@@ -4,10 +4,10 @@ import { upstashMemory } from '../upstashMemory';
 import { graphRAGTool } from '../tools/graphRAG';
 import { vectorQueryTool, hybridVectorSearchTool } from "../tools/vectorQueryTool";
 import { chunkerTool } from "../tools/chunker-tool";
-import { rerankTool } from "../tools/rerank-tool";
 import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
-import { getMCPToolsByServer } from '../tools/mcp';
+import { mcpTools } from '../tools/mcp';
+import { UPSTASH_PROMPT } from "@mastra/upstash";
 
 
 /**
@@ -157,7 +157,9 @@ SUCCESS CRITERIA:
 -   Operational Efficiency: Efficient and correct utilization of Neo4j tools for all graph operations.
 -   Insight Generation: Ability to extract meaningful and actionable insights from complex graph data.
 -   Collaboration Effectiveness: Seamless and productive interaction with other AI agents and users.
--   User Satisfaction: User feedback indicates high satisfaction with the quality of graphs produced and insights provided.`;
+-   User Satisfaction: User feedback indicates high satisfaction with the quality of graphs produced and insights provided.
+${UPSTASH_PROMPT}
+`;
   },
   model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
         thinkingConfig: {
@@ -170,14 +172,12 @@ SUCCESS CRITERIA:
     hybridVectorSearchTool,
     vectorQueryTool,
     chunkerTool,
-    rerankTool,
-    ...await getMCPToolsByServer('neo4j'),
-    ...await getMCPToolsByServer('fetch'),
-    ...await getMCPToolsByServer('sequentialThinking'),
-    ...await getMCPToolsByServer('tavily'),
-    ...await getMCPToolsByServer('filesystem'),
-    ...await getMCPToolsByServer('git'),
-    ...await getMCPToolsByServer('memoryGraph')
+    ...mcpTools.neo4j,
+    ...mcpTools.fetch,
+    ...mcpTools.tavily,
+    ...mcpTools.filesystem,
+    ...mcpTools.git,
+    ...mcpTools.memoryGraph
   },
   memory: upstashMemory,
 });

@@ -3,7 +3,7 @@ import { upstashMemory } from '../upstashMemory';
 import { vectorQueryTool } from "../tools/vectorQueryTool";
 import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
-import { getMCPToolsByServer } from '../tools/mcp';
+import { mcpTools } from '../tools/mcp';
 import { chunkerTool } from "../tools/chunker-tool";
 
 import { graphRAGTool } from "../tools/graphRAG";
@@ -104,12 +104,11 @@ Use available tools to query project management patterns and best practices.`;
     vectorQueryTool,
     chunkerTool,
     graphRAGTool,
-    ...await getMCPToolsByServer('filesystem'),
-    ...await getMCPToolsByServer('memoryGraph'),
-    ...await getMCPToolsByServer('git'),
-    ...await getMCPToolsByServer('fetch'),
-    ...await getMCPToolsByServer('sequentialThinking'),
-    ...await getMCPToolsByServer('tavily'),
+    ...mcpTools.filesystem,
+    ...mcpTools.memoryGraph,
+    ...mcpTools.git,
+    ...mcpTools.fetch,
+    ...mcpTools.tavily,
   },
   memory: upstashMemory,
 });

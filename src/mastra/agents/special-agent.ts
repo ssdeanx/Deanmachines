@@ -4,10 +4,10 @@ import { graphRAGTool } from '../tools/graphRAG';
 import { vectorQueryTool } from "../tools/vectorQueryTool";
 import { stockPriceTool } from "../tools/stock-tools";
 import { chunkerTool } from "../tools/chunker-tool";
-import { rerankTool } from "../tools/rerank-tool";
 import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
-import { getMCPToolsByServer } from '../tools/mcp';
+import { mcpTools } from '../tools/mcp';
+import { UPSTASH_PROMPT } from "@mastra/upstash";
 
 const logger = createAgentDualLogger('specialAgent');
 logger.info('Initializing specialAgent');
@@ -88,7 +88,9 @@ When responding:
 - Suggest experimental or prototyping approaches when appropriate
 - Balance innovation with practical implementation
 
-Use all available tools to provide comprehensive multi-domain analysis.`;
+Use all available tools to provide comprehensive multi-domain analysis.
+${UPSTASH_PROMPT}
+`;
   },
   model: createGemini25Provider('gemini-2.5-flash-preview-05-20', {
         thinkingConfig: {
@@ -99,15 +101,13 @@ Use all available tools to provide comprehensive multi-domain analysis.`;
     graphRAGTool,
     vectorQueryTool,
     chunkerTool,
-    rerankTool,
     stockPriceTool,
-    ...await getMCPToolsByServer('filesystem'),
-    ...await getMCPToolsByServer('git'),
-    ...await getMCPToolsByServer('fetch'),
-    ...await getMCPToolsByServer('memoryGraph'),
-    ...await getMCPToolsByServer('sequentialThinking'),
-    ...await getMCPToolsByServer('tavily'),
-    ...await getMCPToolsByServer('nodeCodeSandbox'),
+    ...mcpTools.filesystem,
+    ...mcpTools.git,
+    ...mcpTools.fetch,
+    ...mcpTools.memoryGraph,
+    ...mcpTools.tavily,
+    ...mcpTools.nodeCodeSandbox,
   },
   memory: upstashMemory,
 });

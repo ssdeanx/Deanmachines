@@ -1,14 +1,13 @@
 import { Agent } from "@mastra/core/agent";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { agentMemory } from '../agentMemory';
 import { upstashMemory } from '../upstashMemory';
 import { vectorQueryTool } from "../tools/vectorQueryTool";
 import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
-import { getMCPToolsByServer } from '../tools/mcp';
+import { mcpTools } from '../tools/mcp';
 import { chunkerTool } from "../tools/chunker-tool";
-import { rerankTool } from "../tools/rerank-tool";
 import { z } from "zod";
+import { graphRAGTool } from "../tools/graphRAG";
+import { UPSTASH_PROMPT } from "@mastra/upstash";
 
 /**
  * Runtime context type for the Git Agent
@@ -149,7 +148,9 @@ Success Criteria:
 - Consistent application of Git best practices and standards.
 - Accurate and reliable execution of direct commands.
 - Effective and timely provision of relevant Git data to other AI agents, enabling their successful operation.
-- High user satisfaction with guidance and automated assistance.`;
+- High user satisfaction with guidance and automated assistance.
+${UPSTASH_PROMPT}
+`;
   },
   model: createGemini25Provider('gemini-2.5-flash-lite-preview-06-17', {
         responseModalities: ["TEXT"],
@@ -160,15 +161,14 @@ Success Criteria:
       }),  tools: {
     vectorQueryTool,
     chunkerTool,
-    rerankTool,
-    ...await getMCPToolsByServer('git'),
-    ...await getMCPToolsByServer('fetch'),
-    ...await getMCPToolsByServer('sequentialThinking'),
-    ...await getMCPToolsByServer('tavily'),
-    ...await getMCPToolsByServer('filesystem'),
-    ...await getMCPToolsByServer('puppeteer'),
-    ...await getMCPToolsByServer('github'),
-    ...await getMCPToolsByServer('fetch')
+    graphRAGTool,
+    ...mcpTools.git,
+    ...mcpTools.fetch,
+    ...mcpTools.tavily,
+    ...mcpTools.filesystem,
+    ...mcpTools.puppeteer,
+    ...mcpTools.github,
+    ...mcpTools.fetch
   },
   memory: upstashMemory,
 });

@@ -14,7 +14,7 @@ trigger: always_on
 ## 🏗️ ARCHITECTURAL & TECHNOLOGICAL ALIGNMENT (CORE KNOWLEDGE)
 
 - Generate code that aligns with the project's intended architecture using **Mastra Core** as the backend AI framework with **AGUI** integration for CopilotKit frontend connectivity.
-- Core technologies: React, Next.js 15, TypeScript, Mastra Core, AGUI, CopilotKit, Google AI (Gemini models), LibSQL/Turso, LangSmith, OpenTelemetry.
+- Core technologies: React, Next.js 15, TypeScript, Mastra Core, AGUI, CopilotKit, Google AI (Gemini models), Upstash, LangFuse, OpenTelemetry.
 - Backend structure: Mastra agents, workflows, networks, and tools with registerCopilotKit endpoints.
 - Frontend structure: CopilotKit components consuming Mastra AGUI endpoints.
 - For specific implementation details, follow established patterns in `src/mastra/` directory and existing CopilotKit integrations.
