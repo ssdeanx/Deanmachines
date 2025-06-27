@@ -1,6 +1,6 @@
 ---
 trigger: glob
-globs: src/mastra/tools/**/*.ts
+globs: ./src/mastra/tools/**/*.ts
 ---
 
 # Mastra Tools Development Guidelines

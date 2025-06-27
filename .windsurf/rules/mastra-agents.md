@@ -1,5 +1,5 @@
 ---
 trigger: glob
-globs: src/mastra/agents/*.ts
+globs: ./src/mastra/agents/*.ts
 ---
 

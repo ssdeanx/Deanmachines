@@ -1,6 +1,6 @@
 ---
 trigger: glob
-globs: src/components/landing/*.tsx
+globs: ./src/components/landing/**/*.tsx
 ---
 
 # Landing Page Development Rules

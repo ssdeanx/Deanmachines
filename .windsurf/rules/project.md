@@ -1,5 +1,5 @@
 ---
-trigger: always_on
+trigger: always_off
 ---
 
 ## Deanmachines-rsc Project

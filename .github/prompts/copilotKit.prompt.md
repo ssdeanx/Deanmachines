@@ -22,48 +22,27 @@ https://docs.copilotkit.ai/reference/components/chat/CopilotPopup
 https://docs.copilotkit.ai/reference/components/chat/CopilotSidebar
 https://docs.copilotkit.ai/reference/components/CopilotTextarea
 https://docs.copilotkit.ai/reference/components/CopilotKit
-- Hooks
-https://docs.copilotkit.ai/reference/hooks/useCopilotReadable
+
+https://docs.copilotkit.ai/reference/classes/CopilotRuntime
+https://docs.copilotkit.ai/reference/classes/CopilotTask
+https://docs.copilotkit.ai/mastra/shared-guides/custom-look-and-feel/built-in-ui-components
+https://docs.copilotkit.ai/mastra/shared-guides/custom-look-and-feel/customize-built-in-ui-components
+https://docs.copilotkit.ai/mastra/shared-guides/custom-look-and-feel/bring-your-own-components
 https://docs.copilotkit.ai/reference/hooks/useCopilotAction
+https://docs.copilotkit.ai/reference/hooks/useCopilotReadable
 https://docs.copilotkit.ai/reference/hooks/useCopilotAdditionalInstructions
 https://docs.copilotkit.ai/reference/hooks/useCopilotChat
 https://docs.copilotkit.ai/reference/hooks/useCopilotChatSuggestions
 https://docs.copilotkit.ai/reference/hooks/useCoAgent
 https://docs.copilotkit.ai/reference/hooks/useCoAgentStateRender
-- Class
+https://docs.copilotkit.ai/reference/hooks/useLangGraphInterrupt
 https://docs.copilotkit.ai/reference/classes/CopilotRuntime
+
+https://docs.copilotkit.ai/reference/sdk/js/LangGraph
 https://docs.copilotkit.ai/reference/classes/CopilotTask
-- Customize UI
-https://docs.copilotkit.ai/guides/custom-look-and-feel/built-in-ui-components
-https://docs.copilotkit.ai/guides/custom-look-and-feel/customize-built-in-ui-components
-https://docs.copilotkit.ai/guides/custom-look-and-feel/bring-your-own-components
-https://docs.copilotkit.ai/guides/custom-look-and-feel/markdown-rendering
-https://docs.copilotkit.ai/guides/custom-look-and-feel/headless-ui
-- Connecting to your Data
-https://docs.copilotkit.ai/guides/connect-your-data/frontend
-https://docs.copilotkit.ai/guides/connect-your-data/backend
-- Generative-ui
-https://docs.copilotkit.ai/guides/generative-ui
-- Frontend Actions
-https://docs.copilotkit.ai/guides/frontend-actions
-- Backend Actions
-https://docs.copilotkit.ai/guides/backend-actions
-- Actions
-https://docs.copilotkit.ai/guides/backend-actions/typescript-backend-actions
-- MCP
-http://docs.copilotkit.ai/guides/model-context-protocol?cli=do-it-manually
-- Custom AI Assistant Behavior
-http://docs.copilotkit.ai/guides/custom-ai-assistant-behavior
-- Copilot Suggestions
-https://docs.copilotkit.ai/guides/copilot-suggestions
-- Bring Your Own LLM
-https://docs.copilotkit.ai/guides/bring-your-own-llm?hosting=self-hosted
-- Copilot Textarea
-https://docs.copilotkit.ai/guides/copilot-textarea
-- self-hosting
-https://docs.copilotkit.ai/guides/self-hosting
-- Messages and LocalStorage
-https://docs.copilotkit.ai/guides/messages-localstorage
+https://docs.copilotkit.ai/reference/classes/llm-adapters/LangChainAdapter
+https://docs.copilotkit.ai/reference/classes/llm-adapters/GoogleGenerativeAIAdapter
+https://docs.copilotkit.ai/coagents/quickstart?path=code-along&lg-deployment-type=LangGraph+Platform&copilot-hosting=self-hosted
 
 https://docs.copilotkit.ai/mastra
 https://docs.copilotkit.ai/mastra/agentic-chat-ui
@@ -74,28 +53,6 @@ https://docs.copilotkit.ai/mastra/frontend-actions
 https://docs.copilotkit.ai/mastra/multi-agent-flows
 https://docs.copilotkit.ai/mastra/concepts/agentic-copilots?experience=intermediate
 https://docs.copilotkit.ai/mastra/concepts/mastra
-https://docs.copilotkit.ai/guides/custom-look-and-feel/customize-built-in-ui-components
-
-https://docs.copilotkit.ai/guides/custom-look-and-feel/bring-your-own-components
-https://docs.copilotkit.ai/guides/custom-look-and-feel/markdown-rendering
-https://docs.copilotkit.ai/guides/custom-look-and-feel/headless-ui
-https://docs.copilotkit.ai/guides/connect-your-data/frontend
-https://docs.copilotkit.ai/guides/connect-your-data/backend
-
-https://docs.copilotkit.ai/guides/generative-ui
-https://docs.copilotkit.ai/guides/generative-ui?gen-ui-type=Fetch+data+%26+render
-https://docs.copilotkit.ai/guides/generative-ui?gen-ui-type=renderAndWaitForResponse+%28HITL%29
-https://docs.copilotkit.ai/guides/generative-ui?gen-ui-type=Render+strings
-https://docs.copilotkit.ai/guides/generative-ui?gen-ui-type=Catch+all+renders
-
-https://docs.copilotkit.ai/guides/frontend-actions
-https://docs.copilotkit.ai/guides/backend-actions/typescript-backend-actions
-
-https://docs.copilotkit.ai/guides/custom-ai-assistant-behavior
-https://docs.copilotkit.ai/guides/copilot-suggestions
-https://docs.copilotkit.ai/guides/copilot-textarea
-https://docs.copilotkit.ai/guides/messages-localstorage
-https://docs.copilotkit.ai/observability/langsmith
 
 ## 3. Example
 

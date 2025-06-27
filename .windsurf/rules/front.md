@@ -1,6 +1,6 @@
 ---
 trigger: glob
-globs: src/app/**/*.tsx src/components/**/*.tsx src/hooks/**/*.ts src/lib/**/*.ts
+globs: ./src/app/**/*.tsx ./src/components/**/*.tsx ./src/hooks/**/*.ts ./src/lib/**/*.ts
 ---
 
 # Frontend Development Rules

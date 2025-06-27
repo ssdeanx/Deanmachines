@@ -546,4 +546,4 @@ This file contains the rules and guidelines for the AI coding assistant to follo
       - `src/mastra/agents/sysadmin-agent.ts` - System administration and DevOps
       - `src/mastra/agents/browser-agent.ts` - Web automation with Playwright
 
-- When asked to fill out a file (e
+- When asked to analyze `#file:copilot
