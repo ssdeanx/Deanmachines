@@ -19,10 +19,6 @@ import { PinoLogger } from '@mastra/loggers';
 import { createMastraGoogleProvider } from './googleProvider';
 import { formatISO } from 'date-fns';
 
-// Langfuse imports
-import { LangfuseExporter } from "langfuse-vercel";
-import { Langfuse } from "langfuse";
-
 /**
  * Observability logger for tracing and monitoring
  */

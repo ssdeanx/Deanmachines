@@ -1,20 +1,20 @@
 import { Agent } from '@mastra/core/agent';
 import { createGemini25Provider } from '../config';
 import { upstashMemory } from '../upstashMemory';
-import { createAgentDualLogger } from '../config/upstashLogger';
-import { 
-  createMastraLangGraphWorkflow, 
-  createMastraLangGraphChat 
+import {
+  createMastraLangGraphWorkflow,
+  createMastraLangGraphChat
 } from '../config/langchainAdapter';
-import { 
+import {
   graphRAGTool,
   vectorQueryTool,
   chunkerTool,
 } from '../tools';
 import { mcpTools } from '../tools/mcp';
 import { UPSTASH_PROMPT } from '@mastra/upstash';
+import { PinoLogger } from "@mastra/loggers";
 
-const logger = createAgentDualLogger('LangGraphAgent');
+const logger = new PinoLogger({ name: 'LangGraphAgent', level: 'info' });
 
 /**
  * Runtime context type for the LangGraph Agent

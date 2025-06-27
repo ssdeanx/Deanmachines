@@ -641,7 +641,7 @@ export const upstashMemory = new Memory({
     }),
     new TokenLimiter(1000000), // 1M token limit for context
     new ToolCallFilter({
-      exclude: ['get_pull_request_reviews', 'search_issues', 'get_issue', 'create_pull_request_review', 'merge_pull_request', 'get_pull_request_files', 'get_pull_request_status', 'update_pull_request_branch', 'get_pull_request_comments', 'get_pull_request_reviews', 'add_issue_comment', 'update_issue', 'list_issues', 'create_entities', 'create_relations', 'add_observations', 'delete_entities', 'delete_observations', 'delete_relations', 'read_graph', 'search_nodes', 'open_nodes'], // Include all tool calls for better context
+      exclude: [], // Include all tool calls for better context
     }),
     // Add custom processors as needed
   ],

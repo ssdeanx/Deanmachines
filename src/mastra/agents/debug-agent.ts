@@ -4,12 +4,12 @@ import { graphRAGTool, graphRAGUpsertTool } from '../tools/graphRAG';
 import { vectorQueryTool, hybridVectorSearchTool, enhancedVectorQueryTool } from "../tools/vectorQueryTool";
 import { chunkerTool } from "../tools/chunker-tool";
 import { rerankTool } from "../tools/rerank-tool";
-import { createAgentDualLogger } from '../config/upstashLogger';
+import { PinoLogger } from "@mastra/loggers";
 import { createGemini25Provider } from '../config/googleProvider';
 import { mcpTools } from '../tools/mcp';
 import { UPSTASH_PROMPT } from "@mastra/upstash";
 
-const logger = createAgentDualLogger('DebugAgent');
+const logger = new PinoLogger({ name: 'debugAgent', level: 'info' });
 logger.info('Initializing DebugAgent');
 
 /**

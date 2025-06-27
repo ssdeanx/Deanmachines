@@ -1,13 +1,13 @@
 import { Agent } from "@mastra/core/agent";
 import { upstashMemory } from '../upstashMemory';
 import { vectorQueryTool } from "../tools/vectorQueryTool";
-import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
 import { mcpTools } from '../tools/mcp';
 import { chunkerTool } from "../tools/chunker-tool";
 import { z } from "zod";
 import { graphRAGTool } from "../tools/graphRAG";
 import { UPSTASH_PROMPT } from "@mastra/upstash";
+import { PinoLogger } from "@mastra/loggers";
 
 /**
  * Runtime context type for the Git Agent
@@ -35,8 +35,8 @@ export type GitAgentRuntimeContext = {
   "hosting-service": "github" | "gitlab" | "bitbucket" | "other";
 };
 
-const logger = createAgentDualLogger('GitAgent');
-logger.info('Initializing GitAgent');
+const logger = new PinoLogger({ name: 'gitAgent', level: 'info' });
+logger.info('Initializing gitAgent');
 
 /**
  * Comprehensive Zod schemas for Git Agent validation

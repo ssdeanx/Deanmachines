@@ -8,6 +8,7 @@ import { z } from "zod";
 // Define environment schema
 const envSchema = z.object({
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().min(1, "Google AI API key is required"),
+  GOOGLE_API_KEY: z.string().min(1, "Google API key is required"),
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   PORT: z.coerce.number().default(3141),
@@ -41,6 +42,9 @@ const envSchema = z.object({
   LANGFUSE_TRACING: z.string().default("true").transform((val) => val === "true"),
   TAVILY_API_KEY: z.string().min(1, "Tavily API key is required"),
   RESEND_API_KEY: z.string().min(1, "Resend API key is required"),
+  EXA_API_KEY: z.string().min(1, "Exa API key is required"),
+  BRAVE_API_KEY: z.string().min(1, "Brave API key is required"),
+  SERPER_API_KEY: z.string().min(1, "Serper API key is required"),
   // Upstash Redis configuration (optional for logging)
   UPSTASH_REDIS_REST_URL: z.string().url().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
@@ -48,6 +52,7 @@ const envSchema = z.object({
   UPSTASH_MAX_LIST_LENGTH: z.coerce.number().min(1000).max(100000).default(10000),  
   UPSTASH_BATCH_SIZE: z.coerce.number().min(10).max(1000).default(100),
   UPSTASH_FLUSH_INTERVAL: z.coerce.number().min(1000).max(60000).default(10000),
+  OTEL_EXPORTER_OTLP_ENDPOINT: z.string().optional(),
   // Diffbot configuration for web scraping
   DIFFBOT_API_KEY: z.string().min(1, "Diffbot API key is required"),
   DIFFBOT_API_URL: z.string().url().default("https://api.diffbot.com"),

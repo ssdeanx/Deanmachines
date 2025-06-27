@@ -8,11 +8,11 @@ import { stockPriceTool } from "../tools/stock-tools";
 import { createGemini25Provider } from '../config/googleProvider';
 import { mcpTools } from '../tools/mcp';
 import { z } from "zod";
-import { createAgentDualLogger } from "../config/upstashLogger";
+import { PinoLogger } from "@mastra/loggers";
 import { UPSTASH_PROMPT } from "@mastra/upstash";
 
-const logger = createAgentDualLogger('DataAgent');
-logger.info('Initializing DataAgent');
+const logger = new PinoLogger({ name: 'dataAgent', level: 'info' });
+logger.info('Initializing dataAgent');
 
 /**
  * Runtime context type for the Data Agent

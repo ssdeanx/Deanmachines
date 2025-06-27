@@ -4,12 +4,13 @@ import { graphRAGTool } from '../tools/graphRAG';
 import { vectorQueryTool } from "../tools/vectorQueryTool";
 import { chunkerTool } from "../tools/chunker-tool";
 import { createGemini25Provider } from '../config/googleProvider';
-import { createAgentDualLogger } from '../config/upstashLogger';
 import { mcpTools } from '../tools/mcp';
 import { z } from 'zod';
 import { UPSTASH_PROMPT } from "@mastra/upstash";
+import { PinoLogger } from "@mastra/loggers";
 
-const logger = createAgentDualLogger('ReactAgent');
+const logger = new PinoLogger({ name: 'ReactAgent', level: 'info' });
+logger.info('Initializing ReactAgent');
 
 /**
  * Runtime context type for React-enhanced agent

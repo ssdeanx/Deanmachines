@@ -4,13 +4,13 @@ import { upstashMemory } from '../upstashMemory';
 import { graphRAGTool, graphRAGUpsertTool } from '../tools/graphRAG';
 import { vectorQueryTool, hybridVectorSearchTool } from "../tools/vectorQueryTool";
 import { chunkerTool } from "../tools/chunker-tool";
-import { createAgentDualLogger } from '../config/upstashLogger';
+import { PinoLogger } from "@mastra/loggers";
 import { createGemini25Provider } from '../config/googleProvider';
 import { mcpTools } from '../tools/mcp';
 import { mem0RememberTool, mem0MemorizeTool } from "../tools/mem0-tool";
 import { UPSTASH_PROMPT } from "@mastra/upstash";
 
-const logger = createAgentDualLogger('CodeAgent');
+const logger = new PinoLogger({ name: 'codeAgent', level: 'info' });
 logger.info('Initializing Code Agent');
 
 /**

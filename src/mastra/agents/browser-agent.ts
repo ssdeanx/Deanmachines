@@ -1,13 +1,13 @@
 import { Agent } from "@mastra/core/agent";
 import { upstashMemory } from '../upstashMemory';
 import { vectorQueryTool } from "../tools/vectorQueryTool";
-import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
 import { mcpTools } from '../tools/mcp';
 import { chunkerTool } from "../tools/chunker-tool";
 import { UPSTASH_PROMPT } from "@mastra/upstash";
+import { PinoLogger } from "@mastra/loggers";
 
-const logger = createAgentDualLogger('BrowserAgent');
+const logger = new PinoLogger({ name: 'browserAgent', level: 'info' });
 logger.info('Initializing BrowserAgent');
 
 /**

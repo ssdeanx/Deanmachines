@@ -3,7 +3,7 @@ import { upstashMemory } from '../upstashMemory';
 import { graphRAGTool, graphRAGUpsertTool } from '../tools/graphRAG';
 import { vectorQueryTool, hybridVectorSearchTool } from "../tools/vectorQueryTool";
 import { mem0RememberTool, mem0MemorizeTool } from "../tools/mem0-tool";
-import { createAgentDualLogger } from '../config/upstashLogger';
+
 import { weatherTool } from "../tools/weather-tool";
 import { stockPriceTool } from "../tools/stock-tools";
 import { chunkerTool } from "../tools/chunker-tool";
@@ -31,6 +31,7 @@ import { z } from 'zod';
 //import { CustomEvalMetric } from "../evals/customEval";
 import { WordInclusionMetric } from "../evals/wordInclusion";
 import { UPSTASH_PROMPT } from "@mastra/upstash";
+import { PinoLogger } from "@mastra/loggers";
 
 /**
  * Runtime context type for the Master Agent
@@ -50,7 +51,7 @@ export type MasterAgentRuntimeContext = {
 };
 
 // Create dual logger that sends logs to both PinoLogger (console) and Upstash (distributed)
-const logger = createAgentDualLogger('masterAgent', { level: 'info' });
+const logger = new PinoLogger({ name: 'masterAgent', level: 'info' });
 
 logger.debug("Debug message"); // Won't be logged because level is INFO
 logger.info("Master agent initialized - logging to both PinoLogger and Upstash");
@@ -199,95 +200,6 @@ ${UPSTASH_PROMPT}
     // Cached content for cost optimization (if you have cached content)
     // cachedContent: 'your-cache-id', // Uncomment if using explicit caching
     // Langfuse tracing configuration
-    agentName: 'master',
-    tags: [
-      // Agent Classification
-      'master-agent',
-      'orchestrator',
-      'problem-solver',
-      'enterprise-agent',
-
-      // Capabilities
-      'multi-tool',
-      'mcp-enabled',
-      'graph-rag',
-      'vector-search',
-      'memory-management',
-      'weather-data',
-      'stock-data',
-      'file-operations',
-      'git-operations',
-      'web-automation',
-      'database-operations',
-
-      // Model Features
-      'thinking-enabled',
-      'search-grounding',
-      'dynamic-retrieval',
-      'safety-off',
-      'structured-outputs',
-
-      // Scale & Scope
-      '50-plus-tools',
-      '11-mcp-servers',
-      'full-stack-capable',
-      'enterprise-scale'
-    ],
-    metadata: {
-      agentType: 'master',
-      capabilities: [
-        // Core Mastra Tools
-        'graph-rag',
-        'vector-search',
-        'hybrid-vector-search',
-        'memory-management',
-        'mem0-remember',
-        'mem0-memorize',
-        'chunker-tool',
-        'weather-data',
-        'stock-prices',
-        // MCP Server Capabilities (50+ tools across 11 servers)
-        'file-operations',      // filesystem MCP
-        'git-operations',       // git MCP
-        'web-fetch',           // fetch MCP
-        'browser-automation',   // puppeteer MCP
-        'github-integration',   // github MCP
-        'memory-graph',        // memoryGraph MCP
-        'web-search',          // ddgsearch MCP
-        'neo4j-database',      // neo4j MCP
-        'sequential-thinking', // sequentialThinking MCP
-        'tavily-search',       // tavily MCP
-        'code-sandbox'         // nodeCodeSandbox MCP
-      ],
-      toolCount: '50+', // Actual count with all MCP tools
-      coreTools: 8,     // Direct Mastra tools
-      mcpServers: 11,   // MCP server count
-      mcpServerList: [
-        'filesystem',
-        'git',
-        'fetch',
-        'puppeteer',
-        'github',
-        'memoryGraph',
-        'ddgsearch',
-        'neo4j',
-        'sequentialThinking',
-        'tavily',
-        'nodeCodeSandbox'
-      ],
-      modelConfig: {
-        thinkingBudget: 'dynamic',
-        safetyLevel: 'OFF',
-        searchGrounding: true,
-        dynamicRetrieval: true,
-        structuredOutputs: true,
-        responseModalities: ['TEXT']
-      },
-      complexity: 'enterprise',
-      domain: 'general',
-      scope: 'full-stack-development-and-operations'
-    },
-    traceName: 'master-agent-operations'
   }),
   tools: {
     graphRAGTool,

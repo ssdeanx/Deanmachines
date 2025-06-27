@@ -1,20 +1,20 @@
 import { Agent } from "@mastra/core/agent";
 import { upstashMemory } from '../upstashMemory';
 import { vectorQueryTool } from "../tools/vectorQueryTool";
-import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
 import { mcpTools } from '../tools/mcp';
 import { chunkerTool } from "../tools/chunker-tool";
+import { PinoLogger } from "@mastra/loggers";
+
+const logger = new PinoLogger({ name: 'managerAgent', level: 'info' });
+logger.info('Initializing managerAgent');
 
 import { graphRAGTool } from "../tools/graphRAG";
-
-const logger = createAgentDualLogger('ManagerAgent');
-logger.info('Initializing ManagerAgent');
 
 /**
  * Runtime context type for the Manager Agent
  * Stores project management preferences and coordination context
- * 
+ *
  * @mastra ManagerAgent runtime context interface
  * [EDIT: 2025-06-14] [BY: GitHub Copilot]
  */
@@ -40,7 +40,7 @@ export type ManagerAgentRuntimeContext = {
 /**
  * Manager agent for project management, task coordination, and resource planning
  * Specializes in agile methodologies, team coordination, and project delivery
- * 
+ *
  * @mastra ManagerAgent class
  * [EDIT: 2025-06-16] [BY: ss]
  */

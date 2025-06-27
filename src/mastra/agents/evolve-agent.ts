@@ -3,11 +3,11 @@ import { upstashMemory } from '../upstashMemory';
 import { graphRAGTool } from '../tools/graphRAG';
 import { vectorQueryTool } from "../tools/vectorQueryTool";
 import { chunkerTool } from "../tools/chunker-tool";
-import { createAgentDualLogger } from '../config/upstashLogger';
+import { PinoLogger } from "@mastra/loggers";
 import { createGemini25Provider } from '../config/googleProvider';
 import { mcpTools } from '../tools/mcp';
 
-const logger = createAgentDualLogger('EvolveAgent');
+const logger = new PinoLogger({ name: 'evolveAgent', level: 'info' });
 logger.info('Initializing EvolveAgent');
 
 /**

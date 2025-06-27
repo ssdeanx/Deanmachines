@@ -4,16 +4,16 @@ import { upstashMemory } from '../upstashMemory';
 import { graphRAGTool } from '../tools/graphRAG';
 import { vectorQueryTool, hybridVectorSearchTool } from "../tools/vectorQueryTool";
 import { chunkerTool } from "../tools/chunker-tool";
-import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
 import { mcpTools } from '../tools/mcp';
 import { UPSTASH_PROMPT } from "@mastra/upstash";
+import { PinoLogger } from "@mastra/loggers";
 
 
 /**
  * Runtime context type for the Graph Agent
  * Stores graph analysis preferences and relationship context
- * 
+ *
  * @mastra GraphAgent runtime context interface
  * [EDIT: 2025-06-14] [BY: GitHub Copilot]
  */
@@ -36,8 +36,8 @@ export type GraphAgentRuntimeContext = {
   "viz-format": "d3" | "cytoscape" | "graphviz" | "networkx" | "reactflow" | "@xyflow/react" | "other";
 };
 
-const logger = createAgentDualLogger('GraphAgent');
-logger.info('Initializing GraphAgent');
+const logger = new PinoLogger({ name: 'graphAgent', level: 'info' });
+logger.info('Initializing graphAgent');
 
 /**
  * Comprehensive Zod schemas for Graph Agent validation

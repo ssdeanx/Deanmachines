@@ -10,7 +10,6 @@ import { agentRegistry } from './agents';
 import { registerCopilotKit } from "@mastra/agui";
 import { deanMachinesNetwork, DeanMachinesNetworkRuntimeContext } from './networks/dean-machines-network';
 import { baseNetwork, BaseNetworkRuntimeContext } from './networks/base-network';
-import { createUpstashLogger } from './config/upstashLogger';
 import { PinoLogger } from '@mastra/loggers';
 import {
 MasterAgentRuntimeContext,
@@ -38,6 +37,7 @@ UtilityAgentRuntimeContext,
 ReactAgentRuntimeContext,
 LangGraphAgentRuntimeContext
 } from './agents';
+import { LangfuseExporter } from 'langfuse-vercel';
 //import { LangfuseExporter } from "langfuse-vercel";
 
 
@@ -56,12 +56,7 @@ LangGraphAgentRuntimeContext
  * - Both send logs to their respective destinations
  */
 
-// Create the Upstash logger for distributed logging (used by Mastra framework)
-const upstashLogger = createUpstashLogger({
-    name: 'ai',
-    level: env.LOG_LEVEL,
-    includeConsole: env.NODE_ENV === 'development'
-});
+
 
 // Create PinoLogger for local logging (maintains compatibility with existing agent files)
 const pinoLogger = new PinoLogger({ 
@@ -76,7 +71,7 @@ console.log('☁️ Upstash logger active for distributed logging (used by Mastr
 
 // Test both loggers to ensure they're working
 pinoLogger.info('PinoLogger initialized successfully');
-upstashLogger.info('Upstash logger initialized successfully');
+
 
 console.log('✅ Both logging systems are now active simultaneously');
 
@@ -86,26 +81,6 @@ console.log('✅ Both logging systems are now active simultaneously');
  */
 export { pinoLogger };
 
-/**
- * Test function to demonstrate dual logging system functionality
- * This shows that both PinoLogger and Upstash logger are working simultaneously
- */
-export function testDualLogging() {
-    console.log('\n🧪 Testing dual logging system...\n');
-    
-    // Test PinoLogger (used in agent files)
-    pinoLogger.info('✅ PinoLogger test message - this appears in console/local logs');
-    pinoLogger.warn('⚠️ PinoLogger warning test');
-    
-    // Test Upstash logger (used by Mastra framework)
-    upstashLogger.info('☁️ Upstash logger test message - this goes to Upstash Redis');
-    upstashLogger.warn('⚠️ Upstash warning test - distributed logging');
-    
-    console.log('\n✅ Dual logging test completed');
-    console.log('📝 Check console output for PinoLogger messages');
-    console.log('☁️ Check Upstash Redis dashboard for distributed logs');
-    console.log('🔗 Both logging systems are active and working simultaneously\n');
-}
 
 /**
  * This is the main entry point for the Mastra framework, which initializes
@@ -123,19 +98,23 @@ export const mastra = new Mastra({
     networks: {deanMachinesNetwork, baseNetwork},
     vnext_networks: { vNextNetwork },
     agents: agentRegistry,
-    logger: upstashLogger, // Mastra framework uses Upstash for distributed logging
+    logger: pinoLogger, // Mastra framework uses Pino for local logging
     telemetry: {
-        serviceName: "my-app",
+        serviceName: "ai",
         enabled: true,
         sampling: {
             type: "always_on",
         },
         export: {
-            type: "otlp",
-            endpoint: "http://localhost:4318", // SigNoz local endpoint
-            },
+            type: "custom",
+            tracerName: "mastra",
+            exporter: new LangfuseExporter({
+                publicKey: process.env.LANGFUSE_PUBLIC_KEY,
+                secretKey: process.env.LANGFUSE_SECRET_KEY,
+                baseUrl: process.env.LANGFUSE_HOST,
+            })},
         },
-        server: {
+    server: {
             cors: {
                 origin: "*",
                 allowMethods: ["*"],

@@ -3,11 +3,12 @@ import { upstashMemory } from '../upstashMemory';
 import { vectorQueryTool, hybridVectorSearchTool } from "../tools/vectorQueryTool";
 import { chunkerTool } from "../tools/chunker-tool";
 import { graphRAGTool, graphRAGUpsertTool } from "../tools/graphRAG";
-import { createAgentDualLogger } from '../config/upstashLogger';
+
 import { createGemini25Provider } from '../config/googleProvider';
 import { mcpTools } from '../tools/mcp';
 import { z } from 'zod';
 import { UPSTASH_PROMPT } from "@mastra/upstash";
+import { PinoLogger } from "@mastra/loggers";
 
 /**
  * Runtime context type for the Supervisor Agent
@@ -23,7 +24,7 @@ export type SupervisorAgentRuntimeContext = {
   "escalation-threshold": "low" | "medium" | "high" | "critical-only";
 };
 
-const logger = createAgentDualLogger('supervisorAgent');
+const logger = new PinoLogger({ name: 'supervisorAgent', level: 'info' });
 logger.info('Initializing supervisorAgent');
 
 /**
@@ -143,81 +144,6 @@ ${UPSTASH_PROMPT}
     safetyLevel: 'OFF', // Options: 'STRICT', 'MODERATE', 'PERMISSIVE', 'OFF'
     // Structured outputs for better tool integration
     structuredOutputs: true, // Enable structured JSON responses
-    agentName: 'supervisor',
-    tags: [
-      // Agent Classification
-      'supervisor-agent',
-      'orchestrator',
-      'problem-solver',
-      'enterprise-agent',
-
-      // Capabilities
-      'multi-tool',
-      'mcp-enabled',
-      'graph-rag',
-      'vector-search',
-      'memory-management',
-      'weather-data',
-      'stock-data',
-      'file-operations',
-      'git-operations',
-      'web-automation',
-      'database-operations',
-
-      // Model Features
-      'thinking-disabled',
-      'search-grounding',
-      'dynamic-retrieval',
-      'safety-off',
-      'structured-outputs',
-
-      // Scale & Scope
-      '50-plus-tools',
-      '5-mcp-servers',
-      'full-stack-capable',
-      'enterprise-scale'
-    ],
-    metadata: {
-      agentType: 'supervisor',
-      capabilities: [
-        // Core Mastra Tools
-        'graph-rag',
-        'vector-search',
-        'hybrid-vector-search',
-        'memory-management',
-        'chunker-tool',
-
-
-        // MCP Server Capabilities (50+ tools across 11 servers)
-        'file-operations',      // filesystem MCP
-        'git-operations',       // git MCP
-        'web-fetch',           // fetch MCP
-        'sequential-thinking', // sequentialThinking MCP
-        'tavily-search',       // tavily MCP
-      ],
-      toolCount: '50+', // Actual count with all MCP tools
-      coreTools: 8,     // Direct Mastra tools
-      mcpServers: 5,   // MCP server count
-      mcpServerList: [
-        'filesystem',
-        'git',
-        'fetch',
-        'sequentialThinking',
-        'tavily',
-      ],
-      modelConfig: {
-        thinkingBudget: 'dynamic',
-        safetyLevel: 'OFF',
-        searchGrounding: true,
-        dynamicRetrieval: true,
-        structuredOutputs: true,
-        responseModalities: ['TEXT']
-      },
-      complexity: 'enterprise',
-      domain: 'general',
-      scope: 'full-stack-development-and-operations'
-    },
-    traceName: 'supervisor-agent-operations'
   }),
   tools: {
     vectorQueryTool,

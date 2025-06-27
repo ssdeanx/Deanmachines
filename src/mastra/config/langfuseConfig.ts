@@ -25,9 +25,6 @@
 import { PinoLogger } from '@mastra/loggers';
 import { Langfuse } from 'langfuse';
 import { LangfuseExporter } from 'langfuse-vercel';
-import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
 
 // Type definitions for Langfuse configuration
 export interface LangfuseTraceConfig {
@@ -50,9 +47,7 @@ export interface LangfuseGenerationConfig {
   promptVersion?: number;
 }
 
-// Configure dayjs plugins
-dayjs.extend(utc);
-dayjs.extend(timezone);
+
 
 /**
  * Langfuse observability logger
@@ -78,29 +73,6 @@ export const langfuseConfig = {
   // Project and environment
   projectName: process.env.LANGFUSE_PROJECT || 'dean-machines-rsc',
   environment: process.env.NODE_ENV || 'development',
-  release: process.env.LANGFUSE_RELEASE || process.env.npm_package_version || '1.0.0',
-
-  // Performance optimization
-  flushAt: parseInt(process.env.LANGFUSE_FLUSH_AT || '15'), // Batch size for production
-  flushInterval: parseInt(process.env.LANGFUSE_FLUSH_INTERVAL || '10000'), // 10 seconds
-  requestTimeout: parseInt(process.env.LANGFUSE_REQUEST_TIMEOUT || '10000'), // 10 seconds
-
-  // Retry configuration for production resilience
-  maxRetries: parseInt(process.env.LANGFUSE_MAX_RETRIES || '3'),
-  retryDelay: parseInt(process.env.LANGFUSE_RETRY_DELAY || '1000'), // 1 second
-
-  // Debug and development
-  debug: process.env.LANGFUSE_DEBUG === 'true' || process.env.NODE_ENV === 'development',
-
-  // Security and compliance
-  enableLocalTelemetry: process.env.LANGFUSE_ENABLE_LOCAL_TELEMETRY !== 'false',
-  maskSensitiveData: process.env.LANGFUSE_MASK_SENSITIVE_DATA !== 'false',
-
-  // Sampling configuration for high-volume production
-  samplingRate: parseFloat(process.env.LANGFUSE_SAMPLING_RATE || '1.0'), // 100% by default
-
-  // SDK-specific configuration
-  sdkIntegration: process.env.LANGFUSE_SDK_INTEGRATION || 'vercel-ai-sdk',
 } as const;
 
 /**
@@ -121,29 +93,8 @@ export const createLangfuseClient = (): Langfuse | null => {
       publicKey: langfuseConfig.publicKey,
       secretKey: langfuseConfig.secretKey,
       baseUrl: langfuseConfig.baseUrl,
-
-      // Performance optimization
-      flushAt: langfuseConfig.flushAt,
-      flushInterval: langfuseConfig.flushInterval,
-      requestTimeout: langfuseConfig.requestTimeout,
-
-      // Production configuration
-      release: langfuseConfig.release,
-
-      // Additional production settings
       enabled: langfuseConfig.tracingEnabled,
     });
-
-    // Test connection in development
-    if (langfuseConfig.debug) {
-      langfuseLogger.info('Langfuse client initialized successfully', {
-        baseUrl: langfuseConfig.baseUrl,
-        environment: langfuseConfig.environment,
-        release: langfuseConfig.release,
-        flushAt: langfuseConfig.flushAt,
-        flushInterval: langfuseConfig.flushInterval,
-      });
-    }
 
     return client;
   } catch (error) {
@@ -230,7 +181,7 @@ export const traceAgentOperation = (
 
       // Tools and additional data
       toolsUsed: context?.tools,
-      timestamp: dayjs().utc().toISOString(),
+      timestamp: new Date().toISOString(),
       environment: langfuseConfig.environment,
       project: langfuseConfig.projectName,
 
@@ -292,7 +243,7 @@ export const completeAgentTrace = (
       // Status
       success: metrics?.success ?? true,
       error: metrics?.error,
-      completedAt: dayjs().utc().toISOString()
+      completedAt: new Date().toISOString()
     }
   });
 
@@ -331,7 +282,7 @@ export const traceToolUsage = (
       toolType: 'mcp',
       component: 'tool',
       framework: 'mastra',
-      timestamp: dayjs().utc().toISOString(),
+      timestamp: new Date().toISOString(),
       ...metadata
     }
   });
@@ -375,7 +326,7 @@ export const traceWorkflow = (
       framework: 'mastra',
       userId: context?.userId,
       sessionId: context?.sessionId,
-      timestamp: dayjs().utc().toISOString(),
+      timestamp: new Date().toISOString(),
       environment: langfuseConfig.environment,
       project: langfuseConfig.projectName,
       ...context?.metadata
@@ -442,7 +393,7 @@ export const createAgentMetadata = (
   operation,
   component: 'agent',
   framework: 'mastra',
-  timestamp: dayjs().utc().toISOString(),
+  timestamp: new Date().toISOString(),
   environment: langfuseConfig.environment,
   project: langfuseConfig.projectName,
   ...additionalData
@@ -460,7 +411,7 @@ export const createModelMetadata = (
   provider,
   component: 'model',
   framework: 'ai-sdk',
-  timestamp: dayjs().utc().toISOString(),
+  timestamp: new Date().toISOString(),
   environment: langfuseConfig.environment,
   project: langfuseConfig.projectName,
   ...additionalData
@@ -478,7 +429,7 @@ export const createWorkflowMetadata = (
   stepName,
   component: 'workflow',
   framework: 'mastra',
-  timestamp: dayjs().utc().toISOString(),
+  timestamp: new Date().toISOString(),
   environment: langfuseConfig.environment,
   project: langfuseConfig.projectName,
   ...additionalData
@@ -505,7 +456,7 @@ export const createEnhancedTraceParams = (
     name: traceName,
     input: typeof input === 'string' ? { prompt: input } : input,
     metadata: {
-      timestamp: dayjs().utc().toISOString(),
+      timestamp: new Date().toISOString(),
       framework: 'mastra',
       project: langfuseConfig.projectName,
       environment: langfuseConfig.environment,
@@ -571,7 +522,7 @@ export const createPromptGeneration = async (
         promptName,
         promptVersion,
         agentName: options?.agentName,
-        timestamp: dayjs().utc().toISOString(),
+        timestamp: new Date().toISOString(),
         ...options?.metadata
       }
     };

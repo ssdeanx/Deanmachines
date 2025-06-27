@@ -3,11 +3,11 @@ import { upstashMemory } from '../upstashMemory';
 import { vectorQueryTool, hybridVectorSearchTool } from "../tools/vectorQueryTool";
 import { chunkerTool } from "../tools/chunker-tool";
 import { graphRAGTool, graphRAGUpsertTool } from "../tools/graphRAG";
-import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
 import { mcpTools } from '../tools/mcp';
+import { PinoLogger } from "@mastra/loggers";
 
-const logger = createAgentDualLogger('sysadminAgent');
+const logger = new PinoLogger({ name: 'sysadminAgent', level: 'info' });
 logger.info('Initializing sysadminAgent');
 
 /**

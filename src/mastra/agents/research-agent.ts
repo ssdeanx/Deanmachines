@@ -5,9 +5,9 @@ import { upstashMemory } from '../upstashMemory';
 import { graphRAGTool } from '../tools/graphRAG';
 import { vectorQueryTool } from "../tools/vectorQueryTool";
 import { chunkerTool } from "../tools/chunker-tool";
-import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
 import { mcpTools } from '../tools/mcp';
+import { PinoLogger } from "@mastra/loggers";
 
 import { z } from 'zod';
 import { UPSTASH_PROMPT } from "@mastra/upstash";
@@ -39,7 +39,7 @@ export type ResearchAgentRuntimeContext = {
   "focus-area": string;
 };
 
-const logger = createAgentDualLogger('ResearchAgent');
+const logger = new PinoLogger({ name: 'ResearchAgent', level: 'info' });
 logger.info('Initializing ResearchAgent');
 
 const researchAgentInputSchema = z.object({

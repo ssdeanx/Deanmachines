@@ -6,15 +6,15 @@ import { upstashMemory } from '../upstashMemory';
 import { mcpTools } from '../tools/mcp';
 import { vectorQueryTool, hybridVectorSearchTool } from "../tools/vectorQueryTool";
 import { graphRAGTool, graphRAGUpsertTool } from "../tools/graphRAG";
-import { createAgentDualLogger } from '../config/upstashLogger';
+import { PinoLogger } from "@mastra/loggers";
 
-const logger = createAgentDualLogger('weatherAgent');
+const logger = new PinoLogger({ name: 'weatherAgent', level: 'info' });
 logger.info('Initializing weatherAgent');
 
 /**
  * Runtime context type for the Weather Agent
  * Stores weather-specific preferences and location context
- * 
+ *
  * @mastra WeatherAgent runtime context interface
  * [EDIT: 2025-06-14] [BY: GitHub Copilot]
  */

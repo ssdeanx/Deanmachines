@@ -2,17 +2,18 @@ import { Agent } from "@mastra/core/agent";
 import { upstashMemory } from '../upstashMemory';
 import { vectorQueryTool, hybridVectorSearchTool } from "../tools/vectorQueryTool";
 import { chunkerTool } from "../tools/chunker-tool";
-import { createAgentDualLogger } from '../config/upstashLogger';
+import { PinoLogger } from "@mastra/loggers";
 import { createGemini25Provider } from '../config/googleProvider';
 import { mcpTools } from '../tools/mcp';
 import { UPSTASH_PROMPT } from "@mastra/upstash";
-const logger = createAgentDualLogger('DesignAgent');
+
+const logger = new PinoLogger({ name: 'designAgent', level: 'info' });
 logger.info('Initializing DesignAgent');
 
 /**
  * Runtime context type for the Design Agent
  * Stores design preferences and visual context
- * 
+ *
  * @mastra DesignAgent runtime context interface
  * [EDIT: 2025-06-14] [BY: GitHub Copilot]
  */

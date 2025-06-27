@@ -2,12 +2,12 @@ import { Agent } from "@mastra/core/agent";
 import { upstashMemory } from '../upstashMemory';
 import { vectorQueryTool } from "../tools/vectorQueryTool";
 import { chunkerTool } from "../tools/chunker-tool";
-import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
 import { mcpTools } from '../tools/mcp';
+import { PinoLogger } from "@mastra/loggers";
 
-const logger = createAgentDualLogger('MarketingAgent');
-logger.info('Initializing MarketingAgent');
+const logger = new PinoLogger({ name: 'marketingAgent', level: 'info' });
+logger.info('Initializing marketingAgent');
 
 /**
  * Runtime context for the Marketing Agent

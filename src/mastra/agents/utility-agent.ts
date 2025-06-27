@@ -1,14 +1,14 @@
 import { Agent } from "@mastra/core/agent";
 import { upstashMemory } from '../upstashMemory';
 import { hybridVectorSearchTool, vectorQueryTool } from "../tools/vectorQueryTool";
-import { createAgentDualLogger } from '../config/upstashLogger';
 import { createGemini25Provider } from '../config/googleProvider';
 import { mcpTools } from '../tools/mcp';
 import { chunkerTool } from "../tools/chunker-tool";
 import { graphRAGTool, graphRAGUpsertTool } from "../tools/graphRAG";
 import { mem0RememberTool, mem0MemorizeTool } from "../tools/mem0-tool";
+import { PinoLogger } from "@mastra/loggers";
 
-const logger = createAgentDualLogger('utilityAgent');
+const logger = new PinoLogger({ name: 'utilityAgent', level: 'info' });
 logger.info('Initializing utilityAgent');
 
 /**
