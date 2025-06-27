@@ -545,4 +545,5 @@ This file contains the rules and guidelines for the AI coding assistant to follo
       - `src/mastra/agents/processing-agent.ts` - Data transformation and workflow automation
       - `src/mastra/agents/sysadmin-agent.ts` - System administration and DevOps
       - `src/mastra/agents/browser-agent.ts` - Web automation with Playwright
-- When fixing "Unexpected any. Specify a different
+
+- When asked to fill out a file (e

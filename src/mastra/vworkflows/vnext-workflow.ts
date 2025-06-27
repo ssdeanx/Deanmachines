@@ -24,9 +24,9 @@ import { documentationAgent } from '../agents/documentation-agent';
 
 // Workflow imports
 import { researchAnalysisWorkflow } from '../workflows/research-analysis-workflow';
-import { fullStackDevelopmentWorkflow } from '../workflows/full-stack-development-workflow';
-import { advancedCodeGraphMakerWorkflow } from '../workflows/code-graph-maker-advanced';
-import { codeGraphMakerWorkflow } from '../workflows/code-graph-maker';
+//import { fullStackDevelopmentWorkflow } from '../workflows/full-stack-development-workflow';
+//import { advancedCodeGraphMakerWorkflow } from '../workflows/code-graph-maker-advanced';
+//import { codeGraphMakerWorkflow } from '../workflows/code-graph-maker';
 
 // Define agents
 const synthesisAgent = new Agent({
@@ -70,9 +70,6 @@ const vNextAgents = {
 // Workflow collection
 const vNextWorkflows = {
   'research-workflow': researchAnalysisWorkflow,
-  'development-workflow': fullStackDevelopmentWorkflow,
-  'code-graph-advanced': advancedCodeGraphMakerWorkflow,
-  'code-graph': codeGraphMakerWorkflow
 };
 
 // Network configuration (EXACTLY as per documentation)
@@ -105,7 +102,7 @@ const vNextNetwork = new NewAgentNetwork({
 // Single task execution (as per documentation)
 export async function vNextSingleTask(task: string, options = {}) {
   const runtimeContext = new RuntimeContext();
-  return vNextNetwork.generate(task, { 
+  return vNextNetwork.generate(task, {
     runtimeContext,
     ...options
   });

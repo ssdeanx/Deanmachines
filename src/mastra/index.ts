@@ -59,9 +59,9 @@ import { LangfuseExporter } from 'langfuse-vercel';
 
 
 // Create PinoLogger for local logging (maintains compatibility with existing agent files)
-const pinoLogger = new PinoLogger({ 
-    name: 'ai', 
-    level: env.LOG_LEVEL 
+const pinoLogger = new PinoLogger({
+    name: 'ai',
+    level: env.LOG_LEVEL
 });
 
 // Initialize both logging systems with status messages
@@ -96,7 +96,7 @@ export const mastra = new Mastra({
         researchAnalysisWorkflow
     },
     networks: {deanMachinesNetwork, baseNetwork},
-    vnext_networks: { vNextNetwork },
+    vnext_networks: { 'dean-machines-vnext': vNextNetwork },
     agents: agentRegistry,
     logger: pinoLogger, // Mastra framework uses Pino for local logging
     telemetry: {

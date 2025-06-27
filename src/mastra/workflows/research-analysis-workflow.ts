@@ -11,9 +11,9 @@ import {
 } from '../agents';
 import { generateId } from 'ai';
 
-const logger = new PinoLogger({ 
-  name: 'researchAnalysisWorkflow', 
-  level: 'info' 
+const logger = new PinoLogger({
+  name: 'researchAnalysisWorkflow',
+  level: 'info'
 });
 
 logger.info('Initializing Research Analysis Workflow');
@@ -29,10 +29,10 @@ type DetailedFinding = {
 
 /**
  * Comprehensive Research Analysis Workflow
- * 
+ *
  * This workflow provides advanced research capabilities for any topic using
  * intelligent multi-agent orchestration, following Mastra's best practices.
- * 
+ *
  * Features:
  * - Multi-source research with intelligent discovery
  * - Advanced analysis with pattern recognition
@@ -158,10 +158,11 @@ const initializeResearchStep = createStep({
   id: 'initialize-research',
   description: 'Initialize research workflow with strategy planning',
   inputSchema: researchInputSchema,
-  outputSchema: baseWorkflowSchema,  execute: async ({ inputData }) => {
+  outputSchema: baseWorkflowSchema,
+  execute: async ({ inputData }) => {
     const workflowId = generateId();
     const startTime = Date.now();
-    
+
     logger.info('Research workflow initialization started', {
       workflowId,
       topic: inputData.topic,
@@ -169,28 +170,31 @@ const initializeResearchStep = createStep({
       audience: inputData.options?.audience || 'general',
       event: 'workflow_init_started'
     });
-    
+
     try {
       // Use processingAgent to plan research strategy
       const { text: strategyText } = await processingAgent.generate([
-        { 
-          role: 'user', 
+        {
+          role: 'user',
           content: `Plan a comprehensive research strategy for: "${inputData.topic}"
             Research Depth: ${inputData.options?.depth || 'moderate'}
             Focus Areas: ${inputData.options?.focusAreas?.join(', ') || 'general'}
             Target Audience: ${inputData.options?.audience || 'general'}
-            
+
             Return a JSON object with:
             1. strategy: overall approach description
             2. discoveredSources: initial list of relevant sources (URLs, databases, etc.)
             3. researchPlan: structured plan with phases
             4. estimatedDuration: expected research time
             5. qualityMetrics: how to measure research quality
-            
-            Ensure all sources are real, accessible, and relevant to the topic.` 
+
+            Ensure all sources are real, accessible, and relevant to the topic.
+            Return only the JSON object with the specified fields.
+            Do not include any additional text or explanation.
+            `
         }
       ]);
-      
+
       let planData;
       try {
         planData = JSON.parse(strategyText || '{}');
@@ -210,14 +214,14 @@ const initializeResearchStep = createStep({
           qualityMetrics: ['Source credibility', 'Data freshness', 'Coverage completeness']
         };
       }
-      
+
       logger.info('Research strategy planned successfully', {
         workflowId,
         strategy: planData.strategy,
         sourcesCount: planData.discoveredSources?.length || 0,
         event: 'strategy_planned'
       });
-      
+
       return {
         workflowId,
         topic: inputData.topic,
@@ -244,33 +248,34 @@ const conductResearchStep = createStep({
   inputSchema: baseWorkflowSchema,
   outputSchema: baseWorkflowSchema.extend({
     researchData: researchDataSchema,
-  }),  execute: async ({ inputData }) => {
+  }),
+  execute: async ({ inputData }) => {
     logger.info('Research data collection started', {
       workflowId: inputData.workflowId,
       depth: inputData.options?.depth || 'moderate',
       sourcesCount: inputData.discoveredSources.length,
       event: 'research_started'
     });
-    
+
     try {
       const depth = inputData.options?.depth || 'moderate';
       const focusAreas = inputData.options?.focusAreas;
-      
+
       // Primary research using researchAgent with comprehensive MCP tools
       const { text: primaryResearch } = await researchAgent.generate([
-        { 
-          role: 'user', 
+        {
+          role: 'user',
           content: `Conduct ${depth} research on: "${inputData.topic}"
             Focus Areas: ${focusAreas?.join(', ') || 'all aspects'}
             Sources to investigate: ${inputData.discoveredSources.join(', ')}
-            
+
             Use the available MCP tools for comprehensive research:
             1. Use 'fetch' and 'puppeteer' servers for web browsing and data collection
             2. Use 'duckduckgo' server for web search across multiple sources
             3. Use 'github' server if relevant repositories exist
             4. Use 'neo4j' and 'memoryGraph' for knowledge graph analysis
             5. Use vector search tools for related content discovery
-            
+
             Provide comprehensive research findings with:
             - Current state and recent developments
             - Key insights and findings with evidence
@@ -280,13 +285,14 @@ const conductResearchStep = createStep({
             - Future trends and predictions
             - Properly cited sources with credibility assessment
             - Structured key themes and categories
-            
-            Format as structured research with clear sections and citations.` 
+
+            Format as structured research with clear sections and citations.
+            `
         }
       ]);      // Extract key themes from research using real pattern analysis
       const themes: string[] = [];
       const researchLower = primaryResearch.toLowerCase();
-      
+
       // Real theme extraction logic
       const themePatterns = [
         { pattern: /(trend|trending|emerging)/g, theme: 'emerging-trends' },
@@ -297,29 +303,29 @@ const conductResearchStep = createStep({
         { pattern: /(social|cultural|demographic)/g, theme: 'social-impact' },
         { pattern: /(future|forecast|prediction|outlook)/g, theme: 'future-outlook' }
       ];
-      
+
       themePatterns.forEach(({ pattern, theme }) => {
         if (pattern.test(researchLower) && !themes.includes(theme)) {
           themes.push(theme);
         }
       });
-      
+
       if (themes.length === 0) themes.push('general-analysis');
-      
+
       const researchData = {
         primaryResearch: primaryResearch || 'Research completed with comprehensive analysis',
         webResearch: `Web research completed using MCP tools - ${inputData.discoveredSources.length} sources analyzed`,
         sources: inputData.discoveredSources,
         keyThemes: themes,
       };
-      
+
       logger.info('Research data collection completed', {
         workflowId: inputData.workflowId,
         themesFound: themes.length,
         researchLength: primaryResearch.length,
         event: 'research_completed'
       });
-      
+
       return {
         ...inputData,
         researchData,
@@ -352,33 +358,33 @@ const analyzeResearchStep = createStep({
       sourcesCount: inputData.researchData.sources.length,
       event: 'analysis_started'
     });
-    
+
     try {
       // Use analyzerAgent for comprehensive analysis
       const { text: analysisText } = await analyzerAgent.generate([
-        { 
-          role: 'user', 
+        {
+          role: 'user',
           content: `Analyze research data for: "${inputData.topic}"
-            
+
             Primary Research: ${inputData.researchData.primaryResearch}
             Web Research: ${inputData.researchData.webResearch}
             Key Themes: ${inputData.researchData.keyThemes.join(', ')}
-            
+
             Provide comprehensive analysis including:
             1. Executive summary (2-3 paragraphs highlighting key findings)
             2. Detailed findings by category with:
-               - Content analysis
-               - Source credibility assessment 
-               - Confidence scores (0.0-1.0)
-               - Relevance scores (0.0-1.0)
+              - Content analysis
+              - Source credibility assessment
+              - Confidence scores (0.0-1.0)
+              - Relevance scores (0.0-1.0)
             3. Key insights and patterns discovered
             4. Data quality assessment
             5. Gaps and limitations identified
-            
-            Return structured analysis in JSON format with proper scoring.` 
+
+            Return structured analysis in JSON format with proper scoring.`
         }
       ]);
-      
+
       let analysisResults;
       try {
         const parsedAnalysis = JSON.parse(analysisText || '{}');
@@ -422,7 +428,7 @@ const analyzeResearchStep = createStep({
         averageConfidence: analysisResults.detailedFindings.reduce((sum: number, finding: { confidence: number }) => sum + finding.confidence, 0) / analysisResults.detailedFindings.length,
         event: 'analysis_completed'
       });
-      
+
       return {
         ...inputData,
         analysisResults,
@@ -450,9 +456,10 @@ const generateVisualizationsStep = createStep({
     researchData: researchDataSchema,
     analysisResults: analysisResultsSchema,
     visualizations: z.array(visualizationSchema).optional(),
-  }),  execute: async ({ inputData }) => {
+  }),
+  execute: async ({ inputData }) => {
     const includeVisuals = inputData.options?.includeVisuals ?? true;
-    
+
     if (!includeVisuals) {
       logger.info('Visualizations skipped per user preference', {
         workflowId: inputData.workflowId,
@@ -460,37 +467,37 @@ const generateVisualizationsStep = createStep({
       });
       return { ...inputData, visualizations: [] };
     }
-    
+
     logger.info('Visualization generation started', {
       workflowId: inputData.workflowId,
       findingsCount: inputData.analysisResults.detailedFindings.length,
       event: 'visualization_started'
     });
-    
+
     try {
       // Use documentationAgent to create structured visualizations
       const { text: vizText } = await documentationAgent.generate([
-        { 
-          role: 'user', 
+        {
+          role: 'user',
           content: `Create visualization specifications for research on: "${inputData.topic}"
-            
+
             Analysis Summary: ${inputData.analysisResults.executiveSummary}
             Detailed Findings: ${JSON.stringify(inputData.analysisResults.detailedFindings)}
             Key Themes: ${inputData.researchData.keyThemes.join(', ')}
-            
+
             Generate structured visual representations including:
             1. Executive dashboard summary with key metrics
             2. Theme distribution analysis
             3. Confidence and relevance scoring charts
             4. Source credibility assessment
             5. Trend analysis visualization
-            
+
             Return JSON with visualization specifications in this format:
             {
               "visualizations": [
                 {
                   "type": "dashboard|chart|table|heatmap",
-                  "title": "descriptive title", 
+                  "title": "descriptive title",
                   "data": {
                     "chartData": [{"label": "string", "value": number, "category": "string"}],
                     "tableData": [{"column1": "value", "column2": number}],
@@ -499,10 +506,10 @@ const generateVisualizationsStep = createStep({
                   "insights": "key insights from this visualization"
                 }
               ]
-            }` 
+            }`
         }
       ]);
-      
+
       let visualizations;
       try {
         const vizData = JSON.parse(vizText || '{}');
@@ -574,13 +581,13 @@ const generateVisualizationsStep = createStep({
           }
         ];
       }
-      
+
       logger.info('Visualization generation completed', {
         workflowId: inputData.workflowId,
         visualizationsCreated: visualizations.length,
         event: 'visualization_completed'
       });
-      
+
       return {
         ...inputData,
         visualizations,
@@ -604,7 +611,8 @@ const generateRecommendationsStep = createStep({
     researchData: researchDataSchema,
     analysisResults: analysisResultsSchema,
     visualizations: z.array(visualizationSchema).optional(),
-  }),  outputSchema: baseWorkflowSchema.extend({
+  }),
+  outputSchema: baseWorkflowSchema.extend({
     researchData: researchDataSchema,
     analysisResults: analysisResultsSchema,
     visualizations: z.array(visualizationSchema).optional(),
@@ -617,30 +625,30 @@ const generateRecommendationsStep = createStep({
   }),
   execute: async ({ inputData }) => {
     console.log(`[${inputData.workflowId}] Generating recommendations...`);
-    
+
     try {
       const generateActions = inputData.options?.generateActions ?? true;
       const audience = inputData.options?.audience || 'general';
-      
+
       // Use supervisorAgent for strategic recommendations
       const { text: recText } = await masterAgent.generate([
-        { 
-          role: 'user', 
+        {
+          role: 'user',
           content: `Generate strategic recommendations for: "${inputData.topic}"
-            
+
             Analysis: ${JSON.stringify(inputData.analysisResults)}
             Target Audience: ${audience}
-            
+
             Provide:
             1. Prioritized recommendations
             2. Implementation strategies
             3. Expected impact
             4. Action items
-            
-            Return structured recommendations in JSON format.` 
+
+            Return structured recommendations in JSON format.`
         }
       ]);
-      
+
       let recommendationData;
       try {
         recommendationData = JSON.parse(recText || '{}');
@@ -660,9 +668,9 @@ const generateRecommendationsStep = createStep({
           }] : [],
         };
       }
-      
+
       console.log(`[${inputData.workflowId}] Generated ${recommendationData.recommendations?.length || 0} recommendations`);
-      
+
       return {
         ...inputData,
         recommendations: recommendationData.recommendations || [],
@@ -685,7 +693,7 @@ const generateRecommendationsStep = createStep({
   },
 });
 
-// Step 6: Finalize workflow  
+// Step 6: Finalize workflow
 const finalizeWorkflowStep = createStep({
   id: 'finalize-workflow',
   description: 'Finalize workflow and prepare output',
@@ -699,10 +707,10 @@ const finalizeWorkflowStep = createStep({
   outputSchema: researchOutputSchema,
   execute: async ({ inputData }) => {
     console.log(`[${inputData.workflowId}] Finalizing workflow...`);
-    
+
     try {
       const duration = (Date.now() - inputData.startTime) / 1000;
-      
+
       const result = {
         workflowId: inputData.workflowId,
         executiveSummary: inputData.analysisResults?.executiveSummary || 'Research analysis completed',
