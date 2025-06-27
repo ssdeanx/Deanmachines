@@ -1,0 +1,14 @@
+Checking /home/runner/work/Deanmachines/Deanmachines/package.json
+
+Patch   Backwards-compatible bug fixes
+ framer-motion  ^12.19.1  →  ^12.19.2
+
+Minor   Backwards-compatible features
+ next  15.3.4  →  15.4.0
+
+Major version zero   Anything may change
+ @langchain/google-genai   ^0.2.13  →   ^0.2.14
+ langsmith                 ^0.3.33  →   ^0.3.34
+ lucide-react             ^0.523.0  →  ^0.525.0
+
+Run npx npm-check-updates --target minor --format group -u to upgrade package.json
