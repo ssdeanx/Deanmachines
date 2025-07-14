@@ -1,0 +1,58 @@
+Checking /home/runner/work/Deanmachines/Deanmachines/package.json
+
+Patch   Backwards-compatible bug fixes
+ @ai-sdk/google       ^1.2.19  →   ^1.2.22
+ @mastra/agui          ^1.0.4  →    ^1.0.6
+ @mastra/rag           ^1.0.1  →    ^1.0.2
+ @next/mdx            ^15.3.4  →   ^15.3.5
+ @xyflow/react        ^12.8.0  →   ^12.8.2
+ ai                   ^4.3.16  →   ^4.3.17
+ crawlee              ^3.13.9  →  ^3.13.10
+ eslint-config-next    15.3.4  →    15.3.5
+ isomorphic-git       ^1.32.0  →   ^1.32.1
+ sonner                ^2.0.5  →    ^2.0.6
+ tw-animate-css        ^1.3.4  →    ^1.3.5
+ zod                 ^3.25.67  →  ^3.25.76
+
+Minor   Backwards-compatible features
+ @inquirer/prompts                    ^7.5.3  →    ^7.6.0
+ @react-three/drei                   ^10.3.0  →   ^10.5.0
+ @react-three/fiber                   ^9.1.2  →    ^9.2.0
+ @types/node                       ^22.15.33  →  ^22.16.3
+ @typescript-eslint/eslint-plugin    ^8.35.0  →   ^8.36.0
+ @typescript-eslint/parser           ^8.35.0  →   ^8.36.0
+ eslint                              ^9.29.0  →   ^9.31.0
+ framer-motion                      ^12.19.1  →  ^12.23.3
+ langfuse-vercel                     ^3.37.6  →   ^3.38.4
+ next                                 15.3.4  →    15.4.0
+ react-day-picker                     ^9.7.0  →    ^9.8.0
+ react-hook-form                     ^7.58.1  →   ^7.60.0
+ recharts                             ^3.0.2  →    ^3.1.0
+ typescript-eslint                   ^8.35.0  →   ^8.36.0
+
+Major version zero   Anything may change
+ @langchain/community                      ^0.3.47  →   ^0.3.48
+ @langchain/core                           ^0.3.61  →   ^0.3.62
+ @langchain/google-genai                   ^0.2.13  →   ^0.2.14
+ @langchain/langgraph                       ^0.3.5  →    ^0.3.8
+ @mastra/client-js                         ^0.10.7  →  ^0.10.11
+ @mastra/core                              ^0.10.8  →  ^0.10.12
+ @mastra/fastembed                         ^0.10.0  →   ^0.10.1
+ @mastra/loggers                           ^0.10.2  →   ^0.10.3
+ @mastra/mcp                               ^0.10.5  →   ^0.10.6
+ @mastra/mcp-docs-server                   ^0.13.2  →   ^0.13.5
+ @mastra/memory                            ^0.11.0  →   ^0.11.2
+ @mastra/pg                                ^0.12.0  →   ^0.12.2
+ @mastra/upstash                           ^0.12.0  →   ^0.12.1
+ @opentelemetry/exporter-trace-otlp-http  ^0.202.0  →  ^0.203.0
+ @opentelemetry/instrumentation           ^0.202.0  →  ^0.203.0
+ @opentelemetry/instrumentation-http      ^0.202.0  →  ^0.203.0
+ @opentelemetry/otlp-transformer          ^0.202.0  →  ^0.203.0
+ @types/shelljs                            ^0.8.16  →   ^0.8.17
+ freestyle-sandboxes                       ^0.0.81  →   ^0.0.92
+ langsmith                                 ^0.3.33  →   ^0.3.44
+ lucide-react                             ^0.523.0  →  ^0.525.0
+ mastra                                    ^0.10.8  →  ^0.10.12
+ three                                    ^0.177.0  →  ^0.178.0
+
+Run npx npm-check-updates --target minor --format group -u to upgrade package.json
