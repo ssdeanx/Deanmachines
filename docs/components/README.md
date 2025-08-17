@@ -1,5 +1,5 @@
 # Component Documentation
-Auto-generated: Sun Aug 10 02:51:17 UTC 2025
+Auto-generated: Sun Aug 17 02:44:48 UTC 2025
 
 - [lightning-cursor](src/components/effects/lightning-cursor.tsx)
 - [LightningBackground](src/components/effects/LightningBackground.tsx)
