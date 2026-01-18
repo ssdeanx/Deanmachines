@@ -1,5 +1,5 @@
 # Component Documentation
-Auto-generated: Sun Jan 11 02:54:19 UTC 2026
+Auto-generated: Sun Jan 18 02:53:35 UTC 2026
 
 - [mdx-component](src/components/mdx-component.tsx)
 - [providers](src/components/providers.tsx)
